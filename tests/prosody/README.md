@@ -1,7 +1,7 @@
 # Prosody Plugin Integration Tests
 
 Integration tests for the Jitsi Prosody plugins. Tests run against a real Prosody 13 instance
-inside Docker and connect to it over plain XMPP and HTTP.
+inside Docker and connect to it over XMPP WebSocket and HTTP.
 
 ## Architecture and Lifecycle
 
@@ -13,8 +13,8 @@ and torn down after all tests complete.
 npm test
   └─ Mocha (setup.js beforeAll)
        └─ Docker container: Prosody 13
-            ├─ XMPP c2s  :5222   ← test clients connect here
-            └─ HTTP       :5280   ← test assertions query here
+            └─ HTTP :5280   ← test clients connect via WebSocket (/xmpp-websocket)
+                            ← test assertions query HTTP endpoints here
 ```
 
 Test clients are anonymous XMPP connections (`@xmpp/client`). Rooms are created by joining
@@ -102,8 +102,12 @@ tests/prosody/
 ├── lua/
 │   └── jwk_spec.lua                busted unit tests for token/jwk.lib.lua (no Prosody needed)
 │
-├── mod_muc_hide_all_spec.js        Tests for mod_muc_hide_all
-└── mod_muc_max_occupants_spec.js   Tests for mod_muc_max_occupants
+├── mod_conference_duration_spec.js  Tests for mod_conference_duration
+├── mod_muc_filter_access_spec.js    Tests for mod_muc_filter_access
+├── mod_muc_hide_all_spec.js         Tests for mod_muc_hide_all
+├── mod_muc_max_occupants_spec.js    Tests for mod_muc_max_occupants
+├── mod_muc_meeting_id_spec.js       Tests for mod_muc_meeting_id
+└── mod_muc_size_spec.js             Tests for mod_muc_size
 ```
 
 The plugin sources under test (`mod_muc_hide_all.lua`, `mod_muc_max_occupants.lua`, etc.) live
@@ -123,6 +127,11 @@ npm test             # runs Lua unit tests, integration tests, and generates All
 1. `test:lua` — busted unit tests for pure Lua code (skipped gracefully if busted is not installed)
 2. `test:integration` — Mocha integration tests against a Docker Prosody instance
 3. `test:report` — generates `allure-report/` from both test suites
+
+To run a single spec file with container debug output:
+```bash
+DEBUG=testcontainers,testcontainers:containers npm run test:one -- <spec-file>
+```
 
 To open the report after a run:
 ```bash
