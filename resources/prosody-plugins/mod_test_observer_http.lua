@@ -251,6 +251,39 @@ module:provides("http", {
             };
         end;
 
+        -- GET /test-observer/sessions/features?jid=user@localhost/resource
+        -- Returns the live jitsi_meet_context_features for the session.
+        -- Reading live (not a snapshot) captures side-effects from modules such as
+        -- mod_jitsi_permissions, which may set or update features after resource-bind.
+        -- Returns 200 {"features": <object|null>} or 404.
+        ["GET /sessions/features"] = function(event)
+            local params = parse_query(event.request.url.query);
+            local full_jid = params["jid"];
+            if not full_jid then
+                return { status_code = 400; body = '{"error":"missing jid param"}' };
+            end
+            local node, host, resource = jid_lib.split(full_jid);
+            local host_obj = host and prosody.hosts[host];
+            if not host_obj then
+                return { status_code = 404; body = '{"error":"host not found"}' };
+            end
+            local user_obj = host_obj.sessions and host_obj.sessions[node];
+            if not user_obj then
+                return { status_code = 404; body = '{"error":"user not found"}' };
+            end
+            local session = user_obj.sessions and user_obj.sessions[resource];
+            if not session then
+                return { status_code = 404; body = '{"error":"session not found"}' };
+            end
+            local features = session.jitsi_meet_context_features;
+            local body = features and json.encode({ features = features }) or '{"features":null}';
+            return {
+                status_code = 200;
+                headers = { ["Content-Type"] = "application/json" };
+                body = body;
+            };
+        end;
+
         -- GET /test-observer/rooms/participants?jid=room@conference.localhost
         -- Returns: { participants_details: { userId: fullNick }, kicked_participant_nick?, flip_participant_nick? }
         -- Exposes mod_muc_flip's per-room tracking tables for test assertions.
@@ -350,6 +383,86 @@ module:provides("http", {
                 status_code = 200;
                 headers = { ["Content-Type"] = "application/json" };
                 body = json.encode(info);
+            };
+        end;
+
+        -- POST /test-observer/rooms/lobby
+        -- Body: { "jid": "room@conference.localhost", "enabled": true|false }
+        -- Enables or disables the lobby for the given room by firing the
+        -- create-lobby-room / destroy-lobby-room global Prosody events.
+        -- Enabling also sets members-only; disabling unsets it.
+        -- Response: { ok, lobbyroom } (lobbyroom is nil when disabling).
+        ["POST /rooms/lobby"] = function(event)
+            local data = json.decode(event.request.body or "{}") or {};
+            local room_jid = data.jid;
+            local enabled = data.enabled;
+            if not room_jid then
+                return { status_code = 400; body = '{"error":"missing jid"}' };
+            end
+            local room = (shared.rooms or {})[room_jid];
+            if not room then
+                return { status_code = 404; body = '{"error":"room not found"}' };
+            end
+            if enabled then
+                prosody.events.fire_event('create-lobby-room', { room = room });
+            else
+                room:set_members_only(false);
+                prosody.events.fire_event('destroy-lobby-room', { room = room });
+            end
+            return {
+                status_code = 200;
+                headers = { ["Content-Type"] = "application/json" };
+                body = json.encode({ ok = true; lobbyroom = room._data.lobbyroom });
+            };
+        end;
+
+        -- POST /test-observer/rooms/affiliation
+        -- Body: { "jid": "room@conference.localhost", "occupant_jid": "user@localhost", "affiliation": "member" }
+        -- Sets the affiliation of occupant_jid in the given room.
+        ["POST /rooms/affiliation"] = function(event)
+            local data = json.decode(event.request.body or "{}") or {};
+            local room_jid = data.jid;
+            local occupant_jid = data.occupant_jid;
+            local affiliation = data.affiliation;
+            if not room_jid or not occupant_jid or not affiliation then
+                return { status_code = 400; body = '{"error":"missing required fields"}' };
+            end
+            local room = (shared.rooms or {})[room_jid];
+            if not room then
+                return { status_code = 404; body = '{"error":"room not found"}' };
+            end
+            room:set_affiliation(true, occupant_jid, affiliation);
+            return {
+                status_code = 200;
+                headers = { ["Content-Type"] = "application/json" };
+                body = '{"ok":true}';
+            };
+        end;
+
+        -- GET /test-observer/rooms/metadata?jid=room@conference.localhost
+        -- Returns: { jid, metadata } where metadata is room.jitsiMetadata.
+        ["GET /rooms/metadata"] = function(event)
+            local params = parse_query(event.request.url.query);
+            local room_jid = params["jid"];
+            if not room_jid then
+                return { status_code = 400; body = '{"error":"missing jid param"}' };
+            end
+            local rooms = shared.rooms or {};
+            local room = rooms[room_jid];
+            if not room then
+                return { status_code = 404; body = '{"error":"room not found"}' };
+            end
+            local encoded, err = json.encode({
+                jid = room.jid;
+                metadata = room.jitsiMetadata or {};
+            });
+            if not encoded then
+                return { status_code = 500; body = json.encode({ error = 'encode failed: ' .. tostring(err) }) };
+            end
+            return {
+                status_code = 200;
+                headers = { ["Content-Type"] = "application/json" };
+                body = encoded;
             };
         end;
 

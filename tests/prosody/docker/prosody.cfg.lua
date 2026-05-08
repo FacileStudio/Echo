@@ -82,6 +82,23 @@ VirtualHost "localhost"
         -- sessions. muc_prosody_jitsi_access_manager_url points at the mock
         -- access manager served by mod_test_observer_http on the same host.
         "muc_auth_ban";
+        "turncredentials_http";
+        "jiconop";
+        -- Rewrites MUC JIDs between external subdomain form
+        -- (room@conference.sub.localhost) and internal bracket form
+        -- ([sub]room@conference.localhost) for all sessions on all hosts.
+        "muc_domain_mapper";
+        "muc_lobby_rooms";
+    }
+
+    shard_name = "test-shard"
+    region_name = "test-region"
+    release_number = "test-release"
+
+    -- mod_turncredentials_http (HTTP via external_services): port 3479.
+    external_services = {
+        { type = "stun", host = "127.0.0.1", port = 3479 };
+        { type = "turn", host = "127.0.0.1", port = 3479, secret = "http-turn-secret" };
     }
 
     -- Required by mod_muc_auth_ban: URL of the access manager to call.
@@ -93,7 +110,12 @@ VirtualHost "localhost"
     muc_mapper_domain_prefix = "conference"
 
     -- Required by mod_conference_duration to find the MUC component.
+    -- Required by mod_muc_lobby_rooms.
     main_muc = "conference.localhost"
+    lobby_muc = "lobby.conference.localhost"
+
+    -- Clients on whitelist.localhost bypass the lobby.
+    muc_lobby_whitelist = { "whitelist.localhost" }
 
 -- VirtualHost for the focus (jicofo) test helper.
 -- Clients authenticate with username "focus" and password "focussecret".
@@ -108,7 +130,7 @@ VirtualHost "auth.localhost"
     -- Disable SCRAM and force PLAIN (safe on loopback in the test environment).
     disable_sasl_mechanisms = { "SCRAM-SHA-1", "SCRAM-SHA-1-PLUS", "SCRAM-SHA-256", "SCRAM-SHA-256-PLUS" }
 
--- VirtualHost for HS256 (shared-secret) token auth tests.
+-- VirtualHost for HS256 (shared-secret) token auth tests and mod_presence_identity tests.
 VirtualHost "hs256.localhost"
     authentication = "token"
     app_id = "jitsi"
@@ -116,6 +138,7 @@ VirtualHost "hs256.localhost"
     signature_algorithm = "HS256"
     asap_require_room_claim = false
     allow_empty_token = false
+    modules_enabled = { "presence_identity" }
 
 -- Second VirtualHost whose domain is listed in muc_access_whitelist on the
 -- MUC component below. Clients connecting here get JIDs like
@@ -136,6 +159,25 @@ VirtualHost "shared-secret.localhost"
 VirtualHost "whitelist.localhost"
     authentication = "anonymous"
 
+-- VirtualHost for mod_turncredentials tests. Kept separate from the main
+-- VirtualHost because external_services (loaded by mod_turncredentials_http)
+-- hooks the same extdisco IQ event and would otherwise take precedence.
+VirtualHost "turncredentials.localhost"
+    authentication = "anonymous"
+    modules_enabled = { "turncredentials" }
+    turncredentials_secret = "xmpp-turn-secret"
+    turncredentials = {
+        { type = "stun", host = "127.0.0.1", port = 3478 };
+        { type = "turn", host = "127.0.0.1", port = 3478 };
+    }
+
+Component "lobby.conference.localhost" "muc"
+    storage = "memory"
+    muc_room_cache_size = 1000
+    restrict_room_creation = true
+    muc_room_locking = false
+    muc_room_default_public_jids = true
+
 Component "conference.localhost" "muc"
     modules_enabled = {
         "muc_hide_all";
@@ -144,6 +186,7 @@ Component "conference.localhost" "muc"
         "muc_resource_validate";
         "muc_password_whitelist";
         "token_verification";
+        "token_affiliation";
         "muc_flip";
         "test_observer";
     }
@@ -198,3 +241,21 @@ Component "endconference.localhost" "end_conference"
     muc_component = "conference.localhost"
     muc_mapper_domain_base = "localhost"
     muc_mapper_domain_prefix = "conference"
+
+-- MUC component for mod_muc_rate_limit integration tests.
+-- Intentionally low join/leave rates (1/s) so that 5 simultaneous clients
+-- exercise the queuing and timer logic without long waits.
+Component "rate-limited.localhost" "muc"
+    modules_enabled = { "muc_rate_limit" }
+    muc_rate_joins = 1
+    muc_rate_leaves = 1
+
+-- Metadata component for mod_room_metadata_component tests.
+Component "metadata.localhost" "room_metadata_component"
+    muc_component = "conference.localhost"
+    muc_mapper_domain_base = "localhost"
+    muc_mapper_domain_prefix = "conference"
+
+-- Plain MUC for mod_presence_identity tests. No token verification and no
+-- muc_meeting_id lock so any client can join freely without focus.
+Component "conference-identity.localhost" "muc"

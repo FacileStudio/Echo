@@ -116,7 +116,15 @@ export async function createXmppClient({ host = 'localhost', domain, params, use
         stanzaQueue.push(stanza);
     });
 
-    await xmpp.start();
+    // If start() fails (e.g. SASL error) stop the client before re-throwing so
+    // that @xmpp/client's auto-reconnect does not keep retrying in the background.
+    // Leaked reconnect loops can flood Prosody and cause unrelated tests to fail.
+    try {
+        await xmpp.start();
+    } catch (err) {
+        xmpp.stop().catch(Function.prototype);
+        throw err;
+    }
 
     return {
         jid: xmpp.jid?.toString(),
@@ -154,8 +162,9 @@ export async function createXmppClient({ host = 'localhost', domain, params, use
          * @param {object} [opts]
          * @param {number} [opts.timeout=5000]  ms to wait for presence before rejecting
          * @param {string} [opts.password]       room password to include in the join stanza
+         * @param {string} [opts.displayName]    if set, includes a <nick> element in the presence
          */
-        async joinRoom(roomJid, nick, { timeout = 5000, password: roomPassword, extensions = [] } = {}) {
+        async joinRoom(roomJid, nick, { timeout = 5000, password: roomPassword, extensions = [], displayName } = {}) {
             // Default to the first 8 characters of the local part of the
             // server-assigned JID. Prosody's anonymous_strict mode requires MUC
             // resources to match this prefix, so callers that do not pass an
@@ -168,8 +177,13 @@ export async function createXmppClient({ host = 'localhost', domain, params, use
                 mucX.c('password').t(roomPassword);
             }
 
+            const nickEl = displayName
+                ? xml('nick', { xmlns: 'http://jabber.org/protocol/nick' }, displayName)
+                : undefined;
+
             await xmpp.send(
-                xml('presence', { to: `${roomJid}/${n}` }, mucX, ...extensions)
+                xml('presence', { to: `${roomJid}/${n}` }, mucX, ...extensions,
+                    ...nickEl ? [ nickEl ] : [])
             );
 
             const presence = await waitForPresence(stanzaQueue, roomJid, timeout);
@@ -303,6 +317,20 @@ export async function createXmppClient({ host = 'localhost', domain, params, use
         },
 
         /**
+         * Sends a XEP-0215 extdisco services IQ and resolves with the response stanza.
+         * @param {string} targetJid  e.g. 'localhost'
+         */
+        sendExtdiscoIq(targetJid) {
+            return sendIq(xmpp, pendingIqs,
+                xml('iq', { type: 'get',
+                    to: targetJid,
+                    id: `extdisco-${++_counter}` },
+                    xml('services', { xmlns: 'urn:xmpp:extdisco:1' })
+                )
+            );
+        },
+
+        /**
          * Sends an <end_conference/> message to the given component JID.
          * mod_end_conference uses the sender's jitsi_web_query_room session field
          * (populated by mod_jitsi_session from the ?room= WebSocket URL param) to
@@ -318,6 +346,46 @@ export async function createXmppClient({ host = 'localhost', domain, params, use
                     xml('end_conference')
                 )
             );
+        },
+
+        /**
+         * Sends a raw room_metadata message to a metadata component.
+         * Use this to test malformed payloads; prefer sendMetadataUpdate for
+         * well-formed updates.
+         *
+         * The session must have jitsi_web_query_room set (connect with
+         * params: { room: '<roomname>' }) for the component to process it.
+         *
+         * @param {string} componentJid  e.g. 'metadata.localhost'
+         * @param {string} roomJid       full room JID, e.g. 'room@conference.localhost'
+         * @param {string} rawPayload    raw text for the <room_metadata> body
+         */
+        sendMetadataMessage(componentJid, roomJid, rawPayload) {
+            const attrs = { xmlns: 'http://jitsi.org/jitmeet' };
+
+            if (roomJid !== null && roomJid !== undefined) {
+                attrs.room = roomJid;
+            }
+
+            return xmpp.send(
+                xml('message', { to: componentJid,
+                    id: `meta-${++_counter}` },
+                    xml('room_metadata', attrs, rawPayload)
+                )
+            );
+        },
+
+        /**
+         * Sends a well-formed metadata update to a metadata component.
+         *
+         * @param {string} componentJid  e.g. 'metadata.localhost'
+         * @param {string} roomJid       full room JID, e.g. 'room@conference.localhost'
+         * @param {string} key           metadata key
+         * @param {*}      data          metadata value (JSON-serialisable)
+         */
+        sendMetadataUpdate(componentJid, roomJid, key, data) {
+            return this.sendMetadataMessage(componentJid, roomJid, JSON.stringify({ key,
+                data }));
         },
 
         /**
@@ -350,6 +418,24 @@ export async function createXmppClient({ host = 'localhost', domain, params, use
                     xml('query', { xmlns: 'http://jabber.org/protocol/muc#admin' },
                         xml('item', { nick,
                             role: 'moderator' })
+                    )
+                )
+            );
+        },
+
+        /**
+         * Destroys a MUC room. The client must be the room owner.
+         * Resolves when the server acknowledges the destroy IQ.
+         *
+         * @param {string} roomJid  e.g. 'room@conference.localhost'
+         */
+        destroyRoom(roomJid) {
+            return sendIq(xmpp, pendingIqs,
+                xml('iq', { type: 'set',
+                    to: roomJid,
+                    id: `destroy-${++_counter}` },
+                    xml('query', { xmlns: 'http://jabber.org/protocol/muc#owner' },
+                        xml('destroy')
                     )
                 )
             );
@@ -507,6 +593,18 @@ export async function createXmppClient({ host = 'localhost', domain, params, use
             try {
                 await xmpp.stop();
             } catch { /* ignore on teardown */ }
+        },
+
+        /**
+         * Sends a bare presence stanza to the given JID (no <x muc> element).
+         * Useful for presence updates after the initial MUC join, which
+         * triggers mod_presence_identity hooks on the sender's VirtualHost.
+         *
+         * @param {string} to          Destination full JID, e.g. 'room@conference.localhost/nick'
+         * @param {Array}  [extensions] Additional XML children to include.
+         */
+        sendPresence(to, extensions = []) {
+            return xmpp.send(xml('presence', { to }, ...extensions));
         },
 
         /**

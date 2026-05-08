@@ -29,7 +29,7 @@ local escaped_muc_domain_base = muc_domain_base:gsub("%p", "%%%1");
 local escaped_muc_domain_prefix = muc_domain_prefix:gsub("%p", "%%%1");
 -- The pattern used to extract the target subdomain
 -- (e.g. extract 'foo' from 'conference.foo.example.com')
-local target_subdomain_pattern = "^"..escaped_muc_domain_prefix..".([^%.]+)%."..escaped_muc_domain_base;
+local target_subdomain_pattern = "^"..escaped_muc_domain_prefix.."%.([^%.]+)%."..escaped_muc_domain_base;
 
 -- table to store all incoming iqs without roomname in it, like discoinfo to the muc component
 local roomless_iqs = {};
@@ -693,6 +693,9 @@ local function table_equals(t1, t2)
     end
     if t2 == nil then
         return t1 == nil;
+    end
+    if type(t1) ~= 'table' or type(t2) ~= 'table' then
+        return t1 == t2;
     end
 
     local removed, added, modified = table_compare(t1, t2);
