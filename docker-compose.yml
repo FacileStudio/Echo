@@ -1,7 +1,10 @@
 services:
   echo-web:
     container_name: echo-web
-    image: jitsi/web:${JITSI_IMAGE_VERSION:-stable}
+    build:
+      context: .
+      args:
+        JITSI_IMAGE_VERSION: ${JITSI_IMAGE_VERSION:-stable}
     restart: unless-stopped
     expose:
       - "80"
