@@ -4,7 +4,7 @@ FROM node:20-bookworm AS build
 
 WORKDIR /src
 COPY package.json package-lock.json ./
-RUN npm ci --prefer-offline
+RUN npm ci --legacy-peer-deps
 COPY . .
 RUN make all
 
