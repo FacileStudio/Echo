@@ -201,9 +201,9 @@ class Watermarks extends Component<IProps, State> {
             return (
                 <a
                     className = 'poweredby'
-                    href = 'http://jitsi.org'
-                    target = '_new'>
-                    <span>{ t('poweredby') } jitsi.org</span>
+                    href = '#'
+                    target = '_self'>
+                    <span>{ t('poweredby') } Echo</span>
                 </a>
             );
         }

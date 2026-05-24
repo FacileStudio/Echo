@@ -465,7 +465,7 @@
         "answer": "Απάντηση",
         "audioCallTitle": "Εισερχόμενη κλήση",
         "decline": "Απόρριψη",
-        "productLabel": "από το Jitsi Meet",
+        "productLabel": "from Echo",
         "videoCallTitle": "Εισερχόμενη βιντεοκλήση"
     },
     "info": {
@@ -1376,7 +1376,7 @@
         "go": "ΠΑΜΕ",
         "goSmall": "ΠΑΜΕ",
         "headerSubtitle": "Ασφαλείς και υψηλής ποιότητας συσκέψεις",
-        "headerTitle": "Jitsi Meet",
+        "headerTitle": "Echo",
         "info": "Πληροφορίες Κλήσης",
         "jitsiOnMobile": "Jitsi στο κινητό – κατεβάστε τις εφαρμογές και ξεκινήστε μια σύσκεψη από παντού",
         "join": "ΔΗΜΙΟΥΡΓΙΑ / ΕΙΣΟΔΟΣ",

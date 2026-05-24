@@ -39,8 +39,8 @@ body {
     // that do not understand `clip` (Chrome <90, Safari <16).
     overflow: hidden;
     overflow: clip;
-    color: #F1F1F1;
-    background: #040404; // should match DEFAULT_BACKGROUND from interface_config
+    color: #fff;
+    background: #000;
 }
 
 /**

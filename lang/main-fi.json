@@ -608,7 +608,7 @@
         "answer": "Vastaus",
         "audioCallTitle": "Saapuva puhelu",
         "decline": "Hylkää",
-        "productLabel": "Jitsi Meetistä",
+        "productLabel": "from Echo",
         "videoCallTitle": "Saapuva videopuhelu"
     },
     "info": {
@@ -1661,7 +1661,7 @@
         "go": "ALOITA",
         "goSmall": "ALOITA",
         "headerSubtitle": "Turvalliset ja laadukkaat kokoukset",
-        "headerTitle": "Jitsi Meet",
+        "headerTitle": "Echo",
         "info": "Tiedot",
         "jitsiOnMobile": "Jitsi mobiilissa – lataa sovelluksemme ja aloita kokous missä tahansa",
         "join": "LIITY",

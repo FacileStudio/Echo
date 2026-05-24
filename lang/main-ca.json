@@ -444,7 +444,7 @@
         "answer": "Resposta",
         "audioCallTitle": "Trucada entrant",
         "decline": "Rebutja",
-        "productLabel": "de Jitsi Meet",
+        "productLabel": "from Echo",
         "videoCallTitle": "Videotrucada entrant"
     },
     "info": {
@@ -1330,7 +1330,7 @@
         "go": "SOM-HI",
         "goSmall": "SOM-HI",
         "headerSubtitle": "Reunions d'alta qualitat i segures",
-        "headerTitle": "Jitsi Meet",
+        "headerTitle": "Echo",
         "info": "Informació de marcatge",
         "jitsiOnMobile": "Jitsi al mòbil – baixeu les nostres aplicacions i comenceu una reunió des de qualsevol lloc",
         "join": "CREA / ENTRA",

@@ -524,7 +524,7 @@
         "answer": "Responder",
         "audioCallTitle": "Chamada recebida",
         "decline": "Dispensar",
-        "productLabel": "do Jitsi Meet",
+        "productLabel": "from Echo",
         "videoCallTitle": "Chamada de vídeo recebida"
     },
     "info": {
@@ -1479,7 +1479,7 @@
         "go": "IR",
         "goSmall": "IR",
         "headerSubtitle": "Reuniões com segurança e alta qualidade",
-        "headerTitle": "Jitsi Meet",
+        "headerTitle": "Echo",
         "info": "Informações",
         "jitsiOnMobile": "Jitsi em dispositivos móveis – baixe nossos aplicativos e inicie uma reunião em qualquer lugar",
         "join": "CRIAR / ENTRAR",

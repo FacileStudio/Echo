@@ -391,7 +391,7 @@
         "answer": "Odgovori",
         "audioCallTitle": "Dohodni klic",
         "decline": "Zavrni",
-        "productLabel": "iz Jitsi Meet",
+        "productLabel": "from Echo",
         "videoCallTitle": "Dohodni video klic"
     },
     "info": {
@@ -1131,7 +1131,7 @@
         "go": "POJDI",
         "goSmall": "POJDI",
         "headerSubtitle": "Varni in kvalitetni sestanki",
-        "headerTitle": "Jitsi Meet",
+        "headerTitle": "Echo",
         "info": "Informacije",
         "jitsiOnMobile": "Jitsi na telefonih – prenesi aplikacijo in začni sestanek od kjerkoli",
         "join": "PRIDRUŽI SE",

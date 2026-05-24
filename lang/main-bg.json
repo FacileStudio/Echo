@@ -590,7 +590,7 @@
         "answer": "Вдигни",
         "audioCallTitle": "Входящ разговор",
         "decline": "Отхвърляне",
-        "productLabel": "от Jitsi Meet",
+        "productLabel": "from Echo",
         "videoCallTitle": "Входящ видео разговор"
     },
     "info": {
@@ -1637,7 +1637,7 @@
         "go": "НАПРЕД",
         "goSmall": "НАПРЕД",
         "headerSubtitle": "Сигурни и висококачествени срещи",
-        "headerTitle": "Jitsi Meet",
+        "headerTitle": "Echo",
         "info": "Информация",
         "jitsiOnMobile": "Jitsi на мобилно – свалете приложенията ни и започнете среща отвсякъде",
         "join": "Създай / Влез",

@@ -535,7 +535,7 @@
         "answer": "Svar",
         "audioCallTitle": "Innkommende anrop",
         "decline": "Avvis",
-        "productLabel": "fra Jitsi Meet",
+        "productLabel": "from Echo",
         "videoCallTitle": "Innkommende videoanrop"
     },
     "info": {
@@ -1537,7 +1537,7 @@
         "go": "GÅ",
         "goSmall": "GÅ",
         "headerSubtitle": "Sikre møter av høy kvalitet",
-        "headerTitle": "Jitsi Meet",
+        "headerTitle": "Echo",
         "info": "Innringingsinformasjon",
         "jitsiOnMobile": "Jitsi på mobil – last ned appene våre og start et møte fra hvor som helst",
         "join": "OPPRETT / BLI MED",

@@ -1,7 +1,7 @@
 /**
  * Style variables
  */
-$baseFontFamily: -apple-system, BlinkMacSystemFont, 'open_sanslight', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+$baseFontFamily: 'Goga', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif;
 
 /**
  * Size variables.
@@ -67,21 +67,21 @@ $welcomePageWatermarkHeight: 32px;
 /**
  * Welcome page variables.
  */
-$welcomePageDescriptionColor: #fff;
+$welcomePageDescriptionColor: #000;
 $welcomePageFontFamily: inherit;
 $welcomePageBackground: none;
-$welcomePageTitleColor: #fff;
+$welcomePageTitleColor: #000;
 
-$welcomePageHeaderBackground: linear-gradient(0deg, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)), url('../images/welcome-background.png');
+$welcomePageHeaderBackground: none;
 $welcomePageHeaderBackgroundPosition: center;
 $welcomePageHeaderBackgroundRepeat: none;
 $welcomePageHeaderBackgroundSize: cover;
 $welcomePageHeaderPadding: 1rem;
 $welcomePageHeaderTitleMaxWidth: initial;
 $welcomePageHeaderTextAlign: center;
-$welcomePageButtonBg: #0074E0;
-$welcomePageButtonHoverBg: #4687ED;
-$welcomePageButtonFocusOutline: #00225A;
+$welcomePageButtonBg: #000;
+$welcomePageButtonHoverBg: #333;
+$welcomePageButtonFocusOutline: #666;
 
 $welcomePageHeaderContainerMarginTop: 104px;
 $welcomePageHeaderContainerDisplay: flex;

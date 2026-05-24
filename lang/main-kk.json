@@ -604,7 +604,7 @@
         "answer": "Жауап беру",
         "audioCallTitle": "Кіріс қоңырау",
         "decline": "Елемеу",
-        "productLabel": "Jitsi Meet-тен",
+        "productLabel": "from Echo",
         "videoCallTitle": "Кіріс бейне қоңырау"
     },
     "info": {
@@ -1655,7 +1655,7 @@
         "go": "АЛҒА",
         "goSmall": "АЛҒА",
         "headerSubtitle": "Қауіпсіз және жоғары сапалы жиналыстар",
-        "headerTitle": "Jitsi Meet",
+        "headerTitle": "Echo",
         "info": "Теру ақпараты",
         "jitsiOnMobile": "Мобильді құрылғыдағы Jitsi – қолданбаларымызды жүктеп алып, кез келген жерден жиналыс бастаңыз",
         "join": "ҚҰРУ / ҚОСЫЛУ",
