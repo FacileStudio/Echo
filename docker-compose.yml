@@ -2,8 +2,8 @@ services:
   web:
     image: jitsi/web:${JITSI_IMAGE_VERSION:-stable}
     restart: unless-stopped
-    ports:
-      - "${HTTP_PORT:-8000}:80"
+    expose:
+      - "80"
     volumes:
       - ${CONFIG}/web:/config:Z
       - ${CONFIG}/web/crontabs:/var/spool/cron/crontabs:Z
