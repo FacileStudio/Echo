@@ -672,7 +672,7 @@
         "searchPlaceholder": "Participant or phone number",
         "send": "Send"
     },
-    "jitsiHome": "{{logo}} Logo, links to  Homepage",
+    "jitsiHome": "{{logo}} Logo, lien vers l'accueil",
     "keyboardShortcuts": {
         "focusLocal": "Focus on your video",
         "focusRemote": "Focus on another person's video",
@@ -1013,7 +1013,7 @@
             "vote": "Vote"
         }
     },
-    "poweredby": "powered by",
+    "poweredby": "propulsé par",
     "prejoin": {
         "audioAndVideoError": "Audio and video error:",
         "audioDeviceProblem": "There is a problem with your audio device",
@@ -1678,10 +1678,10 @@
         "getHelp": "Get help",
         "go": "GO",
         "goSmall": "GO",
-        "headerSubtitle": "Secure and high quality meetings",
+        "headerSubtitle": "Visioconférence sécurisée et haute qualité",
         "headerTitle": "Echo",
         "info": "Dial-in info",
-        "jitsiOnMobile": "Echo on mobile – download our apps and start a meeting from anywhere",
+        "jitsiOnMobile": "Echo sur mobile – téléchargez nos apps et démarrez une réunion où que vous soyez",
         "join": "CREATE / JOIN",
         "logo": {
             "calendar": "Calendar logo",
@@ -1691,7 +1691,7 @@
             "microsoftLogo": "Microsoft logo",
             "policyLogo": "Policy logo"
         },
-        "meetingsAccessibilityLabel": "Meetings",
+        "meetingsAccessibilityLabel": "Réunions",
         "mobileDownLoadLinkAndroid": "Download mobile app for Android",
         "mobileDownLoadLinkFDroid": "Download mobile app for F-Droid",
         "mobileDownLoadLinkIos": "Download mobile app for iOS",
@@ -1700,17 +1700,17 @@
         "recentList": "Recent",
         "recentListDelete": "Delete entry",
         "recentListEmpty": "Your recent list is currently empty. Chat with your team and you will find all your recent meetings here.",
-        "recentMeetings": "Your recent meetings",
+        "recentMeetings": "Réunions récentes",
         "reducedUIText": "Welcome to {{app}}!",
-        "roomNameAllowedChars": "Meeting name should not contain any of these characters: ?, &, :, ', \", %, #.",
+        "roomNameAllowedChars": "Le nom ne doit pas contenir ces caractères : ?, &, :, ', \", %, #.",
         "roomname": "Enter room name",
         "roomnameHint": "Enter the name or URL of the room you want to join. You may make a name up, just let the people you are meeting know it so that they enter the same name.",
         "sendFeedback": "Send feedback",
         "settings": "Settings",
-        "startMeeting": "Start meeting",
+        "startMeeting": "Démarrer",
         "terms": "Terms",
         "title": "Secure, fully featured, and completely free video conferencing",
-        "upcomingMeetings": "Your upcoming meetings"
+        "upcomingMeetings": "Réunions à venir"
     },
     "whiteboard": {
         "accessibilityLabel": {

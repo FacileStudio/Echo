@@ -55,7 +55,7 @@ var interfaceConfig = {
      */
     DISABLE_VIDEO_BACKGROUND: false,
 
-    DISPLAY_WELCOME_FOOTER: false,
+    DISPLAY_WELCOME_FOOTER: true,
     DISPLAY_WELCOME_PAGE_ADDITIONAL_CARD: false,
     DISPLAY_WELCOME_PAGE_CONTENT: false,
     DISPLAY_WELCOME_PAGE_TOOLBAR_ADDITIONAL_CONTENT: false,
@@ -71,9 +71,9 @@ var interfaceConfig = {
      */
     HIDE_INVITE_MORE_HEADER: false,
 
-    JITSI_WATERMARK_LINK: '',
+    JITSI_WATERMARK_LINK: 'https://facile.studio',
 
-    LANG_DETECTION: true, // Allow i18n to detect the system language
+    LANG_DETECTION: false, // Allow i18n to detect the system language
     LOCAL_THUMBNAIL_RATIO: 16 / 9, // 16:9
 
     /**
