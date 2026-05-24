@@ -590,7 +590,7 @@
         "answer": "Réponse",
         "audioCallTitle": "Appel entrant",
         "decline": "Rejeter",
-        "productLabel": "via Jitsi Meet",
+        "productLabel": "from Echo",
         "videoCallTitle": "Appel vidéo entrant"
     },
     "info": {
@@ -1643,7 +1643,7 @@
         "go": "Aller",
         "goSmall": "Aller",
         "headerSubtitle": "Réunions sécurisées et de haute qualité",
-        "headerTitle": "Jitsi Meet",
+        "headerTitle": "Echo",
         "info": "Ret. arr.",
         "jitsiOnMobile": "Jitsi sur mobile – télécharger notre application et démarrez des réunions de n'import où",
         "join": "CRÉER / REJOINDRE",

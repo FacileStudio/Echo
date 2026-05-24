@@ -534,7 +534,7 @@
         "answer": "응답",
         "audioCallTitle": "수신 전화",
         "decline": "거절",
-        "productLabel": "Jitsi Meet에서",
+        "productLabel": "from Echo",
         "videoCallTitle": "수신 화상 전화"
     },
     "info": {
@@ -1535,7 +1535,7 @@
         "go": "계속",
         "goSmall": "계속",
         "headerSubtitle": "안전하고 고품질의 회의",
-        "headerTitle": "Jitsi Meet",
+        "headerTitle": "Echo",
         "info": "정보",
         "jitsiOnMobile": "모바일에서 Jitsi – 앱을 다운로드하고 어디서나 회의를 시작하세요",
         "join": "가입",

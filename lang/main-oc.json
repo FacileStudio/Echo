@@ -535,7 +535,7 @@
         "answer": "Uèi",
         "audioCallTitle": "Sonada entranta",
         "decline": "Regetar",
-        "productLabel": "de Jitsi Meet estant",
+        "productLabel": "from Echo",
         "videoCallTitle": "Sonada vidèo entranta"
     },
     "info": {
@@ -1536,7 +1536,7 @@
         "go": "Crear",
         "goSmall": "Crear",
         "headerSubtitle": "Reünions securizadas e de aauta qualitat",
-        "headerTitle": "Jitsi Meet",
+        "headerTitle": "Echo",
         "info": "Infor",
         "jitsiOnMobile": "Jitsi sus mobil – telecargatz nòstra aplicacion e començatz de reünions de pertot",
         "join": "CREAR / REJÓNHER",

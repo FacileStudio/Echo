@@ -19,7 +19,7 @@ body.welcome-page {
         background-repeat: $welcomePageHeaderBackgroundRepeat;
         background-size: $welcomePageHeaderBackgroundSize;
         padding: $welcomePageHeaderPadding;
-        background-color: #131519;
+        background-color: #fff;
         overflow: hidden;
         position: relative;
 
@@ -52,7 +52,7 @@ body.welcome-page {
         }
 
         .header-text-subtitle {
-            color: #fff;
+            color: #666;
             font-size: 1.25rem;
             font-weight: 600;
             line-height: 1.625rem;
@@ -114,7 +114,7 @@ body.welcome-page {
         }
 
         ::placeholder {
-            color: #253858;
+            color: #999;
         }
 
         #enter_room {
@@ -133,7 +133,7 @@ body.welcome-page {
                 display: flex;
                 width: 100%;
                 text-align: left;
-                color: #253858;
+                color: #000;
             }
 
             .enter-room-input-container {
@@ -188,16 +188,16 @@ body.welcome-page {
         }
 
         .tab-buttons {
-            background-color: #c7ddff;
+            background-color: #f5f5f5;
             border-radius: 6px;
-            color: #0163FF;
+            color: #000;
             font-size: 0.875rem;
             line-height: 1.125rem;
             margin: 4px;
             display: $welcomePageTabButtonsDisplay;
 
             [role="tab"] {
-                background-color: #c7ddff;
+                background-color: #f5f5f5;
                 border-radius: 7px;
                 cursor: pointer;
                 display: $welcomePageTabDisplay;
@@ -277,7 +277,7 @@ body.welcome-page {
     }
 
     .welcome-cards-container {
-        color:#131519;
+        color: #000;
         padding-top: 40px;
     }
 
@@ -303,21 +303,21 @@ body.welcome-page {
         border-radius: 8px;
 
         &--dark {
-            background: #444447;
+            background: #000;
             color: #fff;
         }
 
         &--blue {
-            background: #D5E5FF;
+            background: #f5f5f5;
         }
 
         &--grey {
-            background: #F2F3F4;
+            background: #fafafa;
         }
     }
 
     .welcome-footer {
-        background: #131519;
+        background: #000;
         color: #fff;
         margin-top: 40px;
         position: relative;
@@ -336,7 +336,7 @@ body.welcome-page {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        border-bottom: 1px solid #424447;
+        border-bottom: 1px solid #333;
 
         &:last-child {
             border-bottom: none;

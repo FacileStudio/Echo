@@ -613,7 +613,7 @@
         "answer": "Antworten",
         "audioCallTitle": "Eingehender Anruf",
         "decline": "OK",
-        "productLabel": "von Jitsi Meet",
+        "productLabel": "from Echo",
         "videoCallTitle": "Eingehender Videoanruf"
     },
     "info": {
@@ -1679,7 +1679,7 @@
         "go": "Los",
         "goSmall": "Los",
         "headerSubtitle": "Sichere und hochqualitative Konferenzen",
-        "headerTitle": "Jitsi Meet",
+        "headerTitle": "Echo",
         "info": "Einwahlinformationen",
         "jitsiOnMobile": "Jitsi unterwegs – einfach unsere Apps herunterladen und Konferenzen von überall starten",
         "join": "ERSTELLEN / BEITRETEN",

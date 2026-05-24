@@ -467,7 +467,7 @@
         "answer": "Відповісти",
         "audioCallTitle": "Вхідний дзвінок",
         "decline": "Відхилити",
-        "productLabel": "із Jitsi Meet",
+        "productLabel": "from Echo",
         "videoCallTitle": "Вхідний відеодзвінок"
     },
     "info": {
@@ -1387,7 +1387,7 @@
         "go": "Гаразд",
         "goSmall": "Гаразд",
         "headerSubtitle": "Захищений та якісний відеозв'язок",
-        "headerTitle": "Jitsi Meet",
+        "headerTitle": "Echo",
         "info": "Телефонний зв'язок",
         "jitsiOnMobile": "Jitsi на мобільному пристрої – завантажуйте наші застосунки та починайте зустрічі, де б ви не були",
         "join": "Створити або приєднатися",

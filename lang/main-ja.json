@@ -415,7 +415,7 @@
         "answer": "応答",
         "audioCallTitle": "音声通話着信",
         "decline": "拒否",
-        "productLabel": "Jitsi Meet からの",
+        "productLabel": "from Echo",
         "videoCallTitle": "ビデオ通話着信"
     },
     "info": {
@@ -1222,7 +1222,7 @@
         "go": "GO",
         "goSmall": "GO",
         "headerSubtitle": "安全で高品質なミーティング",
-        "headerTitle": "Jitsi Meet",
+        "headerTitle": "Echo",
         "info": "ダイヤルイン情報",
         "jitsiOnMobile": "モバイル版 Jitsi - アプリをダウンロードして、どこからでもミーティングを開始できます",
         "join": "作成 / 参加",
