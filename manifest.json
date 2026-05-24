@@ -1,9 +1,9 @@
 {
-  "android_package_name": "org.jitsi.meet",
+  "android_package_name": "studio.facile.echo",
   "prefer_related_applications": true,
   "related_applications": [
     {
-      "id": "org.jitsi.meet",
+      "id": "studio.facile.echo",
       "platform": "chromeos_play"
     }
   ],

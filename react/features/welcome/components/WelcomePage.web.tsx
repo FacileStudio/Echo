@@ -221,6 +221,10 @@ class WelcomePage extends AbstractWelcomePage<IProps> {
                             }
                         </div>
                         <h1 className = 'header-text-title'>
+                            <img
+                                alt = 'Echo'
+                                className = 'header-logo-icon'
+                                src = 'images/watermark.svg' />
                             {t('welcomepage.headerTitle')}
                         </h1>
                         <span className = 'header-text-subtitle'>
@@ -359,7 +363,19 @@ class WelcomePage extends AbstractWelcomePage<IProps> {
      * @returns {ReactElement}
      */
     _renderFooter() {
-        return null;
+        return (
+            <div className = 'welcome-footer'>
+                <span>
+                    {'Un projet '}
+                    <a
+                        href = 'https://facile.studio'
+                        rel = 'noopener noreferrer'
+                        target = '_blank'>
+                        {'Facile Studio'}
+                    </a>
+                </span>
+            </div>
+        );
     }
 
     /**
