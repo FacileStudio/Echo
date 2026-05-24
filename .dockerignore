@@ -1,0 +1,7 @@
+node_modules
+build
+libs
+.git
+*.tar.bz2
+android
+ios
