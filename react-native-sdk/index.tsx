@@ -63,7 +63,7 @@ export interface JitsiRefProps {
 }
 
 /**
- * Main React Native SDK component that displays a Jitsi Meet conference and gets all required params as props
+ * Main React Native SDK component that displays an Echo conference and gets all required params as props
  */
 export const JitsiMeeting = forwardRef<JitsiRefProps, IAppProps>((props, ref) => {
     const [ appProps, setAppProps ] = useState({});
@@ -157,7 +157,7 @@ export const JitsiMeeting = forwardRef<JitsiRefProps, IAppProps>((props, ref) =>
         /**
          * When you close the component you need to reset it.
          * In some cases it needs to be added as the parent component may have been destroyed.
-         * Without this change the call remains active without having the jitsi screen.
+         * Without this change the call remains active without having the Echo screen.
         */
         return () => {
             const dispatch = app.current?.state?.store?.dispatch;

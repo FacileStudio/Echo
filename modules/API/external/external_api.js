@@ -24,7 +24,7 @@ const ALWAYS_ON_TOP_FILENAMES = [
 
 /**
  * Maps the names of the commands expected by the API with the name of the
- * commands expected by jitsi-meet.
+ * commands expected by Echo.
  */
 const commands = {
     addBreakoutRoom: 'add-breakout-room',
@@ -103,7 +103,7 @@ const commands = {
 
 /**
  * Maps the names of the events expected by the API with the name of the
- * events expected by jitsi-meet.
+ * events expected by Echo.
  */
 const events = {
     '_pip-requested': '_pipRequested',
@@ -197,7 +197,7 @@ let id = 0;
 /**
  * Adds given number to the numberOfParticipants property of given APIInstance.
  *
- * @param {JitsiMeetExternalAPI} APIInstance - The instance of the API.
+ * @param {JitsiMeetExternalAPI} APIInstance - The instance of the Echo API.
  * @param {int} number - The number of participants to be added to
  * numberOfParticipants property (this parameter can be negative number if the
  * numberOfParticipants should be decreased).
@@ -236,11 +236,11 @@ function parseSizeParam(value) {
 
 
 /**
- * The IFrame API interface class.
+ * The IFrame API interface class for Echo.
  */
 export default class JitsiMeetExternalAPI extends EventEmitter {
     /**
-     * Constructs new API instance. Creates iframe and loads Jitsi Meet in it.
+     * Constructs new API instance. Creates iframe and loads Echo in it.
      *
      * @param {string} domain - The domain name of the server that hosts the
      * conference.
@@ -259,7 +259,7 @@ export default class JitsiMeetExternalAPI extends EventEmitter {
      * @param {IIceServers} [options.iceServers] - Object with rules that will be used to modify/remove the existing
      * ice server configuration.
      * NOTE: This property is currently experimental and may be removed in the future!
-     * @param {string} [options.jwt] - The JWT token if needed by jitsi-meet for
+     * @param {string} [options.jwt] - The JWT token if needed by Echo for
      * authentication.
      * @param {string} [options.lang] - The meeting's default language.
      * @param {string} [options.onload] - The onload function that will listen
@@ -435,7 +435,7 @@ export default class JitsiMeetExternalAPI extends EventEmitter {
 
 
     /**
-     * Getter for the large video element in Jitsi Meet.
+     * Getter for the large video element in Echo.
      *
      * @returns {HTMLElement|undefined} - The large video.
      */
@@ -453,7 +453,7 @@ export default class JitsiMeetExternalAPI extends EventEmitter {
     }
 
     /**
-     * Getter for the prejoin video element in Jitsi Meet.
+     * Getter for the prejoin video element in Echo.
      *
      * @returns {HTMLElement|undefined} - The prejoin video.
      */
@@ -471,7 +471,7 @@ export default class JitsiMeetExternalAPI extends EventEmitter {
     }
 
     /**
-     * Getter for participant specific video element in Jitsi Meet.
+     * Getter for participant specific video element in Echo.
      *
      * @param {string|undefined} participantId - Id of participant to return the video for.
      *
@@ -519,7 +519,7 @@ export default class JitsiMeetExternalAPI extends EventEmitter {
     }
 
     /**
-     * Setups listeners that are used internally for JitsiMeetExternalAPI.
+     * Setups listeners that are used internally for the Echo external API.
      *
      * @returns {void}
      *
@@ -768,7 +768,7 @@ export default class JitsiMeetExternalAPI extends EventEmitter {
     }
 
     /**
-     * Adds event listener to Meet Jitsi.
+     * Adds event listener to Echo.
      *
      * @param {string} event - The name of the event.
      * @param {Function} listener - The listener.
@@ -782,7 +782,7 @@ export default class JitsiMeetExternalAPI extends EventEmitter {
     }
 
     /**
-     * Adds event listeners to Meet Jitsi.
+     * Adds event listeners to Echo.
      *
      * @param {Object} listeners - The object key should be the name of
      * the event and value - the listener.
@@ -861,7 +861,7 @@ export default class JitsiMeetExternalAPI extends EventEmitter {
      * id: participantId //participantId of the new dominant speaker
      * }}
      * {@code suspendDetected} - receives event notifications about detecting suspend event in host computer.
-     * {@code readyToClose} - all hangup operations are completed and Jitsi Meet
+     * {@code readyToClose} - all hangup operations are completed and Echo
      * is ready to be disposed.
      * @returns {void}
      *
@@ -908,7 +908,7 @@ export default class JitsiMeetExternalAPI extends EventEmitter {
     }
 
     /**
-     * Removes the listeners and removes the Jitsi Meet frame.
+     * Removes the listeners and removes the Echo frame.
      *
      * @returns {void}
      */
@@ -1299,7 +1299,7 @@ export default class JitsiMeetExternalAPI extends EventEmitter {
     }
 
     /**
-     * Returns the iframe that loads Jitsi Meet.
+     * Returns the iframe that loads Echo.
      *
      * @returns {HTMLElement} The iframe.
      */
@@ -1531,7 +1531,7 @@ export default class JitsiMeetExternalAPI extends EventEmitter {
      * @param { string } options.mode - Recording mode, either `file` or `stream`.
      * @param { string } options.dropboxToken - Dropbox oauth2 token.
      * @param { boolean } options.shouldShare - Whether the recording should be shared with the participants or not.
-     * Only applies to certain jitsi meet deploys.
+     * Only applies to certain Echo deploys.
      * @param { string } options.rtmpStreamKey - The RTMP stream key.
      * @param { string } options.rtmpBroadcastID - The RTMP broadcast ID.
      * @param { string } options.youtubeStreamKey - The youtube stream key.

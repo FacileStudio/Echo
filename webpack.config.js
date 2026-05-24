@@ -8,7 +8,7 @@ const webpack = require('webpack');
 const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
 
 /**
- * The URL of the Jitsi Meet deployment to be proxy to in the context of
+ * The URL of the Echo deployment to be proxy to in the context of
  * development with webpack-dev-server.
  */
 const devServerProxyTarget
@@ -93,7 +93,7 @@ function devServerProxyBypass({ path }) {
 
 /**
  * The base Webpack configuration to bundle the JavaScript artifacts of
- * jitsi-meet such as app.bundle.js and external_api.js.
+ * Echo such as app.bundle.js and external_api.js.
  *
  * @param {Object} options - options for the bundles configuration.
  * @param {boolean} options.detectCircularDeps - whether to detect circular dependencies or not.
