@@ -3,6 +3,7 @@ services:
     container_name: echo-web
     build:
       context: .
+      network: host
       args:
         JITSI_IMAGE_VERSION: ${JITSI_IMAGE_VERSION:-stable}
     restart: unless-stopped
