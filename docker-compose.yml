@@ -1,5 +1,6 @@
 services:
   web:
+    container_name: echo-web
     image: jitsi/web:${JITSI_IMAGE_VERSION:-stable}
     restart: unless-stopped
     expose:
@@ -37,6 +38,7 @@ services:
       - jvb
 
   prosody:
+    container_name: echo-prosody
     image: jitsi/prosody:${JITSI_IMAGE_VERSION:-stable}
     restart: unless-stopped
     expose:
@@ -75,6 +77,7 @@ services:
           - ${XMPP_SERVER:-xmpp.meet.jitsi}
 
   jicofo:
+    container_name: echo-jicofo
     image: jitsi/jicofo:${JITSI_IMAGE_VERSION:-stable}
     restart: unless-stopped
     volumes:
@@ -104,6 +107,7 @@ services:
       meet.jitsi:
 
   jvb:
+    container_name: echo-jvb
     image: jitsi/jvb:${JITSI_IMAGE_VERSION:-stable}
     restart: unless-stopped
     ports:
