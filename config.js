@@ -1,8 +1,7 @@
 /* eslint-disable comma-dangle, no-unused-vars, no-var, prefer-template, vars-on-top */
 
 /*
- * NOTE: If you add a new option please remember to document it here:
- * https://jitsi.github.io/handbook/docs/dev-guide/dev-guide-configuration
+ * NOTE: See configuration docs for all available options.
  */
 
 var subdir = '<!--# echo var="subdir" default="" -->';
@@ -653,7 +652,7 @@ var config = {
     // Disables or enables RTX (RFC 4588) (defaults to false).
     // disableRtx: false,
 
-    // Moves all Jitsi Meet 'beforeunload' logic (cleanup, leaving, disconnecting, etc) to the 'unload' event.
+    // Moves all Echo 'beforeunload' logic (cleanup, leaving, disconnecting, etc) to the 'unload' event.
     // disableBeforeUnloadHandlers: true,
 
     // Disables or enables TCC support in this client (default: enabled).
@@ -756,7 +755,7 @@ var config = {
     // defaultLocalDisplayName: 'me',
 
     // Default remote name to be displayed
-    // defaultRemoteDisplayName: 'Fellow Jitster',
+    // defaultRemoteDisplayName: 'Participant',
 
     // Hides the display name from the participant thumbnail
     // hideDisplayName: false,
@@ -913,7 +912,7 @@ var config = {
     // buttons varies from 2 buttons to 8 buttons. Every array in the mainToolbarButtons array will replace the
     // corresponding default buttons configuration matched by the number of buttons specified in the array. Arrays with
     // more than 8 buttons or less then 2 buttons will be ignored. When there there isn't an override for a certain
-    // configuration (for example when 3 buttons are displayed) the default jitsi-meet configuration will be used.
+    // configuration (for example when 3 buttons are displayed) the default Echo configuration will be used.
     // The order of the buttons in the array is preserved.
     // mainToolbarButtons: [
     //     [ 'microphone', 'camera', 'desktop', 'chat', 'raisehand', 'reactions', 'participants-pane', 'tileview' ],
@@ -929,7 +928,7 @@ var config = {
     // reducedUIEnabled: true,
 
     // Overrides the buttons displayed in the main toolbar for reduced UI.
-    // When there isn't an override for a certain configuration the default jitsi-meet configuration will be used.
+    // When there isn't an override for a certain configuration the default Echo configuration will be used.
     // The order of the buttons in the array is preserved.
     // reducedUImainToolbarButtons: [ 'microphone', 'camera' ],
 
@@ -1293,7 +1292,7 @@ var config = {
     //
     //     // The desktop deeplinking config, disabled by default.
     //     desktop: {
-    //         appName: 'Jitsi Meet',
+    //         appName: 'Echo',
     //         appScheme: 'jitsi-meet,
     //         download: {
     //             linux:
@@ -1312,7 +1311,7 @@ var config = {
 
     //     // The ios deeplinking config.
     //     ios: {
-    //         appName: 'Jitsi Meet',
+    //         appName: 'Echo',
     //         // Specify mobile app scheme for opening the app from the mobile browser.
     //         appScheme: 'org.jitsi.meet',
     //         // Custom URL for downloading ios mobile app.
@@ -1321,7 +1320,7 @@ var config = {
 
     //     // The android deeplinking config.
     //     android: {
-    //         appName: 'Jitsi Meet',
+    //         appName: 'Echo',
     //         // Specify mobile app scheme for opening the app from the mobile browser.
     //         appScheme: 'org.jitsi.meet',
     //         // Custom URL for downloading android mobile app.
@@ -1616,8 +1615,8 @@ var config = {
     // Sets the conference local subject
     // localSubject: 'Conference Local Subject',
 
-    // This property is related to the use case when jitsi-meet is used via the IFrame API. When the property is true
-    // jitsi-meet will use the local storage of the host page instead of its own. This option is useful if the browser
+    // This property is related to the use case when Echo is used via the IFrame API. When the property is true
+    // Echo will use the local storage of the host page instead of its own. This option is useful if the browser
     // is not persisting the local storage inside the iframe.
     // useHostPageLocalStorage: true,
 
@@ -1711,7 +1710,7 @@ var config = {
     // Sets the peer connection ICE transport policy to "relay".
     // forceTurnRelay: true,
 
-    // List of undocumented settings used in jitsi-meet
+    // List of undocumented settings used in Echo
     /**
      _immediateReloadThreshold
      deploymentInfo
@@ -1726,7 +1725,7 @@ var config = {
 
     /**
      * This property can be used to alter the generated meeting invite links (in combination with a branding domain
-     * which is retrieved internally by jitsi meet) (e.g. https://meet.jit.si/someMeeting
+     * which is retrieved internally by Echo) (e.g. https://meet.jit.si/someMeeting
      * can become https://brandedDomain/roomAlias)
      */
     // brandingRoomAlias: null,

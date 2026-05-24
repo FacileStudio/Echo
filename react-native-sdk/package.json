@@ -1,11 +1,11 @@
 {
     "name": "@jitsi/react-native-sdk",
     "version": "0.0.0",
-    "description": "React Native SDK for Jitsi Meet.",
+    "description": "React Native SDK for Echo.",
     "main": "index.tsx",
     "license": "Apache-2.0",
     "author": "",
-    "homepage": "https://jitsi.org",
+    "homepage": "https://facile.studio",
     "repository": {
         "type": "git",
         "url": "git+https://github.com/jitsi/jitsi-meet.git"

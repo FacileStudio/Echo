@@ -1,4 +1,4 @@
-/* Jitsi Meet app main entrypoint. */
+/* Echo app main entrypoint. */
 
 // Re-export jQuery
 // FIXME: Remove this requirement from torture tests.

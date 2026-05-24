@@ -31,12 +31,12 @@ interface IProps extends WithTranslation {
     _logoUrl?: string;
 
     /**
-     * If the Jitsi watermark should be displayed or not.
+     * If the main watermark should be displayed or not.
      */
     _showJitsiWatermark: boolean;
 
     /**
-     * The default value for the Jitsi logo URL.
+     * The default value for the logo URL.
      */
     defaultJitsiLogoURL?: string;
 
@@ -62,13 +62,13 @@ type State = {
     showBrandWatermark: boolean;
 
     /**
-     * Whether or not the show the "powered by Jitsi.org" link.
+     * Whether or not the show the "powered by Facile Studio" link.
      */
     showPoweredBy: boolean;
 };
 
 /**
- * A Web Component which renders watermarks such as Jits, brand, powered by,
+ * A Web Component which renders watermarks such as Echo, brand, powered by,
  * etc.
  */
 class Watermarks extends Component<IProps, State> {
