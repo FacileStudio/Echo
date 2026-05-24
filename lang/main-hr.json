@@ -60,7 +60,7 @@
     },
     "calendarSync": {
         "addMeetingURL": "Dodaj poveznicu za sastanak",
-        "confirmAddLink": "Želiš li dodati Jitsi poveznicu ovom događaju?",
+        "confirmAddLink": "Želiš li dodati Echo poveznicu ovom događaju?",
         "error": {
             "appConfiguration": "Integracija kalendara nije ispravno konfigurirana.",
             "generic": "Došlo je do greške. Provjeri postavke kalendara ili pokušaj aktualizirati kalendar.",
@@ -689,7 +689,7 @@
         "noiseSuppressionFailedTitle": "Nauspjelo pokretanje suzbijanja šumova",
         "noiseSuppressionNoTrackDescription": "Najprije isključi zvuk tvog mikrofona.",
         "noiseSuppressionStereoDescription": "Suzbijanja šumova stereo zvuka trenutačno nije podržano.",
-        "oldElectronClientDescription1": "Čini se da koristiš staru verziju klijenta Jitsi Meet koja ima poznate sigurnosne probleme. Obavezno aktualiziraj na našu ",
+        "oldElectronClientDescription1": "Čini se da koristiš staru verziju klijenta Echo koja ima poznate sigurnosne probleme. Obavezno aktualiziraj na našu ",
         "oldElectronClientDescription2": "najnoviju verziju",
         "oldElectronClientDescription3": " sada!",
         "participantWantsToJoin": "Želi se pridružiti sastanku",
@@ -1329,13 +1329,13 @@
         "headerSubtitle": "Sigurni sastanci viskoke kvalitete",
         "headerTitle": "Echo",
         "info": "informacije zvanih brojeva",
-        "jitsiOnMobile": "Jitsi na mobilnim uređajima – preuzmi naše aplikacije i započni sastanak od kuda god želiš",
+        "jitsiOnMobile": "Echo na mobilnim uređajima – preuzmi naše aplikacije i započni sastanak od kuda god želiš",
         "join": "STVORI/PRIDRUŽI SE",
         "logo": {
             "calendar": "Logotip kalendara",
             "desktopPreviewThumbnail": "Minijatura pregleda radne površine",
             "googleLogo": "Google logotip",
-            "logoDeepLinking": "Jitsi meet logotip",
+            "logoDeepLinking": "Echo logotip",
             "microsoftLogo": "Microsoft logotip",
             "policyLogo": "Logotip politike"
         },

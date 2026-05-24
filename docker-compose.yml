@@ -1,5 +1,5 @@
 services:
-  web:
+  echo-web:
     container_name: echo-web
     image: jitsi/web:${JITSI_IMAGE_VERSION:-stable}
     restart: unless-stopped
@@ -32,12 +32,12 @@ services:
       - XMPP_PORT
       - XMPP_RECORDER_DOMAIN
     networks:
-      meet.jitsi:
+      echo:
       dokploy-network:
     depends_on:
-      - jvb
+      - echo-jvb
 
-  prosody:
+  echo-prosody:
     container_name: echo-prosody
     image: jitsi/prosody:${JITSI_IMAGE_VERSION:-stable}
     restart: unless-stopped
@@ -72,11 +72,11 @@ services:
       - XMPP_PORT
       - XMPP_RECORDER_DOMAIN
     networks:
-      meet.jitsi:
+      echo:
         aliases:
           - ${XMPP_SERVER:-xmpp.meet.jitsi}
 
-  jicofo:
+  echo-jicofo:
     container_name: echo-jicofo
     image: jitsi/jicofo:${JITSI_IMAGE_VERSION:-stable}
     restart: unless-stopped
@@ -102,11 +102,11 @@ services:
       - XMPP_SERVER
       - XMPP_PORT
     depends_on:
-      - prosody
+      - echo-prosody
     networks:
-      meet.jitsi:
+      echo:
 
-  jvb:
+  echo-jvb:
     container_name: echo-jvb
     image: jitsi/jvb:${JITSI_IMAGE_VERSION:-stable}
     restart: unless-stopped
@@ -130,11 +130,11 @@ services:
       - XMPP_SERVER
       - XMPP_PORT
     depends_on:
-      - prosody
+      - echo-prosody
     networks:
-      meet.jitsi:
+      echo:
 
 networks:
-  meet.jitsi:
+  echo:
   dokploy-network:
     external: true
