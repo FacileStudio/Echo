@@ -46,7 +46,7 @@ export const commonStyles = (theme: Theme) => {
                 padding: '0 20px',
                 width: '100%',
                 height: '1px',
-                background: '#5E6D7A'
+                background: '#525252'
             },
 
             '& .control-row': {

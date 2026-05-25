@@ -121,13 +121,13 @@ const useStyles = makeStyles()(theme => {
 
             '&.disabled': {
                 background: theme.palette.prejoinActionButtonDisabled,
-                border: '1px solid #5E6D7A',
-                color: '#AFB6BC',
+                border: '1px solid #525252',
+                color: '#737373',
                 cursor: 'initial',
 
                 '.icon': {
                     '& > svg': {
-                        fill: '#AFB6BC'
+                        fill: '#737373'
                     }
                 }
             },
@@ -151,7 +151,7 @@ const useStyles = makeStyles()(theme => {
             width: 36,
 
             '&:hover': {
-                backgroundColor: '#0262B6'
+                backgroundColor: '#1c1c1c'
             },
 
             '& svg': {

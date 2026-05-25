@@ -25,11 +25,11 @@
     }
 
     &__link {
-        color: #489afe;
+        color: #a3a3a3;
         @include transition(color .1s ease-out);
 
         &:hover {
-            color: #287ade;
+            color: #fafafa;
             cursor: pointer;
             text-decoration: none;
 
