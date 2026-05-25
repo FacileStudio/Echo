@@ -61,7 +61,7 @@ body.welcome-page {
         }
 
         .header-text-subtitle {
-            color: #666;
+            color: #737373;
             font-size: 1.25rem;
             font-weight: 600;
             line-height: 1.625rem;
@@ -71,7 +71,7 @@ body.welcome-page {
         }
 
         .not-allow-title-character-div {
-            color: #f03e3e;
+            color: #E04757;
             background-color: #fff;
             font-size: 0.75rem;
             font-weight: 600;
@@ -89,7 +89,7 @@ body.welcome-page {
 
 
                 svg {
-                    fill:#f03e3e;
+                    fill:#E04757;
 
                     & > *:first-child {
                         fill: none !important;
@@ -101,7 +101,7 @@ body.welcome-page {
 
         .insecure-room-name-warning {
             align-items: center;
-            color: rgb(215, 121, 118);
+            color: #E04757;
             font-weight: 600;
             display: flex;
             flex-direction: row;
@@ -113,7 +113,7 @@ body.welcome-page {
                 margin-right: 15px;
 
                 svg {
-                    fill: rgb(215, 121, 118);
+                    fill: #E04757;
 
                     & > *:first-child {
                         fill: none !important;
@@ -123,7 +123,7 @@ body.welcome-page {
         }
 
         ::placeholder {
-            color: #999;
+            color: #737373;
         }
 
         #enter_room {
@@ -138,12 +138,12 @@ body.welcome-page {
                 margin: $welcomePageEnterRoomMargin;
                 padding: $welcomePageEnterRoomPadding;
                 border-radius: 9999px;
-                border: 1px solid #e0e0e0;
+                border: 1px solid #e5e5e5;
                 background-color: #fff;
                 display: flex;
                 width: 100%;
                 text-align: left;
-                color: #000;
+                color: #171717;
             }
 
             .enter-room-input-container {
@@ -199,7 +199,7 @@ body.welcome-page {
         }
 
         .tab-buttons {
-            background-color: #f5f5f5;
+            background-color: #fafafa;
             border-radius: 9999px;
             color: #000;
             font-size: 0.875rem;
@@ -208,7 +208,7 @@ body.welcome-page {
             display: $welcomePageTabButtonsDisplay;
 
             [role="tab"] {
-                background-color: #f5f5f5;
+                background-color: #fafafa;
                 border-radius: 9999px;
                 cursor: pointer;
                 display: $welcomePageTabDisplay;
@@ -289,7 +289,7 @@ body.welcome-page {
     }
 
     .welcome-cards-container {
-        color: #000;
+        color: #171717;
         padding-top: 40px;
     }
 
@@ -315,12 +315,12 @@ body.welcome-page {
         border-radius: 16px;
 
         &--dark {
-            background: #000;
-            color: #fff;
+            background: #0a0a0a;
+            color: #fafafa;
         }
 
         &--blue {
-            background: #f5f5f5;
+            background: #fafafa;
         }
 
         &--grey {
@@ -330,7 +330,7 @@ body.welcome-page {
 
     .welcome-footer {
         background: transparent;
-        color: #999;
+        color: #737373;
         margin-top: 40px;
         padding: 24px 0;
         text-align: center;
@@ -338,7 +338,7 @@ body.welcome-page {
         position: relative;
 
         a {
-            color: #666;
+            color: #525252;
             text-decoration: none;
             font-weight: 600;
             transition: color 0.2s;
@@ -362,7 +362,7 @@ body.welcome-page {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        border-bottom: 1px solid #333;
+        border-bottom: 1px solid #e5e5e5;
 
         &:last-child {
             border-bottom: none;

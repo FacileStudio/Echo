@@ -13,7 +13,7 @@ $thumbnailsBorder: 2px;
 /**
  * Toolbar
  */
-$newToolbarBackgroundColor: #131519;
+$newToolbarBackgroundColor: #0a0a0a;
 $newToolbarSize: 48px;
 $newToolbarSizeMobile: 60px;
 $newToolbarSizeWithPadding: calc(#{$newToolbarSize} + 24px);
@@ -21,7 +21,7 @@ $newToolbarSizeWithPadding: calc(#{$newToolbarSize} + 24px);
 /**
  * Chat
  */
-$chatBackgroundColor: #131519;
+$chatBackgroundColor: #0a0a0a;
 
 /**
  * Misc.
@@ -46,7 +46,7 @@ $filmstripVideosZ: $toolbarZ + 1;
 /**
  * Unsupported browser
  */
-$primaryUnsupportedBrowserButtonBgColor: #0052CC;
+$primaryUnsupportedBrowserButtonBgColor: #171717;
 $unsupportedBrowserButtonBgColor: rgba(9, 30, 66, 0.04);
 $unsupportedBrowserTextColor: #4a4a4a;
 $unsupportedBrowserTextSmallFontSize: 1rem;
@@ -67,10 +67,10 @@ $welcomePageWatermarkHeight: 32px;
 /**
  * Welcome page variables.
  */
-$welcomePageDescriptionColor: #000;
+$welcomePageDescriptionColor: #171717;
 $welcomePageFontFamily: inherit;
 $welcomePageBackground: none;
-$welcomePageTitleColor: #000;
+$welcomePageTitleColor: #171717;
 
 $welcomePageHeaderBackground: none;
 $welcomePageHeaderBackgroundPosition: center;
@@ -79,9 +79,9 @@ $welcomePageHeaderBackgroundSize: cover;
 $welcomePageHeaderPadding: 1rem;
 $welcomePageHeaderTitleMaxWidth: initial;
 $welcomePageHeaderTextAlign: center;
-$welcomePageButtonBg: #111;
-$welcomePageButtonHoverBg: #222;
-$welcomePageButtonFocusOutline: #333;
+$welcomePageButtonBg: #171717;
+$welcomePageButtonHoverBg: #262626;
+$welcomePageButtonFocusOutline: #525252;
 
 $welcomePageHeaderContainerMarginTop: 104px;
 $welcomePageHeaderContainerDisplay: flex;
