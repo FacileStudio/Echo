@@ -49,10 +49,6 @@ import { IJaaSState } from '../jaas/reducer';
 import { IKeyboardShortcutsState } from '../keyboard-shortcuts/types';
 import { ILargeVideoState } from '../large-video/reducer';
 import { ILobbyState } from '../lobby/reducer';
-import { IMobileAudioModeState } from '../mobile/audio-mode/reducer';
-import { IMobileBackgroundState } from '../mobile/background/reducer';
-import { ICallIntegrationState } from '../mobile/call-integration/reducer';
-import { IMobileExternalApiState } from '../mobile/external-api/reducer';
 import { INoAudioSignalState } from '../no-audio-signal/reducer';
 import { INoiseDetectionState } from '../noise-detection/reducer';
 import { INoiseSuppressionState } from '../noise-suppression/reducer';
@@ -120,7 +116,6 @@ export interface IReduxState {
     'features/base/user-interaction': IUserInteractionState;
     'features/breakout-rooms': IBreakoutRoomsState;
     'features/calendar-sync': ICalendarSyncState;
-    'features/call-integration': ICallIntegrationState;
     'features/chat': IChatState;
     'features/custom-panel': ICustomPanelState;
     'features/deep-linking': IDeepLinkingState;
@@ -140,9 +135,6 @@ export interface IReduxState {
     'features/keyboard-shortcuts': IKeyboardShortcutsState;
     'features/large-video': ILargeVideoState;
     'features/lobby': ILobbyState;
-    'features/mobile/audio-mode': IMobileAudioModeState;
-    'features/mobile/background': IMobileBackgroundState;
-    'features/mobile/external-api': IMobileExternalApiState;
     'features/no-audio-signal': INoAudioSignalState;
     'features/noise-detection': INoiseDetectionState;
     'features/noise-suppression': INoiseSuppressionState;

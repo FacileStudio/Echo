@@ -40,7 +40,7 @@ body {
     overflow: hidden;
     overflow: clip;
     color: #fff;
-    background: #000;
+    background: #0a0a0a;
 }
 
 /**
@@ -58,11 +58,11 @@ body {
 }
 
 .disabled .jitsi-icon svg {
-    fill: #929292;
+    fill: #737373;
 }
 
 .jitsi-icon.gray svg {
-    fill: #5E6D7A;
+    fill: #525252;
     cursor: pointer;
 }
 
@@ -98,7 +98,7 @@ input[type='text'], input[type='password'], textarea {
 
 button {
     color: #FFF;
-    background-color: #44A5FF;
+    background-color: #171717;
     border-radius: $borderRadius;
 
     &.no-icon {
@@ -175,7 +175,7 @@ form {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #3D3D3D;
+    background: #262626;
     border-radius: 4px;
 }
 

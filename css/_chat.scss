@@ -26,7 +26,7 @@
         outline: 0;
         margin: 4px;
         border-radius: 0 0 variables.$borderRadius variables.$borderRadius;
-        box-shadow: 0px 0px 0px 2px #4687ed; // focus01/primary07
+        box-shadow: 0px 0px 0px 2px #525252;
     }
 
     & > :first-child {
@@ -38,7 +38,7 @@
     }
 
     a:link {
-        color: rgb(184, 184, 184);
+        color: #a3a3a3;
     }
 
     a:visited {
@@ -46,11 +46,11 @@
     }
 
     a:hover {
-        color: rgb(213, 213, 213);
+        color: #d4d4d4;
     }
 
     a:active {
-        color: black;
+        color: #fafafa;
     }
 }
 
@@ -71,14 +71,14 @@
 
 #nickname {
     text-align: center;
-    color: #9d9d9d;
+    color: #737373;
     font-size: 1rem;
     margin: auto 0;
     padding: 0 16px;
 
     label[for="nickinput"] {
         > div > span {
-            color: #B8C7E0;
+            color: #737373;
         }
     }
     input {
@@ -215,6 +215,6 @@
     place-items: center;
     height: 48px;
     width: 48px;
-    background: #36383C;
+    background: #1a1a1a;
     border-radius: 3px;
 }

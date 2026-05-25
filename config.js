@@ -1130,7 +1130,7 @@ var config = {
         stunServers: [
 
             // { urls: 'stun:jitsi-meet.example.com:3478' },
-            { urls: 'stun:meet-jit-si-turnrelay.jitsi.net:443' },
+            { urls: 'stun:stun.l.google.com:19302' },
         ],
     },
 
@@ -1990,7 +1990,7 @@ var config = {
 
 // Set the default values for JaaS customers
 if (enableJaaS) {
-    config.dialInNumbersUrl = 'https://conference-mapper.jitsi.net/v1/access/dids';
-    config.dialInConfCodeUrl = 'https://conference-mapper.jitsi.net/v1/access';
+    // config.dialInNumbersUrl = 'https://conference-mapper.jitsi.net/v1/access/dids';
+    // config.dialInConfCodeUrl = 'https://conference-mapper.jitsi.net/v1/access';
     config.roomPasswordNumberOfDigits = 10; // skip re-adding it (do not remove comment)
 }
