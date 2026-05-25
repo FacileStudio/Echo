@@ -10,7 +10,7 @@ import { sendAnalytics } from '../../analytics/functions';
 import { IStore } from '../../app/types';
 import { MEDIA_TYPE as AVM_MEDIA_TYPE } from '../../av-moderation/constants';
 import { isForceMuted } from '../../av-moderation/functions';
-import { APP_STATE_CHANGED } from '../../mobile/background/actionTypes';
+
 import { showWarningNotification } from '../../notifications/actions';
 import { NOTIFICATION_TIMEOUT_TYPE } from '../../notifications/constants';
 import { isScreenMediaShared } from '../../screen-share/functions';
@@ -66,9 +66,6 @@ import {
  */
 MiddlewareRegistry.register(store => next => action => {
     switch (action.type) {
-    case APP_STATE_CHANGED:
-        return _appStateChanged(store, next, action);
-
     case PARTICIPANT_MUTED_US: {
         const { dispatch } = store;
         const { track } = action;
@@ -168,31 +165,6 @@ MiddlewareRegistry.register(store => next => action => {
 
     return next(action);
 });
-
-/**
- * Adjusts the video muted state based on the app state.
- *
- * @param {Store} store - The redux store in which the specified {@code action}
- * is being dispatched.
- * @param {Dispatch} next - The redux {@code dispatch} function to dispatch the
- * specified {@code action} to the specified {@code store}.
- * @param {Action} action - The redux action {@code APP_STATE_CHANGED} which is
- * being dispatched in the specified {@code store}.
- * @private
- * @returns {Object} The value returned by {@code next(action)}.
- */
-function _appStateChanged({ dispatch, getState }: IStore, next: Function, action: AnyAction) {
-    if (navigator.product === 'ReactNative') {
-        const { appState } = action;
-        const mute = appState !== 'active' && !isLocalVideoTrackDesktop(getState());
-
-        sendAnalytics(createTrackMutedEvent('video', 'background mode', mute));
-
-        dispatch(setVideoMuted(mute, VIDEO_MUTISM_AUTHORITY.BACKGROUND));
-    }
-
-    return next(action);
-}
 
 /**
  * Adjusts the video muted state based on the audio-only state.

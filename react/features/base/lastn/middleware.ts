@@ -2,7 +2,7 @@ import { debounce } from 'lodash-es';
 
 import { IStore } from '../../app/types';
 import { SET_FILMSTRIP_ENABLED } from '../../filmstrip/actionTypes';
-import { APP_STATE_CHANGED } from '../../mobile/background/actionTypes';
+
 import {
     SET_CAR_MODE,
     VIRTUAL_SCREENSHARE_REMOTE_PARTICIPANTS_UPDATED
@@ -78,7 +78,6 @@ MiddlewareRegistry.register(store => next => action => {
     const result = next(action);
 
     switch (action.type) {
-    case APP_STATE_CHANGED:
     case CONFERENCE_JOINED:
     case SET_AUDIO_ONLY:
     case SET_CAR_MODE:

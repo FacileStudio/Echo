@@ -3,10 +3,10 @@ import { SET_CONFIG } from '../base/config/actionTypes';
 import { ADD_KNOWN_DOMAINS } from '../base/known-domains/actionTypes';
 import MiddlewareRegistry from '../base/redux/MiddlewareRegistry';
 import { equals } from '../base/redux/functions';
-import { APP_STATE_CHANGED } from '../mobile/background/actionTypes';
+
 
 import { REFRESH_CALENDAR } from './actionTypes';
-import { setCalendarAuthorization } from './actions';
+
 import { _fetchCalendarEntries, isCalendarEnabled } from './functions';
 
 MiddlewareRegistry.register(store => next => action => {
@@ -26,14 +26,6 @@ MiddlewareRegistry.register(store => next => action => {
 
         equals(oldValue, newValue)
             || _fetchCalendarEntries(store, false, false);
-
-        return result;
-    }
-
-    case APP_STATE_CHANGED: {
-        const result = next(action);
-
-        _maybeClearAccessStatus(store, action);
 
         return result;
     }
@@ -59,17 +51,3 @@ MiddlewareRegistry.register(store => next => action => {
     return next(action);
 });
 
-/**
- * Clears the calendar access status when the app comes back from the
- * background. This is needed as some users may never quit the app, but puts it
- * into the background and we need to try to request for a permission as often
- * as possible, but not annoyingly often.
- *
- * @param {Object} store - The redux store.
- * @param {Object} action - The Redux action.
- * @private
- * @returns {void}
- */
-function _maybeClearAccessStatus(store: IStore, { appState }: { appState: string; }) {
-    appState === 'background' && store.dispatch(setCalendarAuthorization(undefined));
-}
