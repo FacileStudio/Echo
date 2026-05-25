@@ -1,5 +1,3 @@
-ARG JITSI_IMAGE_VERSION=stable
-
 FROM node:20-bookworm AS build
 
 WORKDIR /src
@@ -8,43 +6,40 @@ RUN npm ci --legacy-peer-deps
 COPY . .
 RUN make all
 
-FROM jitsi/web:${JITSI_IMAGE_VERSION}
+FROM nginx:alpine
 
-RUN rm -rf /usr/share/jitsi-meet/libs \
-           /usr/share/jitsi-meet/css \
-           /usr/share/jitsi-meet/lang \
-           /usr/share/jitsi-meet/images \
-           /usr/share/jitsi-meet/static \
-           /usr/share/jitsi-meet/sounds
+RUN rm -rf /etc/nginx/conf.d/default.conf /usr/share/nginx/html
 
-COPY --from=build /src/libs/          /usr/share/jitsi-meet/libs/
-COPY --from=build /src/css/all.css    /usr/share/jitsi-meet/css/all.css
-COPY --from=build /src/lang/          /usr/share/jitsi-meet/lang/
-COPY --from=build /src/images/        /usr/share/jitsi-meet/images/
-COPY --from=build /src/static/        /usr/share/jitsi-meet/static/
-COPY --from=build /src/sounds/        /usr/share/jitsi-meet/sounds/
+COPY docker/nginx.conf /etc/nginx/nginx.conf
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
-COPY interface_config.js  /usr/share/jitsi-meet/interface_config.js
-COPY head.html             /usr/share/jitsi-meet/head.html
-COPY base.html             /usr/share/jitsi-meet/base.html
-COPY title.html            /usr/share/jitsi-meet/title.html
-COPY fonts.html            /usr/share/jitsi-meet/fonts.html
-COPY index.html            /usr/share/jitsi-meet/index.html
+# App root
+WORKDIR /srv/echo
 
-# Also overwrite the defaults template so entrypoint generates correct values
-COPY interface_config.js  /defaults/interface_config.js
+# Built assets
+COPY --from=build /src/libs/        libs/
+COPY --from=build /src/css/all.css  css/all.css
 
-# Store Echo overrides so the s6 init script can re-apply them after
-# the jitsi/web entrypoint regenerates its defaults
-COPY interface_config.js  /echo-overrides/interface_config.js
-COPY head.html             /echo-overrides/head.html
-COPY base.html             /echo-overrides/base.html
-COPY title.html            /echo-overrides/title.html
-COPY fonts.html            /echo-overrides/fonts.html
-COPY index.html            /echo-overrides/index.html
+# Source assets
+COPY lang/      lang/
+COPY images/    images/
+COPY static/    static/
+COPY sounds/    sounds/
 
-# s6 init script that runs last (99) to re-apply Echo branding
-# after jitsi/web entrypoint regenerates its template files
-RUN printf '#!/bin/bash\ncp /echo-overrides/* /usr/share/jitsi-meet/\n' \
-    > /etc/cont-init.d/99-echo-branding \
-    && chmod +x /etc/cont-init.d/99-echo-branding
+# HTML + config
+COPY index.html .
+COPY config.js  config.js.template
+COPY interface_config.js .
+COPY head.html .
+COPY base.html .
+COPY title.html .
+COPY fonts.html .
+COPY body.html .
+COPY plugin.head.html .
+COPY manifest.json .
+COPY pwa-worker.js .
+
+EXPOSE 80
+
+ENTRYPOINT ["/entrypoint.sh"]
