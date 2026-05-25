@@ -355,7 +355,7 @@ export const colorMap = {
     dialInSecondaryText: 'text02',           // Dial-in summary secondary text
 
     // Reactions
-    reactionsMenuBackground: '#242528', // Reactions menu background
+    reactionsMenuBackground: '#f7f7f8', // Reactions menu background
     reactionsMenuBorder: 'ui02',             // Reactions menu border
     reactionsMenuButtonToggled: 'surface01', // Reactions menu button toggled state background
     reactionsMenuBoxShadow1: 'ui09',         // Reactions menu box shadow primary
@@ -412,7 +412,7 @@ export const colorMap = {
     fileSharingItemBorder: 'ui02',           // File sharing item hover/border
 
     // Gifs
-    gifsBackground: '#242528',                  // GIFs panel background
+    gifsBackground: '#f7f7f8',                   // GIFs panel background
     gifsText: 'text01',                      // GIFs panel text
 
     // Whiteboard

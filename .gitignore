@@ -114,6 +114,12 @@ react-native-sdk/react
 react-native-sdk/service
 react-native-sdk/sounds
 
+# Environment
+.env
+
+# Echo config (generated volumes)
+echo-config/
+
 # tests
 tests/.env
 test-results

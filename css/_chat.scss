@@ -26,7 +26,7 @@
         outline: 0;
         margin: 4px;
         border-radius: 0 0 variables.$borderRadius variables.$borderRadius;
-        box-shadow: 0px 0px 0px 2px #525252;
+        box-shadow: 0px 0px 0px 2px #d4d4d8;
     }
 
     & > :first-child {
@@ -42,15 +42,15 @@
     }
 
     a:visited {
-        color: white;
+        color: #0b0b0c;
     }
 
     a:hover {
-        color: #d4d4d4;
+        color: #525252;
     }
 
     a:active {
-        color: #fafafa;
+        color: #171717;
     }
 }
 
@@ -153,7 +153,7 @@
 }
 
 .smileyContainer:hover {
-    background-color: rgba(255, 255, 255, 0.15);
+    background-color: rgba(0, 0, 0, 0.08);
     border-radius: 5px;
     cursor: pointer;
 }
@@ -191,7 +191,7 @@
         margin: 16px;
         width: calc(100% - 32px);
         box-sizing: border-box;
-        color: #fff;
+        color: #0b0b0c;
         font-weight: 600;
         font-size: 1.5rem;
         line-height: 2rem;
@@ -215,6 +215,6 @@
     place-items: center;
     height: 48px;
     width: 48px;
-    background: #1a1a1a;
+    background: #f0f0f2;
     border-radius: 3px;
 }

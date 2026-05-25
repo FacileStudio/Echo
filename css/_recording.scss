@@ -27,7 +27,7 @@
     }
 
     .recording-header-line {
-        border-top: 1px solid #525252;
+        border-top: 1px solid #d4d4d8;
         padding-top: 16px;
         margin-top: 16px;
     }
@@ -40,8 +40,8 @@
         padding: 8px 16px;
 
         &.text {
-            color: #fff;
-            background-color: #262626;
+            color: #0b0b0c;
+            background-color: #e5e5ea;
         }
 
         &.notification {
@@ -56,7 +56,7 @@
     }
 
     .file-sharing-icon-container {
-        background-color: #525252;
+        background-color: #d4d4d8;
         border-radius: 4px;
         height: 40px;
         justify-content: center;

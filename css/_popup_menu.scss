@@ -5,15 +5,15 @@
 .popupmenu__contents {
     .popupmenu__volume-slider {
             &::-webkit-slider-runnable-track {
-                background-color: #525252;
+                background-color: #d4d4d8;
             }
 
             &::-moz-range-track {
-                background-color: #525252;
+                background-color: #d4d4d8;
             }
 
             &::-ms-fill-lower {
-                background-color: #525252;
+                background-color: #d4d4d8;
             }
         }
 }
