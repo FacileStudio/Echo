@@ -34,12 +34,10 @@ body.welcome-page {
         }
 
         .header-top-bar {
-            position: absolute;
-            width: 100%;
-            top: calc(20px - #{$welcomePageHeaderContainerMarginTop});
             display: flex;
             align-items: center;
             justify-content: space-between;
+            padding: 20px 32px;
             z-index: $zindex3;
         }
 

@@ -200,31 +200,31 @@ class WelcomePage extends AbstractWelcomePage<IProps> {
                 id = 'welcome_page'>
                 <div className = 'header'>
                     <div className = 'header-image' />
-                    <div className = 'header-container'>
-                        <div className = 'header-top-bar'>
-                            <a
-                                className = 'header-brand'
-                                href = 'https://facile.studio'
-                                rel = 'noopener noreferrer'
-                                target = '_blank'>
-                                <img
-                                    alt = 'Echo'
-                                    className = 'header-brand-icon'
-                                    src = { DEFAULT_WELCOME_PAGE_LOGO_URL } />
-                                <span className = 'header-brand-name'>Echo</span>
-                            </a>
-                            <div className = 'welcome-page-settings'>
-                                <SettingsButton
-                                    defaultTab = { SETTINGS_TABS.CALENDAR }
-                                    isDisplayedOnWelcomePage = { true } />
-                                {showAdditionalToolbarContent
-                                    ? <div
-                                        className = 'settings-toolbar-content'
-                                        ref = { this._setAdditionalToolbarContentRef } />
-                                    : null
-                                }
-                            </div>
+                    <div className = 'header-top-bar'>
+                        <a
+                            className = 'header-brand'
+                            href = 'https://facile.studio'
+                            rel = 'noopener noreferrer'
+                            target = '_blank'>
+                            <img
+                                alt = 'Echo'
+                                className = 'header-brand-icon'
+                                src = { DEFAULT_WELCOME_PAGE_LOGO_URL } />
+                            <span className = 'header-brand-name'>Echo</span>
+                        </a>
+                        <div className = 'welcome-page-settings'>
+                            <SettingsButton
+                                defaultTab = { SETTINGS_TABS.CALENDAR }
+                                isDisplayedOnWelcomePage = { true } />
+                            {showAdditionalToolbarContent
+                                ? <div
+                                    className = 'settings-toolbar-content'
+                                    ref = { this._setAdditionalToolbarContentRef } />
+                                : null
+                            }
                         </div>
+                    </div>
+                    <div className = 'header-container'>
                         <div id = 'enter_room'>
                             <div className = 'join-meeting-container'>
                                 <div className = 'enter-room-input-container'>
