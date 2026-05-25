@@ -25,6 +25,8 @@ COPY --from=build /src/static/        /usr/share/jitsi-meet/static/
 COPY --from=build /src/sounds/        /usr/share/jitsi-meet/sounds/
 
 COPY interface_config.js  /usr/share/jitsi-meet/interface_config.js
+COPY head.html             /usr/share/jitsi-meet/head.html
+COPY base.html             /usr/share/jitsi-meet/base.html
 COPY title.html            /usr/share/jitsi-meet/title.html
 COPY fonts.html            /usr/share/jitsi-meet/fonts.html
 COPY index.html            /usr/share/jitsi-meet/index.html
