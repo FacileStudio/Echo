@@ -2,21 +2,21 @@
     margin-top: 14%;
     @include border-radius(4px);
     padding: 40px 38px 44px;
-    color: #fff;
-    background: lighten(#474747, 20%);
+    color: #0b0b0c;
+    background: #f0f0f2;
     text-align: center;
 
     &__title {
         margin: 17px 0;
         padding-bottom: 17px;
-        color: #ffffff;
+        color: #0b0b0c;
         font-size: 1.25rem;
         letter-spacing: 0.3px;
-        border-bottom: 1px solid lighten(#FFFFFF, 10%);
+        border-bottom: 1px solid #d4d4d8;
     }
 
     &__text {
-        color: #ffffff;
+        color: #0b0b0c;
         display: block;
         margin-top: 22px;
         font-size: 1rem;

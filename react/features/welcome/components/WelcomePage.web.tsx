@@ -5,7 +5,6 @@ import { isMobileBrowser } from '../../base/environment/utils';
 import { translate, translateToHTML } from '../../base/i18n/functions';
 import Icon from '../../base/icons/components/Icon';
 import { IconWarning } from '../../base/icons/svg';
-import Watermarks from '../../base/react/components/web/Watermarks';
 import getUnsafeRoomText from '../../base/util/getUnsafeRoomText.web';
 import CalendarList from '../../calendar-sync/components/CalendarList.web';
 import RecentList from '../../recent-list/components/RecentList.web';
@@ -202,34 +201,30 @@ class WelcomePage extends AbstractWelcomePage<IProps> {
                 <div className = 'header'>
                     <div className = 'header-image' />
                     <div className = 'header-container'>
-                        <div className = 'header-watermark-container'>
-                            <div className = 'welcome-watermark'>
-                                <Watermarks
-                                    defaultJitsiLogoURL = { DEFAULT_WELCOME_PAGE_LOGO_URL }
-                                    noMargins = { true } />
+                        <div className = 'header-top-bar'>
+                            <a
+                                className = 'header-brand'
+                                href = 'https://facile.studio'
+                                rel = 'noopener noreferrer'
+                                target = '_blank'>
+                                <img
+                                    alt = 'Echo'
+                                    className = 'header-brand-icon'
+                                    src = { DEFAULT_WELCOME_PAGE_LOGO_URL } />
+                                <span className = 'header-brand-name'>Echo</span>
+                            </a>
+                            <div className = 'welcome-page-settings'>
+                                <SettingsButton
+                                    defaultTab = { SETTINGS_TABS.CALENDAR }
+                                    isDisplayedOnWelcomePage = { true } />
+                                {showAdditionalToolbarContent
+                                    ? <div
+                                        className = 'settings-toolbar-content'
+                                        ref = { this._setAdditionalToolbarContentRef } />
+                                    : null
+                                }
                             </div>
                         </div>
-                        <div className = 'welcome-page-settings'>
-                            <SettingsButton
-                                defaultTab = { SETTINGS_TABS.CALENDAR }
-                                isDisplayedOnWelcomePage = { true } />
-                            {showAdditionalToolbarContent
-                                ? <div
-                                    className = 'settings-toolbar-content'
-                                    ref = { this._setAdditionalToolbarContentRef } />
-                                : null
-                            }
-                        </div>
-                        <h1 className = 'header-text-title'>
-                            <img
-                                alt = 'Echo'
-                                className = 'header-logo-icon'
-                                src = 'images/watermark.svg' />
-                            {t('welcomepage.headerTitle')}
-                        </h1>
-                        <span className = 'header-text-subtitle'>
-                            {t('welcomepage.headerSubtitle')}
-                        </span>
                         <div id = 'enter_room'>
                             <div className = 'join-meeting-container'>
                                 <div className = 'enter-room-input-container'>

@@ -7,11 +7,11 @@
         height: 100%;
         position: fixed;
         z-index: 1016;
-        background: #474747;
+        background: #d4d4d8;
     }
 
     &__container-light {
-        @include transparentBg(#474747, 0.7);
+        @include transparentBg(#d4d4d8, 0.7);
     }
 
     &__content {

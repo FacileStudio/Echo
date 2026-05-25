@@ -2,10 +2,10 @@
  * Round badge.
  */
 .badge-round {
-    background-color: var(--toolbar-badge-background, #171717);
+    background-color: var(--toolbar-badge-background, #f0f0f2);
     border-radius: 50%;
     box-sizing: border-box;
-    color: #FFFFFF;
+    color: #0b0b0c;
     // Do not inherit the font-family from the toolbar button, because it's an
     // icon style.
     font-family: $baseFontFamily;
@@ -98,7 +98,7 @@
 }
 
 .overflow-menu-hr {
-    border-top: 1px solid #262626;
+    border-top: 1px solid #e5e5ea;
     border-bottom: 0;
     margin: 8px 0;
 }
@@ -167,7 +167,7 @@ div.hangup-menu-button {
         background: none;
 
         &:hover {
-            background: rgba(255, 255, 255, 0.2);
+            background: rgba(0, 0, 0, 0.08);
         }
     }
 

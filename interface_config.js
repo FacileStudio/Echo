@@ -10,8 +10,8 @@
 
 var interfaceConfig = {
     APP_NAME: 'Echo',
-    AUDIO_LEVEL_PRIMARY_COLOR: 'rgba(255,255,255,0.4)',
-    AUDIO_LEVEL_SECONDARY_COLOR: 'rgba(255,255,255,0.2)',
+    AUDIO_LEVEL_PRIMARY_COLOR: 'rgba(11,11,12,0.4)',
+    AUDIO_LEVEL_SECONDARY_COLOR: 'rgba(11,11,12,0.2)',
 
     /**
      * A UX mode where the last screen share participant is automatically
@@ -26,7 +26,7 @@ var interfaceConfig = {
 
     CLOSE_PAGE_GUEST_HINT: false, // A html text to be shown to guests on the close page, false disables it
 
-    DEFAULT_BACKGROUND: '#000000',
+    DEFAULT_BACKGROUND: '#ffffff',
     DEFAULT_WELCOME_PAGE_LOGO_URL: 'images/watermark.svg',
 
     DISABLE_DOMINANT_SPEAKER_INDICATOR: false,

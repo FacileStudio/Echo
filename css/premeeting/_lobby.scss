@@ -27,7 +27,7 @@
         }
 
         .joining-message {
-            color: white;
+            color: #0b0b0c;
             margin: 24px auto;
             text-align: center;
         }
@@ -61,7 +61,7 @@
 
 #notification-participant-list {
     background-color: var(--toolbox-background-color, $newToolbarBackgroundColor);
-    border: 1px solid rgba(255, 255, 255, .4);
+    border: 1px solid rgba(11, 11, 12, 0.15);
     border-radius: 8px;
     left: 0;
     margin: 20px;
@@ -190,7 +190,7 @@
 
                 .title {
                     flex: 1;
-                    color: #fff;
+                    color: #0b0b0c;
                     font-size: 1.25rem;
                     font-weight: 600;
                     line-height: 1.75rem;

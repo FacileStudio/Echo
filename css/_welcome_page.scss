@@ -33,41 +33,33 @@ body.welcome-page {
             max-width: 688px;
         }
 
-        .header-watermark-container {
+        .header-top-bar {
             position: absolute;
             width: 100%;
-            height: 100%;
-            margin-top: calc(20px - #{$welcomePageHeaderContainerMarginTop});
-        }
-
-        .header-text-title {
-            color: $welcomePageTitleColor;
-            font-size: $welcomePageHeaderTextTitleFontSize;
-            font-weight: $welcomePageHeaderTextTitleFontWeight;
-            line-height: $welcomePageHeaderTextTitleLineHeight;
-            margin-bottom: $welcomePageHeaderTextTitleMarginBottom;
-            max-width: $welcomePageHeaderTitleMaxWidth;
-            opacity: $welcomePageHeaderTextTitleOpacity;
-            text-align: $welcomePageHeaderTextAlign;
+            top: calc(20px - #{$welcomePageHeaderContainerMarginTop});
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 12px;
-
-            .header-logo-icon {
-                width: 42px;
-                height: 42px;
-            }
+            justify-content: space-between;
+            z-index: $zindex3;
         }
 
-        .header-text-subtitle {
-            color: #737373;
-            font-size: 1.25rem;
-            font-weight: 600;
-            line-height: 1.625rem;
-            margin: 16px 0 32px 0;
-            text-align: $welcomePageHeaderTextAlign;
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: $welcomePageTitleColor;
 
+            .header-brand-icon {
+                width: 28px;
+                height: 28px;
+            }
+
+            .header-brand-name {
+                font-size: 1.125rem;
+                font-weight: 600;
+                letter-spacing: -0.02em;
+            }
         }
 
         .not-allow-title-character-div {
@@ -251,10 +243,6 @@ body.welcome-page {
         border-radius: 9999px;
         color: $welcomePageDescriptionColor;
         padding: 4px;
-        position: absolute;
-        top: calc(35px - #{$welcomePageHeaderContainerMarginTop});
-        right: 0;
-        z-index: $zindex2;
 
         * {
             cursor: pointer;
@@ -264,17 +252,6 @@ body.welcome-page {
         .toolbox-icon {
             height: 24px;
             width: 24px;
-        }
-    }
-
-    .welcome-watermark {
-        position: absolute;
-        width: 100%;
-        height: 100%;
-
-        .watermark.leftwatermark {
-            width: $welcomePageWatermarkWidth;
-            height: $welcomePageWatermarkHeight;
         }
     }
 
@@ -315,8 +292,8 @@ body.welcome-page {
         border-radius: 16px;
 
         &--dark {
-            background: #0a0a0a;
-            color: #fafafa;
+            background: #f0f0f2;
+            color: #0b0b0c;
         }
 
         &--blue {
