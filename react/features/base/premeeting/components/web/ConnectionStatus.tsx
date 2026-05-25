@@ -90,7 +90,7 @@ const useStyles = makeStyles()(theme => {
 
             '& .con-status-details': {
                 backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                borderTop: '1px solid #5E6D7A',
+                borderTop: '1px solid #525252',
                 padding: theme.spacing(3),
                 transition: 'opacity 0.16s ease-out'
             },

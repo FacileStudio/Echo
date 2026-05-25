@@ -27,7 +27,7 @@
     }
 
     .recording-header-line {
-        border-top: 1px solid #5e6d7a;
+        border-top: 1px solid #525252;
         padding-top: 16px;
         margin-top: 16px;
     }
@@ -41,11 +41,11 @@
 
         &.text {
             color: #fff;
-            background-color: #3D3D3D;
+            background-color: #262626;
         }
 
         &.notification {
-            color: #040404;
+            color: #0a0a0a;
             background-color: #F8AE1A;
         }
     }

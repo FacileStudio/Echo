@@ -47,8 +47,8 @@ $filmstripVideosZ: $toolbarZ + 1;
  * Unsupported browser
  */
 $primaryUnsupportedBrowserButtonBgColor: #171717;
-$unsupportedBrowserButtonBgColor: rgba(9, 30, 66, 0.04);
-$unsupportedBrowserTextColor: #4a4a4a;
+$unsupportedBrowserButtonBgColor: rgba(23, 23, 23, 0.04);
+$unsupportedBrowserTextColor: #525252;
 $unsupportedBrowserTextSmallFontSize: 1rem;
 $unsupportedBrowserTitleColor: #fff;
 $unsupportedBrowserTitleFontSize: 1.5rem;
@@ -108,7 +108,7 @@ $welcomePageTabDisplay: block;
  */
 $deepLinkingMobileLogoHeight: 40px;
 
-$deepLinkingMobileHeaderBackground: #f1f2f5;
+$deepLinkingMobileHeaderBackground: #fafafa;
 
 $deepLinkingMobileLinkColor: inherit;
 $deepLinkingMobileTextFontSize: inherit;
