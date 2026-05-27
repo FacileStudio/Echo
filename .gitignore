@@ -125,5 +125,4 @@ tests/.env
 test-results
 
 # Claude
-CLAUDE.md
 
