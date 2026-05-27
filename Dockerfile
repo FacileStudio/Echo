@@ -39,6 +39,7 @@ COPY body.html .
 COPY plugin.head.html .
 COPY manifest.json .
 COPY pwa-worker.js .
+COPY favicon.ico .
 
 EXPOSE 80
 
