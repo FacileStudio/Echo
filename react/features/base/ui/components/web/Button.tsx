@@ -49,7 +49,7 @@ const useStyles = makeStyles()(theme => {
     return {
         button: {
             backgroundColor: theme.palette.action01,
-            color: theme.palette.text01,
+            color: theme.palette.text04,
             borderRadius: theme.shape.borderRadius,
             padding: '10px 16px',
             display: 'flex',
@@ -74,7 +74,7 @@ const useStyles = makeStyles()(theme => {
             },
 
             '& div > svg': {
-                fill: theme.palette.icon01
+                fill: theme.palette.icon05
             }
         },
 
@@ -82,7 +82,7 @@ const useStyles = makeStyles()(theme => {
 
         secondary: {
             backgroundColor: theme.palette.action02,
-            color: theme.palette.text04,
+            color: theme.palette.text01,
 
             '&:hover': {
                 backgroundColor: theme.palette.action02Hover
@@ -93,7 +93,7 @@ const useStyles = makeStyles()(theme => {
             },
 
             '& div > svg': {
-                fill: theme.palette.icon04
+                fill: theme.palette.icon01
             }
         },
 

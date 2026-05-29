@@ -165,10 +165,10 @@ export const colorMap = {
     prejoinRecordingWarningText: 'text03', // Recording warning text
     prejoinActionButtonPrimary: 'action01', // Primary action button
     prejoinActionButtonPrimaryHover: 'action01Hover', // Primary button hover
-    prejoinActionButtonPrimaryText: 'text01', // Primary button text
+    prejoinActionButtonPrimaryText: 'textColor04', // Primary button text (white on dark bg)
     prejoinActionButtonSecondary: 'action02', // Secondary action button
     prejoinActionButtonSecondaryHover: 'action02Hover', // Secondary button hover
-    prejoinActionButtonSecondaryText: 'text04', // Secondary button text
+    prejoinActionButtonSecondaryText: 'textColor01', // Secondary button text (dark on light bg)
     prejoinActionButtonDanger: 'actionDanger', // Danger button (leave)
     prejoinActionButtonDisabled: 'disabled01', // Disabled button
     prejoinCountryPickerBackground: 'ui01', // Country picker background
