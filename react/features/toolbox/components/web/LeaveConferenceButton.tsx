@@ -5,6 +5,7 @@ import { useDispatch } from 'react-redux';
 import { createToolbarEvent } from '../../../analytics/AnalyticsEvents';
 import { sendAnalytics } from '../../../analytics/functions';
 import { leaveConference } from '../../../base/conference/actions';
+import { IconArrowLeft } from '../../../base/icons/svg';
 import { BUTTON_TYPES } from '../../../base/ui/constants.web';
 
 import { HangupContextMenuItem } from './HangupContextMenuItem';
@@ -47,6 +48,7 @@ export const LeaveConferenceButton = (props: IProps) => {
             accessibilityLabel = { t('toolbar.accessibilityLabel.leaveConference') }
             buttonKey = { props.buttonKey }
             buttonType = { BUTTON_TYPES.SECONDARY }
+            icon = { IconArrowLeft }
             label = { t('toolbar.leaveConference') }
             notifyMode = { props.notifyMode }
             onClick = { onLeaveConference } />
