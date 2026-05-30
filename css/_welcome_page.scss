@@ -177,7 +177,7 @@ body.welcome-page {
                 transition: border-color 0.2s;
 
                 &:focus-within {
-                    border-color: #2563eb;
+                    border-color: #0b0b0c;
                 }
             }
 
@@ -280,7 +280,7 @@ body.welcome-page {
 
         &:focus-within {
             outline: none;
-            box-shadow: 0 0 0 2px #2563eb;
+            box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.15);
         }
 
         &:hover {
