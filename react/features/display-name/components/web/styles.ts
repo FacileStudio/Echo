@@ -135,5 +135,5 @@ export const DISPLAY_NAME_DEFAULT_COLOR = '#FFFFFF';
  * @returns {string} The text color.
  */
 export const getDisplayNameColor = (theme: Theme): string =>
-    theme.palette?.text01 || DISPLAY_NAME_DEFAULT_COLOR;
+    theme.palette?.text04 || DISPLAY_NAME_DEFAULT_COLOR;
 
