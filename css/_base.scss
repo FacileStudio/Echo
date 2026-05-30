@@ -63,6 +63,10 @@ body {
 }
 
 .jitsi-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
     &-default svg {
         fill: var(--icon-svg-fill, #0b0b0c);
     }
@@ -134,8 +138,10 @@ form {
 }
 
 .leftwatermark {
-    max-width: 140px;
-    max-height:70px;
+    display: flex;
+    align-items: center;
+    max-width: 200px;
+    max-height: 70px;
     left: 32px;
     top: 32px;
     background-position: center left;
