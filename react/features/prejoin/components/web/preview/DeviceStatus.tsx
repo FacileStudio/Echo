@@ -16,7 +16,8 @@ const useStyles = makeStyles<{ deviceStatusType?: string; }>()((theme, { deviceS
             alignItems: 'center',
             justifyContent: 'center',
             ...theme.typography.bodyShortRegular,
-            color: '#fff',
+            fontFamily: 'inherit',
+            color: '#0b0b0c',
             marginTop: theme.spacing(4),
 
             '& span': {
