@@ -163,14 +163,34 @@ class Watermarks extends Component<IProps, State> {
         let reactElement = null;
 
         if (_showJitsiWatermark && _logoUrl) {
-            const style = {
+            const logoStyle = {
                 backgroundImage: `url(${_logoUrl})`,
-                position: _logoLink ? 'static' : 'absolute'
-            } as const;
+                position: 'static' as const,
+                display: 'inline-block'
+            };
 
-            reactElement = (<div
-                className = { className }
-                style = { style } />);
+            const wrapperStyle = {
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+            };
+
+            const nameStyle = {
+                color: '#fff',
+                fontSize: '1.125rem',
+                fontWeight: 600,
+                letterSpacing: '0.02em',
+                textShadow: '0 1px 3px rgba(0,0,0,0.3)'
+            };
+
+            const logoEl = (
+                <div style = { wrapperStyle }>
+                    <div
+                        className = { className }
+                        style = { logoStyle } />
+                    <span style = { nameStyle }>Echo</span>
+                </div>
+            );
 
             if (_logoLink) {
                 reactElement = (
@@ -179,9 +199,11 @@ class Watermarks extends Component<IProps, State> {
                         className = { className }
                         href = { _logoLink }
                         target = '_new'>
-                        { reactElement }
+                        { logoEl }
                     </a>
                 );
+            } else {
+                reactElement = logoEl;
             }
         }
 

@@ -233,6 +233,7 @@ export const commonStyles = (theme: Theme) => {
 
         '.toolbox-icon': {
             display: 'flex',
+            alignItems: 'center',
             borderRadius: 3,
             flexDirection: 'column' as const,
             fontSize: '1.5rem',

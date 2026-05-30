@@ -379,8 +379,8 @@ export const colorMap = {
     virtualBackgroundPreview: 'uiBackground', // Virtual background preview container
 
     // Conference / Meeting
-    conferenceTimerText: 'text01',           // Conference timer text
-    conferenceSubjectText: 'text01',         // Conference subject text
+    conferenceTimerText: 'text04',           // Conference timer text (on dark overlay)
+    conferenceSubjectText: 'text04',         // Conference subject text (on dark overlay)
     conferenceNoticeBackground: 'uiBackground', // Conference notice background
     conferenceNoticeText: 'text01',          // Conference notice text
     conferenceRaisedHandLabelText: 'uiBackground', // Raised hands count label text
