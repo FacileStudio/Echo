@@ -3,6 +3,12 @@
  * none is applied. Other browsers already support selecting within inputs while
  * user-select is none. As such, disallow user-select except on inputs.
  */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
 * {
     -webkit-user-select: none;
     user-select: none;
@@ -41,6 +47,11 @@ body {
     overflow: clip;
     color: #0b0b0c;
     background: #ffffff;
+}
+
+#react {
+    height: 100%;
+    width: 100%;
 }
 
 /**
