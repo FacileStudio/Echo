@@ -165,28 +165,31 @@ class Watermarks extends Component<IProps, State> {
         if (_showJitsiWatermark && _logoUrl) {
             const logoStyle = {
                 backgroundImage: `url(${_logoUrl})`,
-                position: 'static' as const,
-                display: 'inline-block'
+                backgroundSize: 'contain',
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'center',
+                width: '28px',
+                height: '28px',
+                flexShrink: 0
             };
 
             const wrapperStyle = {
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px'
+                gap: '10px',
+                textDecoration: 'none'
             };
 
             const nameStyle = {
                 color: '#0b0b0c',
                 fontSize: '1.125rem',
                 fontWeight: 600,
-                letterSpacing: '0.02em'
+                letterSpacing: '-0.02em'
             };
 
             const logoEl = (
                 <div style = { wrapperStyle }>
-                    <div
-                        className = { className }
-                        style = { logoStyle } />
+                    <div style = { logoStyle } />
                     <span style = { nameStyle }>Echo</span>
                 </div>
             );
@@ -197,12 +200,17 @@ class Watermarks extends Component<IProps, State> {
                         aria-label = { t('jitsiHome', { logo: interfaceConfig.APP_NAME }) }
                         className = { className }
                         href = { _logoLink }
+                        style = {{ textDecoration: 'none' }}
                         target = '_new'>
                         { logoEl }
                     </a>
                 );
             } else {
-                reactElement = logoEl;
+                reactElement = (
+                    <div className = { className }>
+                        { logoEl }
+                    </div>
+                );
             }
         }
 
