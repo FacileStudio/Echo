@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { makeStyles } from 'tss-react/mui';
 
+import { IconPlus } from '../../../base/icons/svg';
 import Button from '../../../base/ui/components/web/Button';
 import Input from '../../../base/ui/components/web/Input';
 import { BUTTON_TYPES } from '../../../base/ui/constants.web';
@@ -247,6 +248,7 @@ const PollCreate = ({
                 <Button
                     accessibilityLabel = { t('polls.create.addOption') }
                     disabled = { answers.length >= ANSWERS_LIMIT }
+                    icon = { IconPlus }
                     labelKey = { 'polls.create.addOption' }
                     onClick = { () => {
                         addAnswer();

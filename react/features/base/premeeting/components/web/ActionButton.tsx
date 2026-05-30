@@ -156,7 +156,11 @@ const useStyles = makeStyles()(theme => {
 
             '& svg': {
                 pointerEvents: 'none',
-                fill: '#fff'
+                fill: '#fff !important'
+            },
+
+            '& svg path': {
+                fill: '#fff !important'
             }
         }
     };
