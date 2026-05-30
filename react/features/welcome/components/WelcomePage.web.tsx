@@ -225,6 +225,12 @@ class WelcomePage extends AbstractWelcomePage<IProps> {
                         </div>
                     </div>
                     <div className = 'header-container'>
+                        <h1 className = 'hero-title'>
+                            {t('welcomepage.headerTitle', 'Video meetings, simplified.')}
+                        </h1>
+                        <p className = 'hero-subtitle'>
+                            {t('welcomepage.headerSubtitle', 'Start or join a secure call instantly — no account needed.')}
+                        </p>
                         <div id = 'enter_room'>
                             <div className = 'join-meeting-container'>
                                 <div className = 'enter-room-input-container'>
