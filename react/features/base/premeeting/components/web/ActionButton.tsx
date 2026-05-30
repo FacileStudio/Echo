@@ -2,7 +2,7 @@ import React, { ReactNode, useCallback } from 'react';
 import { makeStyles } from 'tss-react/mui';
 
 import Icon from '../../../icons/components/Icon';
-import { IconArrowDown } from '../../../icons/svg';
+import { IconChevronDown } from '../../../icons/svg';
 
 interface IProps {
 
@@ -151,11 +151,12 @@ const useStyles = makeStyles()(theme => {
             width: 36,
 
             '&:hover': {
-                backgroundColor: '#1c1c1c'
+                backgroundColor: 'rgba(255, 255, 255, 0.1)'
             },
 
             '& svg': {
-                pointerEvents: 'none'
+                pointerEvents: 'none',
+                fill: '#fff'
             }
         }
     };
@@ -171,7 +172,7 @@ function ActionButton({
     className = '',
     disabled,
     hasOptions,
-    OptionsIcon = IconArrowDown,
+    OptionsIcon = IconChevronDown,
     testId,
     type = 'primary',
     onClick,

@@ -235,7 +235,6 @@ export const commonStyles = (theme: Theme) => {
             display: 'flex',
             alignItems: 'center',
             borderRadius: 3,
-            flexDirection: 'column' as const,
             fontSize: '1.5rem',
             height: 48,
             justifyContent: 'center',
