@@ -74,7 +74,7 @@ const useStyles = makeStyles()(theme => {
             },
 
             '& div > svg': {
-                fill: theme.palette.icon05
+                fill: theme.palette.text04
             }
         },
 
