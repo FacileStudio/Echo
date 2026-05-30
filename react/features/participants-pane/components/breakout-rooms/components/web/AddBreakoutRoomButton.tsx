@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useDispatch } from 'react-redux';
 import { makeStyles } from 'tss-react/mui';
 
+import { IconPlus } from '../../../../../base/icons/svg';
 import Button from '../../../../../base/ui/components/web/Button';
 import { BUTTON_TYPES } from '../../../../../base/ui/constants.web';
 import { createBreakoutRoom } from '../../../../../breakout-rooms/actions';
@@ -29,6 +30,7 @@ export const AddBreakoutRoomButton = () => {
             accessibilityLabel = { t('breakoutRooms.actions.add') }
             className = { classes.button }
             fullWidth = { true }
+            icon = { IconPlus }
             labelKey = { 'breakoutRooms.actions.add' }
             onClick = { onAdd }
             type = { BUTTON_TYPES.SECONDARY } />

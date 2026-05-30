@@ -1,6 +1,7 @@
 import React from 'react';
 import { makeStyles } from 'tss-react/mui';
 
+import { IconPlus } from '../../../base/icons/svg';
 import Button from '../../../base/ui/components/web/Button';
 import AbstractPollsPane, { AbstractProps } from '../AbstractPollsPane';
 
@@ -41,6 +42,7 @@ const PollsPane = ({ createMode, isCreatePollsDisabled, onCreate, setCreateMode,
                 <Button
                     accessibilityLabel = { t('polls.create.create') }
                     fullWidth = { true }
+                    icon = { IconPlus }
                     labelKey = { 'polls.create.create' }
                     onClick = { onCreate } />
             </div>}
