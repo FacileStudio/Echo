@@ -21,7 +21,8 @@ export function setNewAudioOutputDevice(deviceId: string) {
         const sounds = getState()['features/base/sounds'];
 
         for (const [ , sound ] of sounds) {
-            sound.audioElement?.setSinkId?.(deviceId);
+            sound.audioElement?.setSinkId?.(deviceId)
+                ?.catch?.(() => { /* ouptut device unavailable */ });
         }
     };
 }

@@ -15,7 +15,8 @@ MiddlewareRegistry.register(_store => next => action => {
 
     switch (action.type) {
     case _ADD_AUDIO_ELEMENT:
-        action.audioElement?.setSinkId?.(getAudioOutputDeviceId());
+        action.audioElement?.setSinkId?.(getAudioOutputDeviceId())
+            ?.catch?.(() => { /* output device unavailable */ });
         break;
     }
 
