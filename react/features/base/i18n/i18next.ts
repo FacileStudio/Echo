@@ -1,28 +1,20 @@
-import COUNTRIES_RESOURCES from 'i18n-iso-countries/langs/en.json';
+import COUNTRIES_EN from 'i18n-iso-countries/langs/en.json';
+import COUNTRIES_FR from 'i18n-iso-countries/langs/fr.json';
 import i18next from 'i18next';
 import I18nextXHRBackend, { HttpBackendOptions } from 'i18next-http-backend';
 import { merge } from 'lodash-es';
 
 import LANGUAGES_RESOURCES from '../../../../lang/languages.json';
-import MAIN_RESOURCES from '../../../../lang/main.json';
+import MAIN_EN from '../../../../lang/main.json';
+import MAIN_FR from '../../../../lang/main-fr.json';
 import TRANSLATION_LANGUAGES_RESOURCES from '../../../../lang/translation-languages.json';
 
 import { I18NEXT_INITIALIZED, LANGUAGE_CHANGED } from './actionTypes';
 import languageDetector from './languageDetector';
 
-/**
- * Override certain country names.
- */
-const COUNTRIES_RESOURCES_OVERRIDES = {
-    countries: {
-        TW: 'Taiwan'
-    }
-};
-
-/**
- * Merged country names.
- */
-const COUNTRIES = merge({}, COUNTRIES_RESOURCES, COUNTRIES_RESOURCES_OVERRIDES);
+const COUNTRIES_OVERRIDES = { countries: { TW: 'Taiwan' } };
+const COUNTRIES_EN_MERGED = merge({}, COUNTRIES_EN, COUNTRIES_OVERRIDES);
+const COUNTRIES_FR_MERGED = merge({}, COUNTRIES_FR, COUNTRIES_OVERRIDES);
 
 /**
  * The available/supported languages.
@@ -40,14 +32,6 @@ export const LANGUAGES: Array<string> = Object.keys(LANGUAGES_RESOURCES);
  */
 export const TRANSLATION_LANGUAGES: Array<string> = Object.keys(TRANSLATION_LANGUAGES_RESOURCES);
 
-/**
- * The default language.
- *
- * English is the default language.
- *
- * @public
- * @type {string} The default language.
- */
 export const DEFAULT_LANGUAGE = 'fr';
 
 /**
@@ -109,31 +93,16 @@ i18next
     .use(languageDetector)
     .init(options);
 
-// Add default language which is preloaded from the source code.
-i18next.addResourceBundle(
-    DEFAULT_LANGUAGE,
-    'countries',
-    COUNTRIES,
-    /* deep */ true,
-    /* overwrite */ true);
-i18next.addResourceBundle(
-    DEFAULT_LANGUAGE,
-    'languages',
-    LANGUAGES_RESOURCES,
-    /* deep */ true,
-    /* overwrite */ true);
-i18next.addResourceBundle(
-    DEFAULT_LANGUAGE,
-    'translation-languages',
-    TRANSLATION_LANGUAGES_RESOURCES,
-    /* deep */ true,
-    /* overwrite */ true);
-i18next.addResourceBundle(
-    DEFAULT_LANGUAGE,
-    'main',
-    MAIN_RESOURCES,
-    /* deep */ true,
-    /* overwrite */ true);
+// Pre-bundle French (default) and English so neither triggers HTTP 404s.
+for (const [ lng, main, countries ] of [
+    [ 'fr', MAIN_FR, COUNTRIES_FR_MERGED ],
+    [ 'en', MAIN_EN, COUNTRIES_EN_MERGED ]
+] as const) {
+    i18next.addResourceBundle(lng, 'main', main, true, true);
+    i18next.addResourceBundle(lng, 'countries', countries, true, true);
+    i18next.addResourceBundle(lng, 'languages', LANGUAGES_RESOURCES, true, true);
+    i18next.addResourceBundle(lng, 'translation-languages', TRANSLATION_LANGUAGES_RESOURCES, true, true);
+}
 
 // Add builtin languages.
 // XXX: Note we are using require here, because we want the side-effects of the
