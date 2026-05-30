@@ -5,6 +5,7 @@ COPY package.json package-lock.json ./
 RUN npm ci --legacy-peer-deps
 COPY . .
 RUN make all
+RUN git rev-parse --short HEAD > /tmp/echo-version 2>/dev/null || date +%s > /tmp/echo-version
 
 FROM nginx:alpine
 
@@ -26,6 +27,9 @@ COPY lang/      lang/
 COPY images/    images/
 COPY static/    static/
 COPY sounds/    sounds/
+
+# Bake build version for cache busting
+COPY --from=build /tmp/echo-version /tmp/echo-version
 
 # HTML + config
 COPY index.html .
