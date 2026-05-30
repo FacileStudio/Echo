@@ -182,7 +182,7 @@ export const colorMap = {
 
     // Notifications
     notificationBackground: 'ui04',     // Notification background
-    notificationNormalIcon: 'action01', // Normal notification icon
+    notificationNormalIcon: 'icon05', // Normal notification icon (white on dark bg)
     notificationError: 'iconError',     // Error notification icon
     notificationSuccess: 'success01',   // Success notification icon
     notificationWarning: 'warning01',   // Warning notification icon
@@ -190,7 +190,7 @@ export const colorMap = {
     notificationActionText: 'action01', // Notification action text
     notificationErrorText: 'textError', // Error notification text
     notificationActionFocus: 'action01', // Notification action focus outline
-    notificationCloseIcon: 'icon04',    // Notification close icon
+    notificationCloseIcon: 'icon05',    // Notification close icon (white on dark bg)
 
     // Forms/Inputs
     inputBackground: 'field01',         // Input field background

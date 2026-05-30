@@ -25,6 +25,11 @@ interface IProps {
     buttonType: string;
 
     /**
+     * Icon to display on the button.
+     */
+    icon?: Function;
+
+    /**
      * Text associated with the button.
      */
     label: string;
@@ -65,6 +70,7 @@ export const HangupContextMenuItem = (props: IProps) => {
         <Button
             accessibilityLabel = { props.accessibilityLabel }
             fullWidth = { true }
+            icon = { props.icon }
             label = { props.label }
             onClick = { _onClick }
             type = { props.buttonType } />

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useDispatch, useSelector } from 'react-redux';
 
 import { endConference } from '../../../base/conference/actions';
+import { IconHangup } from '../../../base/icons/svg';
 import { isLocalParticipantModerator } from '../../../base/participants/functions';
 import { BUTTON_TYPES } from '../../../base/ui/constants.web';
 import { isInBreakoutRoom } from '../../../breakout-rooms/functions';
@@ -48,6 +49,7 @@ export const EndConferenceButton = (props: IProps) => {
             accessibilityLabel = { t('toolbar.accessibilityLabel.endConference') }
             buttonKey = { props.buttonKey }
             buttonType = { BUTTON_TYPES.DESTRUCTIVE }
+            icon = { IconHangup }
             label = { t('toolbar.endConference') }
             notifyMode = { props.notifyMode }
             onClick = { onEndConference } /> }
