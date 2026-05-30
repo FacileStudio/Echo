@@ -272,9 +272,9 @@ export const commonStyles = (theme: Theme) => {
         '.toolbox-button': {
             color: theme.palette.toolbarIcon,
             cursor: 'pointer',
-            display: 'inline-block',
-            lineHeight: '3rem',
-            textAlign: 'center' as const
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
         },
 
         '.toolbox-content-items': {
@@ -285,6 +285,7 @@ export const commonStyles = (theme: Theme) => {
             textAlign: 'center' as const,
             pointerEvents: 'all' as const,
             display: 'flex',
+            alignItems: 'center',
             boxShadow: '0px 2px 8px 4px rgba(0, 0, 0, 0.25), 0px 0px 0px 1px rgba(0, 0, 0, 0.15)',
 
             '& > div': {

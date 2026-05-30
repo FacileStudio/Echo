@@ -287,6 +287,11 @@ const defaultStyles = (theme: Theme) => {
             alignItems: 'center',
             maxWidth: '100%',
             overflow: 'hidden',
+            color: '#fff',
+
+            '& svg': {
+                fill: '#fff !important'
+            },
 
             '&:not(:empty)': {
                 padding: '4px 8px'
