@@ -133,7 +133,7 @@ export const commonStyles = (theme: Theme) => {
             backgroundColor: theme.palette.prejoinDialogBackground,
             boxShadow: '0px 2px 20px rgba(0, 0, 0, 0.5)',
             borderRadius: theme.shape.borderRadius,
-            color: '#fff',
+            color: '#0b0b0c',
             height: '400px',
             width: '375px',
 
@@ -148,10 +148,10 @@ export const commonStyles = (theme: Theme) => {
             },
 
             '.prejoin-dialog-label-num': {
-                background: '#2b3b4b',
-                border: '1px solid #A4B8D1',
+                background: '#e5e5ea',
+                border: '1px solid #d4d4d8',
                 borderRadius: '50%',
-                color: '#fff',
+                color: '#0b0b0c',
                 display: 'inline-block',
                 height: '24px',
                 marginRight: theme.spacing(2),
