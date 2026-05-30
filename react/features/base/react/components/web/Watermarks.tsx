@@ -176,11 +176,10 @@ class Watermarks extends Component<IProps, State> {
             };
 
             const nameStyle = {
-                color: '#fff',
+                color: '#0b0b0c',
                 fontSize: '1.125rem',
                 fontWeight: 600,
-                letterSpacing: '0.02em',
-                textShadow: '0 1px 3px rgba(0,0,0,0.3)'
+                letterSpacing: '0.02em'
             };
 
             const logoEl = (
