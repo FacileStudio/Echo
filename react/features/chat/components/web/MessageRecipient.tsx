@@ -16,15 +16,14 @@ const useStyles = makeStyles()(theme => {
     return {
         container: {
             margin: '0 16px 8px',
-            padding: '6px',
-            paddingLeft: '16px',
+            padding: '6px 12px',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
             backgroundColor: theme.palette.support05,
-            borderRadius: theme.shape.borderRadius,
-            ...theme.typography.bodyShortRegular,
-            color: theme.palette.chatRecipientText
+            borderRadius: '16px',
+            ...theme.typography.bodyShortRegularSmall,
+            color: '#1e40af'
         },
 
         text: {

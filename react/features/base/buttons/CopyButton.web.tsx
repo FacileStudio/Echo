@@ -19,7 +19,7 @@ const useStyles = makeStyles()(theme => {
             boxSizing: 'border-box',
             background: theme.palette.action01,
             cursor: 'pointer',
-            color: theme.palette.text01,
+            color: theme.palette.text04,
 
             '&:hover': {
                 backgroundColor: theme.palette.action01Hover
@@ -30,7 +30,7 @@ const useStyles = makeStyles()(theme => {
             },
 
             '& > div > svg': {
-                fill: theme.palette.icon01
+                fill: theme.palette.text04
             }
         },
 
