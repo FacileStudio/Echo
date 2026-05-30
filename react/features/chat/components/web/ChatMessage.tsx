@@ -44,7 +44,7 @@ const useStyles = makeStyles()((theme: Theme) => {
             display: 'inline-flex',
             padding: '12px',
             backgroundColor: theme.palette.chatMessageRemote,
-            borderRadius: '4px 12px 12px 12px',
+            borderRadius: '4px 16px 16px 16px',
             maxWidth: '100%',
             marginTop: '4px',
             boxSizing: 'border-box' as const,
@@ -70,18 +70,10 @@ const useStyles = makeStyles()((theme: Theme) => {
             },
             '&.local': {
                 backgroundColor: theme.palette.chatMessageLocal,
-                borderRadius: '12px 4px 12px 12px',
+                borderRadius: '16px 4px 16px 16px',
 
                 '&.privatemessage': {
                     backgroundColor: theme.palette.chatMessagePrivate
-                },
-                '&.local': {
-                    backgroundColor: theme.palette.chatMessageLocal,
-                    borderRadius: '12px 4px 12px 12px',
-
-                    '&.privatemessage': {
-                        backgroundColor: theme.palette.chatMessagePrivate
-                    }
                 },
 
                 '&.error': {

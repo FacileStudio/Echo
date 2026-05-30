@@ -56,17 +56,31 @@
 
 .chat-input-container {
     padding: 0 16px 24px;
+
+    button {
+        border-radius: 50% !important;
+        min-width: 40px;
+        min-height: 40px;
+        padding: 0 !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
 }
 
 #chat-input {
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     position: relative;
 }
 
 .chat-input {
     flex: 1;
     margin-right: 8px;
+
+    input, textarea {
+        border-radius: 20px !important;
+    }
 }
 
 #nickname {
