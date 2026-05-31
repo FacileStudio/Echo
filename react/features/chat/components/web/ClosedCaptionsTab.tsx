@@ -95,6 +95,7 @@ const ClosedCaptionsTab = ({
                         accessibilityLabel = 'Start Closed Captions'
                         appearance = 'primary'
                         disabled = { isButtonPressed }
+                        icon = { IconSubtitles }
                         labelKey = 'closedCaptionsTab.startClosedCaptionsButton'
                         onClick = { startClosedCaptions }
                         size = 'large'
