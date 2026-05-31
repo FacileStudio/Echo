@@ -1,8 +1,7 @@
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
 if (!ANTHROPIC_API_KEY) {
-    console.error('ANTHROPIC_API_KEY is required');
-    process.exit(1);
+    console.warn('ANTHROPIC_API_KEY not set — AI proxy will return 503 on all requests');
 }
 
 Bun.serve({
@@ -20,6 +19,10 @@ Bun.serve({
 
         if (req.method !== 'POST') {
             return new Response('Method not allowed', { status: 405 });
+        }
+
+        if (!ANTHROPIC_API_KEY) {
+            return Response.json({ error: 'ANTHROPIC_API_KEY not configured' }, { status: 503 });
         }
 
         const { system, message } = await req.json();
