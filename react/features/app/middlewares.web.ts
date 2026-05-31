@@ -1,3 +1,4 @@
+import '../ai-summary/middleware';
 import '../base/app/middleware';
 import '../base/jwt/middleware.web';
 import '../base/config/middleware';

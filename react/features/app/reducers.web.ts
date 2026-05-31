@@ -1,3 +1,4 @@
+import '../ai-summary/reducer';
 import '../base/devices/reducer';
 import '../base/premeeting/reducer';
 import '../custom-panel/reducer';

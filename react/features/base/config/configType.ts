@@ -192,6 +192,13 @@ export interface IConfig {
     _desktopSharingSourceDevice?: string;
     _immediateReloadThreshold?: string;
     _screenshotHistoryRegionUrl?: number;
+    ai?: {
+        autoSummarize?: boolean;
+        enabled?: boolean;
+        language?: string;
+        provider?: 'claude' | 'openai' | 'custom';
+        proxyUrl?: string;
+    };
     analytics?: {
         amplitudeAPPKey?: string;
         blackListedEvents?: string[];

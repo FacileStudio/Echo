@@ -124,7 +124,8 @@ export const MAIN_TOOLBAR_BUTTONS_PRIORITY = [
     'feedback',
     'download',
     'help',
-    'custom-panel'
+    'custom-panel',
+    'ai-summary'
 ];
 
 export const TOOLBAR_TIMEOUT = 4000;
@@ -146,6 +147,7 @@ export const SPINNER_COLOR = '#929292';
  * @type Array<string>
  */
 export const TOOLBAR_BUTTONS: ToolbarButton[] = [
+    'ai-summary',
     'camera',
     'chat',
     'closedcaptions',

@@ -15,6 +15,7 @@ import { setColorAlpha } from '../../../base/util/helpers';
 import { openChat, setFocusedTab } from '../../../chat/actions.web';
 import Chat from '../../../chat/components/web/Chat';
 import { ChatTabs } from '../../../chat/constants';
+import AISummaryPanel from '../../../ai-summary/components/web/AISummaryPanel';
 import CustomPanel from '../../../custom-panel/components/web/CustomPanel';
 import { isFileUploadingEnabled, processFiles } from '../../../file-sharing/functions.any';
 import MainFilmstrip from '../../../filmstrip/components/web/MainFilmstrip';
@@ -325,6 +326,7 @@ class Conference extends AbstractConference<IProps, any> {
                 </div>
                 <ParticipantsPane />
                 <CustomPanel />
+                <AISummaryPanel />
                 <ReactionAnimations />
             </div>
         );

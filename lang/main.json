@@ -1,4 +1,20 @@
 {
+    "aiSummary": {
+        "actionItems": "Action Items",
+        "collecting": "Collecting transcript...",
+        "copy": "Copy as Markdown",
+        "decisions": "Decisions",
+        "entriesCollected": "entries collected",
+        "error": "Summary generation failed. Please try again.",
+        "generateNow": "Generate Summary",
+        "generating": "Generating summary...",
+        "idle": "Start transcription to enable AI summaries.",
+        "perSpeaker": "Per-Speaker Contributions",
+        "retry": "Retry",
+        "summary": "Summary",
+        "title": "AI Summary",
+        "topics": "Key Topics"
+    },
     "addPeople": {
         "accessibilityLabel": {
             "meetingLink": "Meeting link: {{url}}"
@@ -1314,6 +1330,8 @@
         "Settings": "Settings",
         "accessibilityLabel": {
             "Settings": "Open settings",
+                "aiSummary": "AI Summary",
+            "closeAiSummary": "Close AI Summary",
             "audioOnly": "Toggle audio only",
             "audioRoute": "Select the sound device",
             "boo": "Boo",
@@ -1420,6 +1438,8 @@
                 "label": "Stereo"
             }
         },
+        "aiSummary": "AI Summary",
+        "closeAiSummary": "Close AI Summary",
         "audioOnlyOff": "Disable low bandwidth mode",
         "audioOnlyOn": "Enable low bandwidth mode",
         "audioRoute": "Select the sound device",

@@ -15,6 +15,7 @@ import { isToggleCameraEnabled } from '../base/tracks/functions.web';
 import { isInBreakoutRoom } from '../breakout-rooms/functions';
 import { toggleChat } from '../chat/actions.web';
 import { isChatDisabled } from '../chat/functions';
+import { useAISummaryButton } from '../ai-summary/hooks.web';
 import { useChatButton } from '../chat/hooks.web';
 import { useCustomPanelButton } from '../custom-panel/hooks.web';
 import { useEmbedButton } from '../embed-meeting/hooks';
@@ -309,6 +310,7 @@ export function useToolboxButtons(
     const _help = useHelpButton();
     const _invite = useInviteButton();
     const customPanel = useCustomPanelButton();
+    const aiSummary = useAISummaryButton();
 
     const buttons: { [key in ToolbarButton]?: IToolboxButton; } = {
         microphone,
@@ -344,7 +346,8 @@ export function useToolboxButtons(
         feedback,
         download: _download,
         help: _help,
-        'custom-panel': customPanel
+        'custom-panel': customPanel,
+        'ai-summary': aiSummary
     };
     const buttonKeys = Object.keys(buttons) as ToolbarButton[];
 
