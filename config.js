@@ -538,23 +538,12 @@ var config = {
     // },
 
     // AI Summary options.
-    // ai: {
-    //     // Whether AI summaries are enabled.
-    //     enabled: false,
-    //
-    //     // Automatically generate summary when meeting ends.
-    //     autoSummarize: false,
-    //
-    //     // LLM provider: 'claude' | 'openai' | 'custom'
-    //     provider: 'claude',
-    //
-    //     // Proxy URL for LLM API calls. Required.
-    //     // The proxy should accept POST with { system, message } and return { content }.
-    //     proxyUrl: 'https://your-proxy.example.com/api/ai/summarize',
-    //
-    //     // Output language for summaries (ISO code). Defaults to meeting language.
-    //     language: 'en'
-    // },
+    ai: {
+        enabled: true,
+        autoSummarize: true,
+        provider: 'claude',
+        proxyUrl: '/ai/summarize'
+    },
 
     // Misc
 

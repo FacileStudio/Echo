@@ -117,6 +117,20 @@ services:
     networks:
       echo:
 
+  echo-ai-proxy:
+    container_name: echo-ai-proxy
+    image: oven/bun:latest
+    restart: unless-stopped
+    expose:
+      - "3100"
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    volumes:
+      - ./ai-proxy.ts:/app/index.ts:ro
+    command: bun run /app/index.ts
+    networks:
+      echo:
+
 networks:
   echo:
   dokploy-network:
