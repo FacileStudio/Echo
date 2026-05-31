@@ -69,7 +69,8 @@
 }
 
 .ai-summary-generate-btn,
-.ai-summary-copy-btn {
+.ai-summary-copy-btn,
+.ai-summary-download-btn {
     padding: 8px 16px;
     border: none;
     border-radius: 6px;
@@ -86,6 +87,18 @@
 
     &:active {
         background: #154da6;
+    }
+}
+
+.ai-summary-download-btn {
+    background: rgba(255, 255, 255, 0.1);
+
+    &:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    &:active {
+        background: rgba(255, 255, 255, 0.25);
     }
 }
 

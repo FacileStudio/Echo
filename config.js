@@ -484,58 +484,11 @@ var config = {
     // DEPRECATED. Use transcription.autoTranscribeOnRecord instead.
     // autoCaptionOnRecord: false,
 
-    // Transcription options.
-    // transcription: {
-    //     // Whether the feature should be enabled or not.
-    //     enabled: false,
-
-    //     // Translation languages.
-    //     // Available languages can be found in
-    //     // ./lang/translation-languages.json.
-    //     translationLanguages: ['en', 'es', 'fr', 'ro'],
-
-    //     // Important languages to show on the top of the language list.
-    //     translationLanguagesHead: ['en'],
-
-    //     // If true transcriber will use the application language.
-    //     // The application language is either explicitly set by participants in their settings or automatically
-    //     // detected based on the environment, e.g. if the app is opened in a chrome instance which
-    //     // is using french as its default language then transcriptions for that participant will be in french.
-    //     // Defaults to true.
-    //     useAppLanguage: true,
-
-    //     // Transcriber language. This settings will only work if "useAppLanguage"
-    //     // is explicitly set to false.
-    //     // Available languages can be found in
-    //     // ./src/react/features/transcribing/transcriber-langs.json.
-    //     preferredLanguage: 'en-US',
-
-    // Allows extending the list of supported transcription languages.
-    // Useful for custom transcription backends (e.g. Vosk).
-    //
-    // Example:
-    // customLanguages: {
-    //     'hsb-DE': 'Upper Sorbian (Germany)',
-    //     'dsb-DE': 'Lower Sorbian (Germany)'
-    // },
-
-    //     // Enables automatic turning on transcribing when recording is started
-    //     autoTranscribeOnRecord: false,
-
-    //     // Enables automatic request of subtitles when transcriber is present in the meeting, uses the default
-    //     // language that is set
-    //     autoCaptionOnTranscribe: false,
-    //
-    //     // Disables everything related to closed captions - the tab in the chat area, the button in the menu,
-    //     // subtitles on stage and the "Show subtitles on stage" checkbox in the settings.
-    //     // Note: Starting transcriptions from the recording dialog will still work.
-    //     disableClosedCaptions: false,
-    //
-    //     // When the backend provides diarization by setting a "speaker" field, append [Speaker N] for transcription
-    //     // events from non-0 speakers.
-    //     renderTranscriptDetails: false
-
-    // },
+    transcription: {
+        enabled: true,
+        useAppLanguage: true,
+        autoCaptionOnTranscribe: true
+    },
 
     // AI Summary options.
     ai: {

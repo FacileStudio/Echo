@@ -39,8 +39,10 @@ services:
       - ENABLE_END_CONFERENCE=1
       - ENABLE_LOBBY=1
       - ENABLE_XMPP_WEBSOCKET=1
-      - ENABLE_TRANSCRIPTIONS=${ENABLE_TRANSCRIPTIONS:-0}
+      - ENABLE_TRANSCRIPTIONS=1
       - AUTH_TYPE=${AUTH_TYPE:-internal}
+      - JIGASI_XMPP_USER=jigasi
+      - JIGASI_XMPP_PASSWORD=${JIGASI_XMPP_PASSWORD}
       - JICOFO_AUTH_PASSWORD
       - JVB_AUTH_USER
       - JVB_AUTH_PASSWORD
@@ -71,7 +73,9 @@ services:
       - ENABLE_AUTO_OWNER=1
       - ENABLE_RECORDING=0
       - ENABLE_SCTP=1
-      - ENABLE_TRANSCRIPTIONS=${ENABLE_TRANSCRIPTIONS:-0}
+      - ENABLE_TRANSCRIPTIONS=1
+      - JIGASI_BREWERY_MUC=jigasibrewery
+      - JIGASI_SIP_URI=location@location
       - JICOFO_AUTH_PASSWORD
       - JICOFO_ENABLE_BRIDGE_HEALTH_CHECKS=true
       - JICOFO_ENABLE_HEALTH_CHECKS=true
@@ -114,6 +118,48 @@ services:
       - XMPP_PORT
     depends_on:
       - echo-prosody
+    networks:
+      echo:
+
+  echo-vosk:
+    container_name: echo-vosk
+    image: alphacep/kaldi-en:latest
+    restart: unless-stopped
+    expose:
+      - "2700"
+    networks:
+      echo:
+
+  echo-jigasi:
+    container_name: echo-jigasi
+    image: jitsi/jigasi:${JITSI_IMAGE_VERSION:-stable}
+    restart: unless-stopped
+    volumes:
+      - ${CONFIG}/jigasi:/config:Z
+    environment:
+      - ENABLE_TRANSCRIPTIONS=1
+      - JIGASI_ENABLE_SDES_SRTP=0
+      - JIGASI_SIP_KEEP_ALIVE_METHOD=OPTIONS
+      - JIGASI_TRANSCRIBER_ADVERTISE_URL=0
+      - JIGASI_TRANSCRIBER_RECORD_AUDIO=0
+      - JIGASI_TRANSCRIBER_SEND_TXT=1
+      - JIGASI_XMPP_USER=jigasi
+      - JIGASI_XMPP_PASSWORD=${JIGASI_XMPP_PASSWORD}
+      - JIGASI_BREWERY_MUC=jigasibrewery
+      - JIGASI_TRANSCRIBER_ENGINE=vosk
+      - JIGASI_TRANSCRIBER_VOSK_URL=ws://echo-vosk:2700
+      - TZ
+      - XMPP_AUTH_DOMAIN
+      - XMPP_DOMAIN
+      - XMPP_GUEST_DOMAIN
+      - XMPP_INTERNAL_MUC_DOMAIN
+      - XMPP_MUC_DOMAIN
+      - XMPP_SERVER
+      - XMPP_PORT
+      - PUBLIC_URL
+    depends_on:
+      - echo-prosody
+      - echo-vosk
     networks:
       echo:
 

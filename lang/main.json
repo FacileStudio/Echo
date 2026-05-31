@@ -4,6 +4,7 @@
         "collecting": "Collecting transcript...",
         "copy": "Copy as Markdown",
         "decisions": "Decisions",
+        "downloadTranscript": "Download Transcript",
         "entriesCollected": "entries collected",
         "error": "Summary generation failed. Please try again.",
         "generateNow": "Generate Summary",

@@ -4,9 +4,15 @@ import { useDispatch, useSelector, useStore } from 'react-redux';
 
 import { IStore } from '../../../app/types';
 import { toggleAISummaryPanel } from '../../actions';
-import { getAISummaryResult, getAISummaryStatus, getTranscriptEntries, isAISummaryPanelOpen } from '../../functions';
+import {
+    getAISummaryProxyUrl,
+    getAISummaryResult,
+    getAISummaryStatus,
+    getTranscriptEntries,
+    isAISummaryPanelOpen
+} from '../../functions';
 import { generateSummary } from '../../summarizer';
-import { ISummaryResult } from '../../types';
+import { ISummaryResult, ITranscriptEntry } from '../../types';
 
 const AISummaryPanel = () => {
     const { t } = useTranslation();
@@ -17,9 +23,26 @@ const AISummaryPanel = () => {
     const result = useSelector(getAISummaryResult);
     const entries = useSelector(getTranscriptEntries);
 
+    const proxyUrl = useSelector(getAISummaryProxyUrl);
+
     const handleGenerate = useCallback(() => {
         generateSummary(store);
     }, [ store ]);
+
+    const handleDownloadTranscript = useCallback(() => {
+        if (entries.length === 0) {
+            return;
+        }
+        const text = formatTranscriptAsMarkdown(entries);
+        const blob = new Blob([ text ], { type: 'text/markdown' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+
+        a.href = url;
+        a.download = `transcript-${new Date().toISOString().slice(0, 10)}.md`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }, [ entries ]);
 
     const handleCopy = useCallback(() => {
         if (result) {
@@ -56,11 +79,20 @@ const AISummaryPanel = () => {
                             {entries.length} {t('aiSummary.entriesCollected')}
                         </p>
                         {entries.length > 0 && (
-                            <button
-                                className = 'ai-summary-generate-btn'
-                                onClick = { handleGenerate }>
-                                {t('aiSummary.generateNow')}
-                            </button>
+                            <div className = 'ai-summary-actions'>
+                                {proxyUrl && (
+                                    <button
+                                        className = 'ai-summary-generate-btn'
+                                        onClick = { handleGenerate }>
+                                        {t('aiSummary.generateNow')}
+                                    </button>
+                                )}
+                                <button
+                                    className = 'ai-summary-download-btn'
+                                    onClick = { handleDownloadTranscript }>
+                                    {t('aiSummary.downloadTranscript')}
+                                </button>
+                            </div>
                         )}
                     </div>
                 )}
@@ -92,6 +124,13 @@ const AISummaryPanel = () => {
                 {status === 'idle' && (
                     <div className = 'ai-summary-status'>
                         <p>{t('aiSummary.idle')}</p>
+                        {entries.length > 0 && (
+                            <button
+                                className = 'ai-summary-download-btn'
+                                onClick = { handleDownloadTranscript }>
+                                {t('aiSummary.downloadTranscript')}
+                            </button>
+                        )}
                     </div>
                 )}
             </div>
@@ -214,6 +253,19 @@ function formatSummaryAsMarkdown(result: ISummaryResult): string {
             Object.entries(result.perSpeaker)
                 .map(([ s, c ]) => `- **${s}**: ${c}`)
                 .join('\n')}\n`;
+    }
+
+    return md;
+}
+
+function formatTranscriptAsMarkdown(entries: ITranscriptEntry[]): string {
+    const date = new Date().toISOString().slice(0, 10);
+    let md = `# Meeting Transcript — ${date}\n\n`;
+
+    for (const entry of entries) {
+        const time = new Date(entry.timestamp).toLocaleTimeString();
+
+        md += `**[${time}] ${entry.speaker}:** ${entry.text}\n\n`;
     }
 
     return md;
