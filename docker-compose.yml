@@ -139,6 +139,7 @@ services:
     volumes:
       - ${CONFIG}/jigasi:/config:Z
     environment:
+      - JIGASI_MODE=transcriber
       - ENABLE_TRANSCRIPTIONS=1
       - JIGASI_ENABLE_SDES_SRTP=0
       - JIGASI_SIP_KEEP_ALIVE_METHOD=OPTIONS
