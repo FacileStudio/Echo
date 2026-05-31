@@ -44,6 +44,7 @@ services:
       - AUTH_TYPE=${AUTH_TYPE:-internal}
       - JIGASI_XMPP_USER=jigasi
       - JIGASI_XMPP_PASSWORD=${JIGASI_XMPP_PASSWORD}
+      - JIGASI_TRANSCRIBER_PASSWORD=${JIGASI_XMPP_PASSWORD}
       - JICOFO_AUTH_PASSWORD
       - JVB_AUTH_USER
       - JVB_AUTH_PASSWORD
@@ -54,7 +55,7 @@ services:
       - XMPP_GUEST_DOMAIN
       - XMPP_MUC_DOMAIN
       - XMPP_INTERNAL_MUC_DOMAIN
-      - XMPP_HIDDEN_DOMAIN
+      - XMPP_HIDDEN_DOMAIN=hidden.meet.jitsi
       - XMPP_PORT
       - XMPP_RECORDER_DOMAIN
     networks:
@@ -147,8 +148,10 @@ services:
       - JIGASI_XMPP_USER=jigasi
       - JIGASI_XMPP_PASSWORD=${JIGASI_XMPP_PASSWORD}
       - JIGASI_BREWERY_MUC=jigasibrewery
-      - JIGASI_TRANSCRIBER_ENGINE=vosk
+      - JIGASI_TRANSCRIBER_PASSWORD=${JIGASI_XMPP_PASSWORD}
+      - JIGASI_TRANSCRIBER_CUSTOM_SERVICE=org.jitsi.jigasi.transcription.VoskTranscriptionService
       - JIGASI_TRANSCRIBER_VOSK_URL=ws://echo-vosk:2700
+      - XMPP_HIDDEN_DOMAIN=hidden.meet.jitsi
       - TZ
       - XMPP_AUTH_DOMAIN
       - XMPP_DOMAIN
