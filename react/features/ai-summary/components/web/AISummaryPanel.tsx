@@ -35,13 +35,13 @@ const AISummaryPanel = () => {
         }
         const text = formatTranscriptAsMarkdown(entries);
         const blob = new Blob([ text ], { type: 'text/markdown' });
-        const url = URL.createObjectURL(blob);
+        const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
 
         a.href = url;
         a.download = `transcript-${new Date().toISOString().slice(0, 10)}.md`;
         a.click();
-        URL.revokeObjectURL(url);
+        window.URL.revokeObjectURL(url);
     }, [ entries ]);
 
     const handleCopy = useCallback(() => {
