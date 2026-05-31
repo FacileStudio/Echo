@@ -75,25 +75,42 @@ const AISummaryPanel = () => {
 
             <div className = 'ai-summary-panel-body'>
                 {status === 'collecting' && (
-                    <div className = 'ai-summary-status'>
-                        <p>{t('aiSummary.collecting')}</p>
-                        <p className = 'ai-summary-count'>
-                            {entries.length} {t('aiSummary.entriesCollected')}
-                        </p>
-                        {entries.length > 0 && (
-                            <div className = 'ai-summary-actions'>
-                                {proxyUrl && (
+                    <div className = 'ai-summary-collecting'>
+                        <div className = 'ai-summary-collecting-header'>
+                            <p className = 'ai-summary-count'>
+                                {entries.length} {t('aiSummary.entriesCollected')}
+                            </p>
+                            {entries.length > 0 && (
+                                <div className = 'ai-summary-actions'>
+                                    {proxyUrl && (
+                                        <button
+                                            className = 'ai-summary-generate-btn'
+                                            onClick = { handleGenerate }>
+                                            {t('aiSummary.generateNow')}
+                                        </button>
+                                    )}
                                     <button
-                                        className = 'ai-summary-generate-btn'
-                                        onClick = { handleGenerate }>
-                                        {t('aiSummary.generateNow')}
+                                        className = 'ai-summary-download-btn'
+                                        onClick = { handleDownloadTranscript }>
+                                        {t('aiSummary.downloadTranscript')}
                                     </button>
-                                )}
-                                <button
-                                    className = 'ai-summary-download-btn'
-                                    onClick = { handleDownloadTranscript }>
-                                    {t('aiSummary.downloadTranscript')}
-                                </button>
+                                </div>
+                            )}
+                        </div>
+                        {entries.length > 0 && (
+                            <div className = 'ai-summary-live-transcript'>
+                                {entries.slice(-50).map((entry, i) => (
+                                    <div
+                                        className = 'ai-summary-live-entry'
+                                        key = { i }>
+                                        <span className = 'ai-summary-live-speaker'>
+                                            {entry.speaker}
+                                        </span>
+                                        <span className = 'ai-summary-live-text'>
+                                            {entry.text}
+                                        </span>
+                                    </div>
+                                ))}
                             </div>
                         )}
                     </div>
