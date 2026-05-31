@@ -124,7 +124,7 @@ services:
 
   echo-vosk:
     container_name: echo-vosk
-    image: alphacep/kaldi-en:latest
+    image: alphacep/kaldi-fr:latest
     restart: unless-stopped
     expose:
       - "2700"
