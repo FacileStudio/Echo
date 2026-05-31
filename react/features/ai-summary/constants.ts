@@ -7,7 +7,3 @@ export const APPROX_TOKENS_PER_WORD = 1.33;
 export const CHUNK_SIZE_TOKENS = 12000;
 
 export const CHUNK_OVERLAP_ENTRIES = 5;
-
-export const DEFAULT_PROVIDER = 'claude';
-
-export const DEFAULT_SUMMARY_LANGUAGE = 'en';

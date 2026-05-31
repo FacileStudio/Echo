@@ -19,6 +19,7 @@ services:
       dokploy-network:
     depends_on:
       - echo-jvb
+      - echo-ai-proxy
 
   echo-prosody:
     container_name: echo-prosody

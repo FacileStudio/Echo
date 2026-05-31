@@ -116,9 +116,20 @@ const AISummaryPanel = () => {
                 )}
 
                 {status === 'ready' && result && (
-                    <SummaryDisplay
-                        onCopy = { handleCopy }
-                        result = { result } />
+                    <>
+                        <SummaryDisplay
+                            onCopy = { handleCopy }
+                            result = { result } />
+                        {entries.length > 0 && (
+                            <div className = 'ai-summary-actions'>
+                                <button
+                                    className = 'ai-summary-download-btn'
+                                    onClick = { handleDownloadTranscript }>
+                                    {t('aiSummary.downloadTranscript')}
+                                </button>
+                            </div>
+                        )}
+                    </>
                 )}
 
                 {status === 'idle' && (

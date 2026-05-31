@@ -13,14 +13,6 @@ export interface IParticipantSummary {
     totalSpeakingTime: number;
 }
 
-export interface IMeetingTranscript {
-    entries: ITranscriptEntry[];
-    meetingId: string;
-    participants: Map<string, IParticipantSummary>;
-    roomName: string;
-    startTime: number;
-}
-
 export interface IActionItem {
     assignee: string | null;
     deadline: string | null;
