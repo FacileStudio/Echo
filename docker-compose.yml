@@ -3,7 +3,6 @@ services:
     container_name: echo-web
     build:
       context: .
-      network: host
     restart: unless-stopped
     expose:
       - "80"
