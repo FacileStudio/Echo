@@ -1,0 +1,23 @@
+[tools]
+go = "1.25"
+bun = "1"
+
+[tasks.dev]
+description = "Run the API locally"
+run = "casier run -- sh -c 'cd apps/api && go run .'"
+
+[tasks.install]
+description = "Install client dependencies"
+run = 'cd apps/client && bun install --frozen-lockfile'
+
+[tasks.check]
+description = "Run the full quality gate: every Go module, then the client"
+run = "sh ./scripts/check.sh"
+
+[tasks.check-go]
+description = "Run the Go half of the quality gate"
+run = "sh ./scripts/check.sh --go-only"
+
+[tasks.format]
+description = "Format the Go sources in place"
+run = "sh ./scripts/check.sh --format"

@@ -1,50 +1,34 @@
-FROM node:20-bookworm AS build
+FROM oven/bun:1 AS client-build
+WORKDIR /client
+COPY apps/client/package.json apps/client/bun.lock* ./
+RUN bun install --frozen-lockfile
+COPY apps/client/ .
+RUN bun run build
 
-WORKDIR /src
-COPY package.json package-lock.json ./
-RUN npm ci --legacy-peer-deps
-COPY . .
-RUN make all
-RUN git rev-parse --short HEAD > /tmp/echo-version 2>/dev/null || date +%s > /tmp/echo-version
+FROM golang:1.25-alpine AS api-build
 
-FROM nginx:alpine
+ARG TARGETOS=linux
+ARG TARGETARCH
 
-RUN rm -rf /etc/nginx/conf.d/default.conf /usr/share/nginx/html
+WORKDIR /repo/apps/api
 
-COPY docker/nginx.conf /etc/nginx/nginx.conf
-COPY docker/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+COPY apps/api/go.mod apps/api/go.sum ./
+RUN go mod download
 
-# App root
-WORKDIR /srv/echo
+COPY apps/api ./
 
-# Built assets
-COPY --from=build /src/libs/        libs/
-COPY --from=build /src/css/all.css  css/all.css
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH:-amd64} \
+    go build -trimpath -ldflags="-s -w" -o bin/api .
 
-# Source assets
-COPY lang/      lang/
-COPY images/    images/
-COPY static/    static/
-COPY sounds/    sounds/
+FROM gcr.io/distroless/static-debian12:nonroot
 
-# Bake build version for cache busting
-COPY --from=build /tmp/echo-version /tmp/echo-version
+COPY --from=api-build /repo/apps/api/bin/api /api
+COPY --from=client-build /client/build /client
 
-# HTML + config
-COPY index.html .
-COPY config.js  config.js.template
-COPY interface_config.js .
-COPY head.html .
-COPY base.html .
-COPY title.html .
-COPY fonts.html .
-COPY body.html .
-COPY plugin.head.html .
-COPY manifest.json .
-COPY pwa-worker.js .
-COPY favicon.ico .
+ENV CLIENT_DIR=/client
 
-EXPOSE 80
+EXPOSE 4020
 
-ENTRYPOINT ["/entrypoint.sh"]
+USER nonroot:nonroot
+
+ENTRYPOINT ["/api"]

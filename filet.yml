@@ -1,0 +1,52 @@
+# The Go family's coding standard, enforced by filet.
+# https://github.com/FacileStudio/filet
+#
+#   filet check .     the rules
+#   filet roast .     the rules, with commentary
+#   filet docker .    the Dockerfile
+#
+# Forked from Journal's filet.yml. A fork inherits it verbatim and adds only
+# what its own layout demands — the exceptions to `requiredFiles` below are the
+# expected place for that, and each one names its reason so that removing it is
+# an argument rather than an edit.
+
+ignore:
+  - node_modules
+  - vendor
+  - build
+  - dist
+  - testdata
+  - coverage
+
+extensions: [.go, .ts, .svelte, .sh]
+
+limits:
+  fileLines: 300 # ESLint max-lines
+  funcsPerFile: 0 # off: the package, not the file, is Go's unit of organisation
+  funcLines: 60 # funlen default
+  funcStatements: 40 # funlen default
+  lineLength: 120 # lll default
+  params: 5
+  returns: 3
+  nesting: 5 # ESLint max-depth 4, plus one for the function's own block
+  complexity: 15 # SonarSource cognitive complexity
+  structFields: 15
+  interfaceMethods: 5
+
+architecture:
+  requiredDirs: [apps/api, apps/client]
+  requiredFiles:
+    "apps/api/modules/*": [router.go]
+
+style:
+  banInlineComments: true
+  banTODO: true
+  requireDocComments: true
+  banGlobalMutable: true
+  banInit: true
+  banTrailingSpace: true
+
+disabled:
+  - gen.line.long
+
+failOn: error
