@@ -26,6 +26,7 @@ COPY --from=api-build /repo/apps/api/bin/api /api
 COPY --from=client-build /client/build /client
 
 ENV CLIENT_DIR=/client
+ENV PORT=4020
 
 EXPOSE 4020
 

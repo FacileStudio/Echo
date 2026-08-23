@@ -4,7 +4,7 @@ bun = "1"
 
 [tasks.dev]
 description = "Run the API locally"
-run = "casier run -- sh -c 'cd apps/api && go run .'"
+run = "cd apps/api && go run ."
 
 [tasks.install]
 description = "Install client dependencies"
