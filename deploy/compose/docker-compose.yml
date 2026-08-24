@@ -4,7 +4,7 @@ services:
     command: --config /etc/livekit.yaml
     restart: unless-stopped
     environment:
-      LIVEKIT_KEYS: ${LIVEKIT_KEYS:?LIVEKIT_KEYS is required, format: apiKey: apiSecret}
+      LIVEKIT_KEYS: ${LIVEKIT_KEYS:?LIVEKIT_KEYS is required}
     volumes:
       - ./livekit.yaml:/etc/livekit.yaml:ro
     ports:
