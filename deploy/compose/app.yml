@@ -58,7 +58,7 @@ services:
       ECHO_API_URL: http://echo:4020
       TRANSCRIBER_TOKEN: ${TRANSCRIBER_TOKEN:?TRANSCRIBER_TOKEN is required}
     volumes:
-      - vosk-model:/models
+      - vosk-model-nonroot:/models
 
 
   # RoomComposite egress: records rooms to MP4 under the named volume.
@@ -80,5 +80,8 @@ services:
 
 volumes:
   echo-pg:
-  vosk-model:
+  # Renamed when the transcriber dropped root. Docker seeds ownership only
+  # when it creates a volume, so the old root-owned vosk-model could never
+  # be written by uid 10001. A new name gets the image's ownership.
+  vosk-model-nonroot:
   echo-recordings:
