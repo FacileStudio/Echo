@@ -11,12 +11,14 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/FacileStudio/Echo/apps/api/modules/media"
 	"github.com/FacileStudio/tronc/env"
 	"github.com/FacileStudio/tronc/health"
 	"github.com/FacileStudio/tronc/healthcheck"
 	"github.com/FacileStudio/tronc/httpx"
 	"github.com/FacileStudio/tronc/logger"
 	"github.com/FacileStudio/tronc/middleware"
+	"github.com/go-chi/chi/v5"
 )
 
 func main() {
@@ -47,6 +49,15 @@ func run() int {
 		},
 	})
 	health.Mount(router)
+
+	mediaService, err := media.NewServiceFromEnv()
+	if err != nil {
+		log.Error("media config", slog.Any("error", err))
+		return 1
+	}
+	router.Route("/api", func(r chi.Router) {
+		media.RegisterRoutes(r, mediaService)
+	})
 
 	server := &http.Server{
 		Addr:              ":" + strconv.Itoa(cfg.Port),

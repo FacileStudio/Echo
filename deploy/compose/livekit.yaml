@@ -1,0 +1,13 @@
+port: 7880
+bind_addresses:
+  - ""
+rtc:
+  tcp_port: 7881
+  use_external_ip: true
+  port_range_start: 50000
+  port_range_end: 60000
+turn:
+  enabled: true
+  udp_port: 3478
+redis:
+  address: redis:6379
