@@ -7,7 +7,7 @@ RUN bun install --frozen-lockfile
 COPY apps/client/ .
 RUN bun run build
 
-FROM golang:1.25-alpine AS api-build
+FROM golang:1.26-alpine AS api-build
 
 ARG TARGETOS=linux
 ARG TARGETARCH
