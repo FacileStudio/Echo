@@ -16,6 +16,7 @@ import (
 	"github.com/FacileStudio/Echo/apps/api/internal/middleware"
 	"github.com/FacileStudio/Echo/apps/api/modules/auth"
 	"github.com/FacileStudio/Echo/apps/api/modules/media"
+	"github.com/FacileStudio/Echo/apps/api/modules/rooms"
 	"github.com/FacileStudio/Echo/apps/api/schemas"
 	"github.com/FacileStudio/porte/local"
 	"github.com/FacileStudio/porte/oidc"
@@ -137,7 +138,8 @@ func run() int {
 		sessions.Mount(r)
 		kit.Mount(r)
 		auth.RegisterRoutes(r, authService, cfg.Porte.SSOOnly, requireAuth)
-		media.RegisterRoutes(r, mediaService)
+		roomsService := rooms.NewService(db, mediaService)
+		rooms.RegisterRoutes(r, roomsService, requireAuth)
 	})
 
 	server := &http.Server{

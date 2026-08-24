@@ -10,6 +10,13 @@ import (
 
 const tokenTTL = 6 * time.Hour
 
+type Grant struct {
+	CanPublish     bool
+	CanPublishData bool
+	CanSubscribe   bool
+	RoomAdmin      bool
+}
+
 type Service struct {
 	apiKey    string
 	apiSecret string
@@ -32,38 +39,21 @@ func NewServiceFromEnv() (*Service, error) {
 	return &Service{apiKey: key, apiSecret: secret, url: url}, nil
 }
 
-func IssueToken(apiKey, apiSecret, room, identity string, canPublish bool) (string, error) {
-	grant := &auth.VideoGrant{
+func (s *Service) Issue(room, identity, name string, grant Grant) (string, error) {
+	video := &auth.VideoGrant{
 		RoomJoin: true,
 		Room:     room,
 	}
-	grant.SetCanPublish(canPublish)
-	grant.SetCanSubscribe(true)
-
-	token := auth.NewAccessToken(apiKey, apiSecret).
-		SetIdentity(identity).
-		SetValidFor(tokenTTL).
-		SetVideoGrant(grant)
-	return token.ToJWT()
-}
-
-func (s *Service) Issue(room, identity, displayName string, guest bool) (string, error) {
-	name := displayName
-	if name == "" {
-		name = identity
-	}
-	grant := &auth.VideoGrant{
-		RoomJoin: true,
-		Room:     room,
-	}
-	grant.SetCanPublish(!guest)
-	grant.SetCanSubscribe(true)
+	video.SetCanPublish(grant.CanPublish)
+	video.SetCanPublishData(grant.CanPublishData)
+	video.SetCanSubscribe(grant.CanSubscribe)
+	video.RoomAdmin = grant.RoomAdmin
 
 	token := auth.NewAccessToken(s.apiKey, s.apiSecret).
 		SetIdentity(identity).
 		SetName(name).
 		SetValidFor(tokenTTL).
-		SetVideoGrant(grant)
+		SetVideoGrant(video)
 	return token.ToJWT()
 }
 

@@ -7,12 +7,12 @@ import (
 )
 
 type Room struct {
-	ID        uuid.UUID  `json:"id" gorm:"column:id;type:uuid;primaryKey"`
-	Slug      string     `json:"slug" gorm:"column:slug;uniqueIndex;not null"`
-	Name      string     `json:"name" gorm:"column:name;not null"`
-	OwnerID   *uuid.UUID `json:"owner_id,omitempty" gorm:"column:owner_id;type:uuid"`
-	CreatedAt time.Time  `json:"created_at" gorm:"column:created_at;autoCreateTime"`
-	UpdatedAt time.Time  `json:"updated_at" gorm:"column:updated_at;autoUpdateTime"`
+	ID        uuid.UUID `json:"id" gorm:"column:id;type:uuid;primaryKey"`
+	Slug      string    `json:"slug" gorm:"column:slug;uniqueIndex;not null"`
+	Name      string    `json:"name" gorm:"column:name;not null"`
+	OwnerID   *int64    `json:"owner_id,omitempty" gorm:"column:owner_id;index"`
+	CreatedAt time.Time `json:"created_at" gorm:"column:created_at;autoCreateTime"`
+	UpdatedAt time.Time `json:"updated_at" gorm:"column:updated_at;autoUpdateTime"`
 }
 
 func (Room) TableName() string { return "rooms" }

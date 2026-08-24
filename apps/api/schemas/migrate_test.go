@@ -17,7 +17,7 @@ func TestMigrationsApplyCleanly(t *testing.T) {
 		t.Fatalf("create an unowned room: %v", err)
 	}
 
-	owner := uuid.New()
+	var owner int64 = 7
 	owned := schemas.Room{ID: uuid.New(), Slug: "client-review", Name: "Client Review", OwnerID: &owner}
 	if err := db.Create(&owned).Error; err != nil {
 		t.Fatalf("create an owned room: %v", err)

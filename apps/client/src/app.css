@@ -1,0 +1,4 @@
+@import 'tailwindcss';
+@import '@facile/muse/styles';
+
+@source '../node_modules/@facile/muse';
