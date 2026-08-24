@@ -1,0 +1,54 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: echo
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      POSTGRES_DB: echo
+    volumes:
+      - echo-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U echo -d echo"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Mono-container: porte API + SvelteKit client behind one port.
+  echo:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE: ${VITE_API_BASE:-}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://echo:${DB_PASSWORD}@postgres:5432/echo?sslmode=disable
+      PORT: "4020"
+      CLIENT_DIR: /client
+      LIVEKIT_URL: ${LIVEKIT_URL:?LIVEKIT_URL is required}
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:?LIVEKIT_API_KEY is required}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:?LIVEKIT_API_SECRET is required}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
+      ALLOW_REGISTRATION: "true"
+      LOG_LEVEL: info
+
+  # Local French transcription worker; captions over the room data channel.
+  transcriber:
+    build:
+      context: ../../services/transcriber
+    restart: unless-stopped
+    environment:
+      LIVEKIT_URL: ws://65.108.2.107:7880
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET}
+      VOSK_MODEL_PATH: /models/vosk-model-small-fr-0.22
+    volumes:
+      - vosk-model:/models
+
+volumes:
+  echo-pg:
+  vosk-model:

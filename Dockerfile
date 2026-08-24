@@ -1,5 +1,7 @@
 FROM oven/bun:1 AS client-build
 WORKDIR /client
+ARG VITE_API_BASE=""
+ENV VITE_API_BASE=$VITE_API_BASE
 COPY apps/client/package.json apps/client/bun.lock* ./
 RUN bun install --frozen-lockfile
 COPY apps/client/ .
