@@ -29,6 +29,7 @@ import (
 	"github.com/FacileStudio/tronc/httpx"
 	"github.com/FacileStudio/tronc/logger"
 	troncmiddleware "github.com/FacileStudio/tronc/middleware"
+	"github.com/FacileStudio/tronc/spa"
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 )
@@ -88,6 +89,13 @@ func run() int {
 	})
 
 	go sweepSessions(shutdown, authKit.sessions, log)
+
+	// SPA catch-all must stay LAST — anything registered after it is unreachable.
+	clientDir := spa.DirFromEnv()
+	if spa.Available(clientDir) {
+		router.Handle("/*", spa.Handler(spa.Config{Dir: clientDir}))
+		log.Info("serving client", slog.String("dir", clientDir))
+	}
 
 	return serve(router, cfg.Port, shutdown.Done(), log)
 }
