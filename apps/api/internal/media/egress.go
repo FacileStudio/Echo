@@ -60,6 +60,8 @@ func (s *Service) StopRecording(ctx context.Context, egressID string) (EgressInf
 
 // recorderToken mints the server-side credential used to drive egress: full
 // admin over one room when a room is given, unrestricted for StopEgress.
+// Server-only credential: it is never exposed to clients and must not back
+// any user-facing path.
 func (s *Service) recorderToken(roomName string) (string, error) {
 	video := &auth.VideoGrant{RoomJoin: false}
 	if roomName != "" {
@@ -74,12 +76,30 @@ func (s *Service) recorderToken(roomName string) (string, error) {
 	return token.ToJWT()
 }
 
+// httpURL converts a LiveKit ws:// or wss:// URL to its HTTP form, since the
+// twirp endpoints are plain HTTP(S) on the same host.
+func (s *Service) httpURL() string {
+	u := s.url
+	switch {
+	case strings.HasPrefix(u, "wss://"):
+		return "https://" + strings.TrimPrefix(u, "wss://")
+	case strings.HasPrefix(u, "ws://"):
+		return "http://" + strings.TrimPrefix(u, "ws://")
+	default:
+		return u
+	}
+}
+
 func (s *Service) egressCall(ctx context.Context, token, method string, body any, out any) error {
 	payload, err := json.Marshal(body)
 	if err != nil {
 		return err
 	}
-	url := strings.TrimSuffix(s.url, "/") + "/twirp/livekit.Egress/" + method
+	url := s.httpURL()
+	if url == "" {
+		return errors.New("LIVEKIT_URL must be set")
+	}
+	url = strings.TrimSuffix(url, "/") + "/twirp/livekit.Egress/" + method
 	reqCtx, cancel := context.WithTimeout(ctx, egressRequestTimeout)
 	defer cancel()
 	req, err := http.NewRequestWithContext(reqCtx, http.MethodPost, url, bytes.NewReader(payload))
@@ -98,7 +118,7 @@ func (s *Service) egressCall(ctx context.Context, token, method string, body any
 		return err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return errors.New("livekit egress " + method + ": " + strings.TrimSpace(string(data)))
+		return fmt.Errorf("livekit egress %s failed (status %d)", method, resp.StatusCode)
 	}
 	if out == nil {
 		return nil

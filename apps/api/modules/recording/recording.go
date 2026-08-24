@@ -38,14 +38,22 @@ func (rec *Recording) Start(ctx context.Context, slug string, callerID int64) (m
 		rec.mu.Unlock()
 		return media.EgressInfo{}, troncerrors.Conflict("room is already being recorded")
 	}
+	rec.active[slug] = ""
 	rec.mu.Unlock()
 
+	release := func() {
+		rec.mu.Lock()
+		delete(rec.active, slug)
+		rec.mu.Unlock()
+	}
 	info, err := rec.media.StartRecording(ctx, slug)
 	if err != nil {
+		release()
 		return media.EgressInfo{}, err
 	}
 	rec.mu.Lock()
 	if rec.stopped[info.EgressID] {
+		delete(rec.active, slug)
 		rec.mu.Unlock()
 		return media.EgressInfo{}, nil
 	}
@@ -62,7 +70,9 @@ func (rec *Recording) Stop(ctx context.Context, slug string, callerID int64) (me
 	rec.mu.Lock()
 	egressID, ok := rec.active[slug]
 	delete(rec.active, slug)
-	rec.stopped[egressID] = true
+	if ok {
+		rec.stopped[egressID] = true
+	}
 	rec.mu.Unlock()
 	if !ok {
 		return media.EgressInfo{}, errNotRecording
@@ -74,7 +84,8 @@ func (rec *Recording) Stop(ctx context.Context, slug string, callerID int64) (me
 	return info, nil
 }
 
-// EgressIDFor exposes the running egress id of a room, if any.
+// EgressIDFor exposes the running egress id of a room, if any. An id of ""
+// means a start is still in flight.
 func (rec *Recording) EgressIDFor(slug string) (string, bool) {
 	rec.mu.Lock()
 	defer rec.mu.Unlock()

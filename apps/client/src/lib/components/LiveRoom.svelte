@@ -7,7 +7,7 @@
 		type RemoteParticipant
 	} from 'livekit-client';
 	import { Button, Card } from '@facile/muse';
-	import { startRecording, stopRecording } from '$lib/api';
+	import { ApiError, startRecording, stopRecording } from '$lib/api';
 	import ParticipantTile from './ParticipantTile.svelte';
 	import ControlsBar from './ControlsBar.svelte';
 	import ChatPanel, { type ChatMessage } from './ChatPanel.svelte';
@@ -30,6 +30,7 @@
 	let chatOpen = $state(true);
 	let messages = $state<ChatMessage[]>([]);
 	let captions = $state<Caption[]>([]);
+	let captionId = 0;
 	let recording = $state(false);
 	let recordError = $state('');
 	let error = $state('');
@@ -58,7 +59,7 @@
 				if (!msg.text) return;
 				captions = [
 					...captions.slice(-20),
-					{ speaker: String(msg.speaker ?? 'unknown'), text: String(msg.text), at: Date.now() }
+					{ id: ++captionId, speaker: String(msg.speaker ?? 'unknown'), text: String(msg.text) }
 				];
 			} catch {
 				return;
@@ -122,7 +123,13 @@
 				recording = true;
 			}
 		} catch (e) {
-			recordError = e instanceof Error ? e.message : String(e);
+			const message = e instanceof Error ? e.message : String(e);
+			const status = e instanceof ApiError ? e.status : 0;
+			if (!recording && status === 409) {
+				recording = true;
+				return;
+			}
+			recordError = message;
 		}
 	}
 

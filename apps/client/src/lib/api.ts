@@ -37,13 +37,31 @@ export async function requestToken(
 	return (await res.json()) as TokenGrant;
 }
 
+export class ApiError extends Error {
+	constructor(
+		message: string,
+		public status: number
+	) {
+		super(message);
+	}
+}
+
+async function apiErrorMessage(res: Response): Promise<string> {
+	try {
+		const body = (await res.json()) as { error?: { code?: string; message?: string } };
+		return body.error?.message ?? `request failed (${res.status})`;
+	} catch {
+		return `request failed (${res.status})`;
+	}
+}
+
 export async function startRecording(slug: string): Promise<{ egressId: string }> {
 	const res = await fetch(`${API_BASE}/api/rooms/${encodeURIComponent(slug)}/record/start`, {
 		method: 'POST',
 		headers: { 'X-Facile-CSRF': '1' },
 		credentials: 'include'
 	});
-	if (!res.ok) throw new Error(await recordingError(res));
+	if (!res.ok) throw new ApiError(await apiErrorMessage(res), res.status);
 	return (await res.json()) as { egressId: string };
 }
 
@@ -53,16 +71,7 @@ export async function stopRecording(slug: string): Promise<void> {
 		headers: { 'X-Facile-CSRF': '1' },
 		credentials: 'include'
 	});
-	if (!res.ok) throw new Error(await recordingError(res));
-}
-
-async function recordingError(res: Response): Promise<string> {
-	try {
-		const body = (await res.json()) as { error?: string; message?: string };
-		return body.error ?? body.message ?? `recording request failed (${res.status})`;
-	} catch {
-		return `recording request failed (${res.status})`;
-	}
+	if (!res.ok) throw new ApiError(await apiErrorMessage(res), res.status);
 }
 
 export function slugify(name: string): string {

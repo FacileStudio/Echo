@@ -93,6 +93,15 @@ class VoskStream(stt.SpeechStream):
                 )
 
 
+def _speaker_of(event) -> str:
+    # Attribute naming varies across livekit-agents versions; fall back to
+    # "unknown" rather than crash on a rename.
+    speaker = getattr(event, "participant", None) or getattr(event, "speaker_id", None) or "unknown"
+    if hasattr(speaker, "identity"):
+        return str(speaker.identity)
+    return str(speaker)
+
+
 async def entrypoint(ctx: JobContext) -> None:
     await ctx.connect()
 
@@ -104,7 +113,8 @@ async def entrypoint(ctx: JobContext) -> None:
     def _on_transcript(event) -> None:
         message = CaptionMessage(
             type="caption",
-            speaker=event.speaker_id or "unknown",            text=event.transcript,
+            speaker=_speaker_of(event),
+            text=event.transcript,
             final=event.is_final,
         )
         asyncio.ensure_future(local.publish_data(message.encode(), topic="transcription"))
