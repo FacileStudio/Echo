@@ -10,6 +10,7 @@
 	let token = $state<string | null>(null)
 	let livekitUrl = $state('')
 	let status = $state<'idle' | 'connecting' | 'connected'>('idle')
+	let published = $state(false)
 	let error = $state('')
 	let participants = $state<string[]>([])
 
@@ -35,11 +36,22 @@
 			room.on(RoomEvent.ParticipantConnected, updateParticipants)
 			room.on(RoomEvent.ParticipantDisconnected, updateParticipants)
 			await room.connect(url, data.token)
-			await room.localParticipant.setCameraEnabled(true)
-			const pub = room.localParticipant.getTrackPublication(Track.Source.Camera)
-			const track = pub?.videoTrack
-			if (track && videoEl) {
-				track.attach(videoEl)
+			try {
+				await room.localParticipant.setCameraEnabled(true)
+				const pub = room.localParticipant.getTrackPublication(Track.Source.Camera)
+				const track = pub?.videoTrack
+				if (track && videoEl) {
+					track.attach(videoEl)
+				}
+				published = true
+			} catch {
+				const ctx = new AudioContext()
+				const osc = ctx.createOscillator()
+				const dst = ctx.createMediaStreamDestination()
+				osc.connect(dst)
+				osc.start()
+				await room.localParticipant.publishTrack(dst.stream.getAudioTracks()[0])
+				published = true
 			}
 			updateParticipants()
 			status = 'connected'
@@ -91,7 +103,7 @@
 	{/if}
 
 	{#if status === 'connected'}
-		<p class="text-sm text-gray-500">Connected to {livekitUrl}</p>
+		<p class="text-sm text-gray-500">Connected to {livekitUrl}{published ? ' · publishing' : ''}</p>
 		<video bind:this={videoEl} autoplay muted playsinline class="aspect-video w-full rounded bg-black"></video>
 		<ul class="text-sm">
 			{#each participants as p (p)}
