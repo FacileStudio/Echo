@@ -6,10 +6,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/FacileStudio/Echo/apps/api/modules/media"
+	"github.com/FacileStudio/Echo/apps/api/internal/media"
 	"github.com/FacileStudio/Echo/apps/api/schemas"
 	troncerrors "github.com/FacileStudio/tronc/errors"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 	"gorm.io/gorm"
 )
 
@@ -17,15 +18,20 @@ var validSlugRunes = func(r rune) bool {
 	return r >= 'a' && r <= 'z' || r >= '0' && r <= '9' || r == '-'
 }
 
+// ValidSlug reports whether slug is a legal room slug: 1-128 chars of
+// lowercase letters, digits and hyphens.
 func ValidSlug(slug string) bool {
 	return len(slug) >= 1 && len(slug) <= 128 && strings.IndexFunc(slug, func(r rune) bool { return !validSlugRunes(r) }) < 0
 }
 
+// Service owns room persistence and mints join tokens through the media
+// service.
 type Service struct {
 	orm   *gorm.DB
 	media *media.Service
 }
 
+// NewService builds a Service over the given database and media service.
 func NewService(orm *gorm.DB, media *media.Service) *Service {
 	return &Service{orm: orm, media: media}
 }
@@ -46,6 +52,9 @@ func (s *Service) Create(ctx context.Context, slug, name string, ownerID *int64)
 	}
 	room := &schemas.Room{ID: uuid.New(), Slug: slug, Name: name, OwnerID: ownerID}
 	if err := s.orm.WithContext(ctx).Create(room).Error; err != nil {
+		if isDuplicateSlug(err) {
+			return nil, troncerrors.Conflict("room already exists")
+		}
 		return nil, err
 	}
 	return room, nil
@@ -118,9 +127,17 @@ func (s *Service) Join(ctx context.Context, slug string, ownerID *int64) (*schem
 	}
 	room = &schemas.Room{ID: uuid.New(), Slug: slug, Name: slug, OwnerID: ownerID}
 	if err := s.orm.WithContext(ctx).Create(room).Error; err != nil {
+		if isDuplicateSlug(err) {
+			return s.BySlug(ctx, slug)
+		}
 		return nil, err
 	}
 	return room, nil
+}
+
+func isDuplicateSlug(err error) bool {
+	var pgErr *pgconn.PgError
+	return stderrors.As(err, &pgErr) && pgErr.Code == "23505"
 }
 
 var moderatorGrant = media.Grant{

@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 )
 
+// Room is a persistent named meeting room; OwnerID is nil for unowned rooms.
 type Room struct {
 	ID        uuid.UUID `json:"id" gorm:"column:id;type:uuid;primaryKey"`
 	Slug      string    `json:"slug" gorm:"column:slug;uniqueIndex;not null"`
@@ -17,6 +18,7 @@ type Room struct {
 
 func (Room) TableName() string { return "rooms" }
 
+// Call is one session in a room, from first participant to last out.
 type Call struct {
 	ID              uuid.UUID  `json:"id" gorm:"column:id;type:uuid;primaryKey"`
 	RoomID          uuid.UUID  `json:"room_id" gorm:"column:room_id;type:uuid;not null"`
@@ -31,6 +33,7 @@ type Call struct {
 
 func (Call) TableName() string { return "calls" }
 
+// Transcript holds the raw transcription text for a call.
 type Transcript struct {
 	ID        uuid.UUID `json:"id" gorm:"column:id;type:uuid;primaryKey"`
 	CallID    uuid.UUID `json:"call_id" gorm:"column:call_id;type:uuid;not null"`
@@ -44,6 +47,7 @@ type Transcript struct {
 
 func (Transcript) TableName() string { return "transcripts" }
 
+// Summary holds an AI-generated summary of a call transcript.
 type Summary struct {
 	ID        uuid.UUID `json:"id" gorm:"column:id;type:uuid;primaryKey"`
 	CallID    uuid.UUID `json:"call_id" gorm:"column:call_id;type:uuid;not null"`

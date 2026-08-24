@@ -8,6 +8,7 @@ import (
 	"gorm.io/gorm/logger"
 )
 
+// Open connects to the Postgres URL with GORM defaults.
 func Open(databaseURL string) (*gorm.DB, error) {
 	db, err := gorm.Open(postgres.Open(databaseURL), &gorm.Config{
 		Logger:         logger.Default.LogMode(logger.Silent),

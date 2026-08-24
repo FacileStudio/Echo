@@ -7,6 +7,7 @@ import (
 	troncenv "github.com/FacileStudio/tronc/env"
 )
 
+// Config carries the tronc core settings plus Echo auth configuration.
 type Config struct {
 	troncenv.Core
 
@@ -14,6 +15,7 @@ type Config struct {
 	Porte             porte.Config
 }
 
+// Load reads and validates every environment variable the API needs.
 func Load() (Config, error) {
 	core, err := troncenv.LoadCore()
 	if err != nil {

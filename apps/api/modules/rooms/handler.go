@@ -7,18 +7,23 @@ import (
 	"time"
 
 	"github.com/FacileStudio/Echo/apps/api/internal/authcontext"
+	"github.com/FacileStudio/Echo/apps/api/internal/middleware"
 	"github.com/FacileStudio/Echo/apps/api/schemas"
+	"github.com/FacileStudio/porte"
 	"github.com/FacileStudio/tronc/errors"
 	"github.com/FacileStudio/tronc/httpjson"
 	"github.com/go-chi/chi/v5"
 )
 
+// Handler serves the rooms HTTP endpoints.
+// Handler serves the rooms HTTP endpoints.
 type Handler struct {
-	service *Service
+	service  *Service
+	resolver middleware.IdentityResolver
 }
 
-func newHandler(service *Service) *Handler {
-	return &Handler{service: service}
+func newHandler(service *Service, resolver middleware.IdentityResolver) *Handler {
+	return &Handler{service: service, resolver: resolver}
 }
 
 func (h *Handler) create(w http.ResponseWriter, r *http.Request) {
@@ -119,7 +124,12 @@ func (h *Handler) token(w http.ResponseWriter, r *http.Request) {
 
 	var userID *int64
 	email := ""
-	if identity, ok := authcontext.From(r.Context()); ok {
+	if authenticated, ok := porte.From(r.Context()); ok {
+		identity, err := h.resolver.IdentityForUser(r.Context(), authenticated.UserID)
+		if err != nil {
+			httpjson.WriteError(w, err)
+			return
+		}
 		userID = &identity.UserID
 		email = identity.Email
 	}
@@ -143,12 +153,12 @@ func callerID(ctx context.Context) *int64 {
 	return &identity.UserID
 }
 
-func toRoomResponse(room schemas.Room, callerID *int64) RoomResponse {
+func toRoomResponse(room schemas.Room, viewerID *int64) RoomResponse {
 	return RoomResponse{
 		ID:        room.ID.String(),
 		Slug:      room.Slug,
 		Name:      room.Name,
-		Owned:     callerID != nil && room.OwnerID != nil && *room.OwnerID == *callerID,
+		Owned:     viewerID != nil && room.OwnerID != nil && *room.OwnerID == *viewerID,
 		CreatedAt: room.CreatedAt.UTC().Format(time.RFC3339),
 	}
 }

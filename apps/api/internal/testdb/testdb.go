@@ -17,6 +17,25 @@ import (
 	"gorm.io/gorm/logger"
 )
 
+func openRaw(t *testing.T, url string) *gorm.DB {
+	t.Helper()
+	db, err := gorm.Open(postgres.Open(url), &gorm.Config{Logger: logger.Discard})
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	return db
+}
+
+func createSchema(t *testing.T, admin *gorm.DB, name string) {
+	t.Helper()
+	if err := admin.Exec(`DROP SCHEMA IF EXISTS ` + name + ` CASCADE`).Error; err != nil {
+		t.Fatalf("drop the test schema: %v", err)
+	}
+	if err := admin.Exec(`CREATE SCHEMA ` + name).Error; err != nil {
+		t.Fatalf("create the test schema: %v", err)
+	}
+}
+
 // Open returns a database scoped to a schema of this test's own, or skips
 // when ECHO_TEST_DATABASE_URL is unset.
 func Open(t *testing.T) *gorm.DB {
@@ -27,16 +46,8 @@ func Open(t *testing.T) *gorm.DB {
 	}
 
 	name := schemaName(t.Name())
-	admin, err := gorm.Open(postgres.Open(url), &gorm.Config{Logger: logger.Discard})
-	if err != nil {
-		t.Fatalf("open: %v", err)
-	}
-	if err := admin.Exec(`DROP SCHEMA IF EXISTS ` + name + ` CASCADE`).Error; err != nil {
-		t.Fatalf("drop the test schema: %v", err)
-	}
-	if err := admin.Exec(`CREATE SCHEMA ` + name).Error; err != nil {
-		t.Fatalf("create the test schema: %v", err)
-	}
+	admin := openRaw(t, url)
+	createSchema(t, admin, name)
 
 	db, err := gorm.Open(postgres.Open(withSearchPath(url, name)), &gorm.Config{Logger: logger.Discard})
 	if err != nil {
@@ -44,11 +55,17 @@ func Open(t *testing.T) *gorm.DB {
 	}
 	t.Cleanup(func() {
 		if handle, err := db.DB(); err == nil {
-			_ = handle.Close()
+			if cerr := handle.Close(); cerr != nil {
+				t.Logf("close test db: %v", cerr)
+			}
 		}
-		_ = admin.Exec(`DROP SCHEMA IF EXISTS ` + name + ` CASCADE`).Error
+		if err := admin.Exec(`DROP SCHEMA IF EXISTS ` + name + ` CASCADE`).Error; err != nil {
+			t.Logf("drop test schema: %v", err)
+		}
 		if handle, err := admin.DB(); err == nil {
-			_ = handle.Close()
+			if cerr := handle.Close(); cerr != nil {
+				t.Logf("close admin db: %v", cerr)
+			}
 		}
 	})
 	return db

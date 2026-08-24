@@ -21,6 +21,7 @@ type UserStore struct {
 	orm *gorm.DB
 }
 
+// NewUserStore builds a UserStore over the given database.
 func NewUserStore(orm *gorm.DB) *UserStore {
 	return &UserStore{orm: orm}
 }
@@ -54,48 +55,66 @@ func (s *UserStore) UpsertFromOIDC(ctx context.Context, claims porte.Claims) (in
 			return errors.Internal("failed to acquire registration lock", err)
 		}
 
-		var linked int64
-		err := tx.Raw(
-			`SELECT user_id FROM porte_identities WHERE provider = ? AND subject = ?`,
-			claims.Provider, claims.Subject,
-		).Scan(&linked).Error
-		if err != nil {
-			return errors.Internal("failed to resolve the identity", err)
+		if err := s.linkedIdentity(tx, claims, &userID); err != nil {
+			return err
 		}
-		if linked != 0 {
-			userID = linked
-			return refreshProfile(tx, linked, email, name)
+		if userID != 0 {
+			return refreshProfile(tx, userID, email, name)
 		}
-
-		var existing schemas.User
-		err = tx.Where("email = ?", email).First(&existing).Error
-		switch {
-		case err == nil:
-			if !claims.EmailVerified {
-				return errors.Conflict("an account with this email already exists and the identity provider did not verify the address")
-			}
-			userID = existing.ID
-			return refreshProfile(tx, existing.ID, email, name)
-		case !stderrors.Is(err, gorm.ErrRecordNotFound):
-			return errors.Internal("failed to look up the account", err)
+		if err := s.adoptByEmail(tx, claims, email, name, &userID); err != nil {
+			return err
 		}
-
-		var count int64
-		if err := tx.Model(&schemas.User{}).Count(&count).Error; err != nil {
-			return errors.Internal("failed to count users", err)
+		if userID != 0 {
+			return nil
 		}
-
-		user := schemas.User{Email: email, Name: name, PasswordHash: "", IsAdmin: count == 0}
-		if err := tx.Create(&user).Error; err != nil {
-			return errors.Internal("failed to create the account", err)
-		}
-		userID = user.ID
-		return nil
+		return createAccount(tx, email, name, &userID)
 	})
 	if txErr != nil {
 		return 0, txErr
 	}
 	return userID, nil
+}
+
+func (s *UserStore) linkedIdentity(tx *gorm.DB, claims porte.Claims, userID *int64) error {
+	var linked int64
+	err := tx.Raw(
+		`SELECT user_id FROM porte_identities WHERE provider = ? AND subject = ?`,
+		claims.Provider, claims.Subject,
+	).Scan(&linked).Error
+	if err != nil {
+		return errors.Internal("failed to resolve the identity", err)
+	}
+	*userID = linked
+	return nil
+}
+
+func (s *UserStore) adoptByEmail(tx *gorm.DB, claims porte.Claims, email, name string, userID *int64) error {
+	var existing schemas.User
+	err := tx.Where("email = ?", email).First(&existing).Error
+	switch {
+	case err == nil:
+		if !claims.EmailVerified {
+			return errors.Conflict("an account with this email already exists and the identity provider did not verify the address")
+		}
+		*userID = existing.ID
+		return refreshProfile(tx, existing.ID, email, name)
+	case !stderrors.Is(err, gorm.ErrRecordNotFound):
+		return errors.Internal("failed to look up the account", err)
+	}
+	return nil
+}
+
+func createAccount(tx *gorm.DB, email, name string, userID *int64) error {
+	var count int64
+	if err := tx.Model(&schemas.User{}).Count(&count).Error; err != nil {
+		return errors.Internal("failed to count users", err)
+	}
+	user := schemas.User{Email: email, Name: name, PasswordHash: "", IsAdmin: count == 0}
+	if err := tx.Create(&user).Error; err != nil {
+		return errors.Internal("failed to create the account", err)
+	}
+	*userID = user.ID
+	return nil
 }
 
 func refreshProfile(tx *gorm.DB, userID int64, email, name string) error {

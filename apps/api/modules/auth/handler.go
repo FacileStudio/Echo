@@ -10,6 +10,7 @@ import (
 	"github.com/FacileStudio/tronc/httpjson"
 )
 
+// Handler serves the auth endpoints porte does not own.
 type Handler struct {
 	service *Service
 }
@@ -25,7 +26,7 @@ func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, token, err := h.service.Register(r.Context(), w, r, req.Email, req.Name, req.Password)
+	user, token, err := h.service.Register(r.Context(), w, r, req)
 	if err != nil {
 		httpjson.WriteError(w, err)
 		return

@@ -20,12 +20,16 @@ type Service struct {
 	local *local.Kit
 }
 
+// NewService builds the auth service over Echo's user table and porte's
+// local password kit.
 func NewService(orm *gorm.DB, passwords *local.Kit) *Service {
 	return &Service{orm: orm, local: passwords}
 }
 
-func (s *Service) Register(ctx context.Context, w http.ResponseWriter, r *http.Request, email, name, password string) (*schemas.User, string, error) {
-	userID, token, err := s.local.Register(ctx, w, r, email, name, password)
+// Register creates an account from a registration request and signs the
+// caller in.
+func (s *Service) Register(ctx context.Context, w http.ResponseWriter, r *http.Request, req RegisterRequest) (*schemas.User, string, error) {
+	userID, token, err := s.local.Register(ctx, w, r, req.Email, req.Name, req.Password)
 	if err != nil {
 		return nil, "", err
 	}

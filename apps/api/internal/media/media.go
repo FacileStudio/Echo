@@ -10,6 +10,7 @@ import (
 
 const tokenTTL = 6 * time.Hour
 
+// Grant is the LiveKit permission set issued with a join token.
 type Grant struct {
 	CanPublish     bool
 	CanPublishData bool
@@ -17,12 +18,15 @@ type Grant struct {
 	RoomAdmin      bool
 }
 
+// Service signs LiveKit access tokens from the configured API key pair.
 type Service struct {
 	apiKey    string
 	apiSecret string
 	url       string
 }
 
+// NewServiceFromEnv builds a Service from the LIVEKIT_* environment
+// variables.
 func NewServiceFromEnv() (*Service, error) {
 	key, err := env.Required("LIVEKIT_API_KEY")
 	if err != nil {

@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/FacileStudio/Echo/apps/api/internal/media"
 	"github.com/FacileStudio/Echo/apps/api/internal/testdb"
-	"github.com/FacileStudio/Echo/apps/api/modules/media"
 	"github.com/FacileStudio/tronc/errors"
 
 	stderrors "errors"

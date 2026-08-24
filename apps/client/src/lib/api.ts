@@ -29,7 +29,7 @@ export async function requestToken(
 ): Promise<TokenGrant> {
 	const res = await fetch(`${API_BASE}/api/rooms/${encodeURIComponent(slug)}/token`, {
 		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
+		headers: { 'Content-Type': 'application/json', 'X-Facile-CSRF': '1' },
 		credentials: 'include',
 		body: JSON.stringify(displayName ? { display_name: displayName } : {})
 	});
