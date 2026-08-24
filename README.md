@@ -30,6 +30,55 @@ cd apps/client && bun run dev   # client
 mise run check      # full quality gate
 ```
 
+## Configuration
+
+The API reads these on top of the tronc core variables (`PORT`, `DATABASE_URL`, `LOG_LEVEL`,
+`CORS_ALLOWED_ORIGINS`) and the porte OIDC set (`OIDC_*`, `SSO_ONLY`, `ALLOW_REGISTRATION`).
+
+| Variable | Required | Default | What it does |
+|---|---|---|---|
+| `LIVEKIT_URL` | yes | n/a | LiveKit signalling URL the API mints tokens against |
+| `LIVEKIT_API_KEY` | yes | n/a | LiveKit API key, also the key LiveKit signs webhooks with |
+| `LIVEKIT_API_SECRET` | yes | n/a | LiveKit API secret; verifies the webhook signature |
+| `TRANSCRIBER_TOKEN` | yes | n/a | Bearer token the transcriber presents to ingest transcripts |
+| `ANTHROPIC_API_KEY` | no | empty | Enables AI summaries; without it the summary endpoint returns 503 |
+| `ANTHROPIC_MODEL` | no | `claude-sonnet-5` | Model used for summaries |
+| `RECORDINGS_DIR` | no | `/recordings` | Directory the recordings volume is mounted at, read-only |
+
+The transcriber worker reads `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`,
+`VOSK_MODEL_PATH`, plus `ECHO_API_URL` and `TRANSCRIBER_TOKEN`. If either of the last two is
+unset it logs a warning at startup and keeps broadcasting captions without persisting them.
+
+Generate a token with:
+
+```sh
+openssl rand -hex 32
+```
+
+Set the same value on the `echo` service and on the `transcriber` service. The API refuses to
+boot without it: an unauthenticated ingestion endpoint is worse than a failed start.
+
+## Machine endpoints
+
+Two routes are called by infrastructure rather than by a browser.
+
+| Route | Caller | Auth |
+|---|---|---|
+| `POST /livekit/webhook` | livekit-server | LiveKit's signed JWT in `Authorization`, verified with the API secret |
+| `POST /api/rooms/{slug}/transcript` | transcriber worker | `Authorization: Bearer $TRANSCRIBER_TOKEN` |
+
+The webhook sits outside `/api` on purpose: it carries no cookie and no CSRF header, only the
+signature. It upserts calls and participants and stamps the recording path when egress ends.
+
+The transcript route takes `{"speaker": "...", "text": "..."}` and answers 204. It appends one
+final utterance to the open call of that room, and answers 404 when no call is open, which the
+transcriber treats as normal.
+
+To make livekit-server call the webhook, its config needs a `webhook` block pointing at
+`https://echo-v2.facile.studio/livekit/webhook`. See `deploy/compose/livekit.yaml`, and read the
+comment at the top of that file: production supplies the config through the `LIVEKIT_CONFIG`
+environment variable, not by mounting the file.
+
 ## Layout
 
 ```

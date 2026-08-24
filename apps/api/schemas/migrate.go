@@ -9,7 +9,7 @@ import "gorm.io/gorm"
 // own users table — kept verbatim otherwise, statement for statement,
 // including the v0.3.0 re-key of a local identity onto the account id.
 func Migrate(db *gorm.DB) error {
-	if err := db.AutoMigrate(&User{}, &Room{}, &Call{}, &Transcript{}, &Summary{}); err != nil {
+	if err := db.AutoMigrate(&User{}, &Room{}, &Call{}, &Transcript{}, &Summary{}, &CallParticipant{}); err != nil {
 		return err
 	}
 

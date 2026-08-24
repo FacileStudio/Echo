@@ -3,29 +3,46 @@
 Joins every room assigned by LiveKit, transcribes French speech locally with
 Vosk (kaldi-fr), and broadcasts caption/final-transcript messages on the room
 data channel so the Svelte client can render live captions without any extra
-plumbing. Persistence of final transcripts into Postgres lands in Phase 4 via
-the webhook receiver.
+plumbing. Every FINAL utterance is also POSTed to the Echo API, which appends
+it to the open call's transcript.
 
 Run locally:
     pip install -r requirements.txt
     python agent.py download-files          # pulls the small-fr model
     LIVEKIT_URL=ws://localhost:7880 \
-    LIVEKIT_API_KEY=... LIVEKIT_API_SECRET=... python agent.py start
+    LIVEKIT_API_KEY=... LIVEKIT_API_SECRET=... \
+    ECHO_API_URL=http://localhost:4020 TRANSCRIBER_TOKEN=... python agent.py start
 """
 
 from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
 from dataclasses import dataclass
+from urllib.parse import quote
 
+import aiohttp
 from livekit import rtc
 from livekit.agents import AgentSession, JobContext, WorkerOptions, cli, stt
 from vosk import Model, KaldiRecognizer, SetLogLevel
 
 VOSK_MODEL_PATH = os.environ.get("VOSK_MODEL_PATH", "models/vosk-model-small-fr-0.22")
 SAMPLE_RATE = 16_000
+
+ECHO_API_URL = os.environ.get("ECHO_API_URL", "").rstrip("/")
+TRANSCRIBER_TOKEN = os.environ.get("TRANSCRIBER_TOKEN", "")
+PERSIST_TIMEOUT_SECONDS = 3.0
+
+logger = logging.getLogger("echo.transcriber")
+
+PERSIST_TRANSCRIPTS = bool(ECHO_API_URL and TRANSCRIBER_TOKEN)
+if not PERSIST_TRANSCRIPTS:
+    logger.warning(
+        "ECHO_API_URL or TRANSCRIBER_TOKEN is unset: live captions still broadcast, "
+        "but transcripts are not persisted"
+    )
 
 
 @dataclass
@@ -102,6 +119,28 @@ def _speaker_of(event) -> str:
     return str(speaker)
 
 
+async def _post_transcript(http: aiohttp.ClientSession, room_name: str, speaker: str, text: str) -> None:
+    """POST one final utterance to the Echo API, swallowing every failure.
+
+    Persistence is best effort by design: a dead API, a slow API or a room
+    with no open call must never interrupt the live caption stream.
+    """
+    url = f"{ECHO_API_URL}/api/rooms/{quote(room_name, safe='')}/transcript"
+    try:
+        async with http.post(
+            url,
+            json={"speaker": speaker, "text": text},
+            headers={"Authorization": f"Bearer {TRANSCRIBER_TOKEN}"},
+            timeout=aiohttp.ClientTimeout(total=PERSIST_TIMEOUT_SECONDS),
+        ) as response:
+            if response.status == 404:
+                logger.debug("no open call for room %s, utterance dropped", room_name)
+            elif response.status != 204:
+                logger.warning("transcript refused for room %s: HTTP %s", room_name, response.status)
+    except (aiohttp.ClientError, asyncio.TimeoutError) as error:
+        logger.warning("transcript post failed for room %s: %s", room_name, error)
+
+
 async def entrypoint(ctx: JobContext) -> None:
     await ctx.connect()
 
@@ -109,15 +148,23 @@ async def entrypoint(ctx: JobContext) -> None:
     local = room.local_participant
     session = AgentSession(stt=VoskSTT())
 
+    http: aiohttp.ClientSession | None = None
+    if PERSIST_TRANSCRIPTS:
+        http = aiohttp.ClientSession()
+        ctx.add_shutdown_callback(http.close)
+
     @session.on("user_input_transcribed")
     def _on_transcript(event) -> None:
+        speaker = _speaker_of(event)
         message = CaptionMessage(
             type="caption",
-            speaker=_speaker_of(event),
+            speaker=speaker,
             text=event.transcript,
             final=event.is_final,
         )
         asyncio.ensure_future(local.publish_data(message.encode(), topic="transcription"))
+        if http is not None and event.is_final and event.transcript:
+            asyncio.ensure_future(_post_transcript(http, room.name, speaker, event.transcript))
 
     await session.start(room=room)
 

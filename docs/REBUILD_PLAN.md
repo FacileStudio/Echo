@@ -78,6 +78,15 @@ adoption bug page), muse, module-path, events/enveloppe, filet, HARMONIZATION §
 ### Phase 4 — history + AI summary
 
 16. `modules/webhooks/` — WebhookReceiver (HMAC) → upsert `calls` and participants.
+
+Status note on step 16: it also carries `modules/transcripts/`, the bearer-token ingestion route
+the transcriber POSTs each final utterance to, because a transcript needs the call row the
+webhook creates. LiveKit signs the webhook with a JWT whose `sha256` claim covers the body, so
+the receiver verifies with `LIVEKIT_API_SECRET` rather than a bare HMAC header. Pointing
+livekit-server at the endpoint is a deployment step, not a code step: the server runs from the
+raw "Echo Media" Dokploy compose, which cannot mount `deploy/compose/livekit.yaml`, so the
+config travels in the `LIVEKIT_CONFIG` environment variable.
+
 17. History pages (logged-in): calls per room, transcript viewer, recording links. `[auth/porte]`
 18. `modules/summarize/` — port old ai-proxy.ts (Bun→Anthropic proxy): one Claude call over
     the transcript, stored, shown post-call. Key via Casier.

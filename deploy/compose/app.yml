@@ -35,17 +35,28 @@ services:
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
       ALLOW_REGISTRATION: "true"
       LOG_LEVEL: info
+      TRANSCRIBER_TOKEN: ${TRANSCRIBER_TOKEN:?TRANSCRIBER_TOKEN is required}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-5}
+      RECORDINGS_DIR: /recordings
+    volumes:
+      - echo-recordings:/recordings:ro
 
-  # Local French transcription worker; captions over the room data channel.
+  # Local French transcription worker; captions over the room data channel,
+  # final utterances POSTed to the API over the compose network.
   transcriber:
     build:
       context: ../../services/transcriber
     restart: unless-stopped
+    depends_on:
+      - echo
     environment:
       LIVEKIT_URL: ws://65.108.2.107:7880
       LIVEKIT_API_KEY: ${LIVEKIT_API_KEY}
       LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET}
       VOSK_MODEL_PATH: /models/vosk-model-small-fr-0.22
+      ECHO_API_URL: http://echo:4020
+      TRANSCRIBER_TOKEN: ${TRANSCRIBER_TOKEN:?TRANSCRIBER_TOKEN is required}
     volumes:
       - vosk-model:/models
 

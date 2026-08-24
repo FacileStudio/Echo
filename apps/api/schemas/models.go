@@ -19,12 +19,15 @@ type Room struct {
 func (Room) TableName() string { return "rooms" }
 
 // Call is one session in a room, from first participant to last out.
+// LivekitRoomName is Echo's room slug — the LiveKit room name and the slug
+// are the same string by construction.
 type Call struct {
 	ID              uuid.UUID  `json:"id" gorm:"column:id;type:uuid;primaryKey"`
 	RoomID          uuid.UUID  `json:"room_id" gorm:"column:room_id;type:uuid;not null"`
 	StartedAt       time.Time  `json:"started_at" gorm:"column:started_at;not null"`
 	EndedAt         *time.Time `json:"ended_at,omitempty" gorm:"column:ended_at"`
-	LivekitRoomName string     `json:"livekit_room_name" gorm:"column:livekit_room_name;not null"`
+	LivekitRoomName string     `json:"livekit_room_name" gorm:"column:livekit_room_name;not null;index"`
+	RecordingPath   string     `json:"recording_path" gorm:"column:recording_path;not null;default:''"`
 	CreatedAt       time.Time  `json:"created_at" gorm:"column:created_at;autoCreateTime"`
 	UpdatedAt       time.Time  `json:"updated_at" gorm:"column:updated_at;autoUpdateTime"`
 
@@ -60,3 +63,17 @@ type Summary struct {
 }
 
 func (Summary) TableName() string { return "summaries" }
+
+// CallParticipant tracks one LiveKit identity's presence in a call.
+type CallParticipant struct {
+	ID       int64      `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
+	CallID   uuid.UUID  `json:"call_id" gorm:"column:call_id;type:uuid;not null;uniqueIndex:idx_call_participant_identity"`
+	Identity string     `json:"identity" gorm:"column:identity;not null;uniqueIndex:idx_call_participant_identity"`
+	Name     string     `json:"name" gorm:"column:name;not null;default:''"`
+	JoinedAt time.Time  `json:"joined_at" gorm:"column:joined_at;not null"`
+	LeftAt   *time.Time `json:"left_at,omitempty" gorm:"column:left_at"`
+
+	Call Call `json:"-" gorm:"foreignKey:CallID;constraint:OnDelete:CASCADE"`
+}
+
+func (CallParticipant) TableName() string { return "call_participants" }

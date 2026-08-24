@@ -74,6 +74,66 @@ export async function stopRecording(slug: string): Promise<void> {
 	if (!res.ok) throw new ApiError(await apiErrorMessage(res), res.status);
 }
 
+export type CallId = string | number;
+
+export interface CallSummary {
+	content: string;
+	model: string;
+	created_at: string;
+}
+
+export interface CallListItem {
+	id: CallId;
+	started_at: string;
+	ended_at?: string;
+	recording_path?: string;
+}
+
+export interface CallParticipant {
+	identity: string;
+	name: string;
+	joined_at: string;
+	left_at?: string;
+}
+
+export interface CallDetail extends CallListItem {
+	transcript?: string;
+	summary?: CallSummary;
+	participants: CallParticipant[];
+}
+
+async function getJSON<T>(path: string): Promise<T> {
+	const res = await fetch(`${API_BASE}${path}`, { credentials: 'include' });
+	if (!res.ok) throw new ApiError(await apiErrorMessage(res), res.status);
+	return (await res.json()) as T;
+}
+
+export async function fetchRoomCalls(slug: string): Promise<CallListItem[]> {
+	const calls = await getJSON<CallListItem[] | null>(
+		`/api/rooms/${encodeURIComponent(slug)}/calls`
+	);
+	return calls ?? [];
+}
+
+export async function fetchCall(id: CallId): Promise<CallDetail> {
+	const call = await getJSON<CallDetail>(`/api/calls/${encodeURIComponent(String(id))}`);
+	return { ...call, participants: call.participants ?? [] };
+}
+
+export async function generateCallSummary(id: CallId): Promise<CallSummary> {
+	const res = await fetch(`${API_BASE}/api/calls/${encodeURIComponent(String(id))}/summary`, {
+		method: 'POST',
+		headers: { 'X-Facile-CSRF': '1' },
+		credentials: 'include'
+	});
+	if (!res.ok) throw new ApiError(await apiErrorMessage(res), res.status);
+	return (await res.json()) as CallSummary;
+}
+
+export function callRecordingUrl(id: CallId): string {
+	return `${API_BASE}/api/calls/${encodeURIComponent(String(id))}/recording`;
+}
+
 export function slugify(name: string): string {
 	return name
 		.toLowerCase()

@@ -7,7 +7,7 @@ import (
 func TestSanitizeRoom(t *testing.T) {
 	cases := map[string]string{
 		"team-standup": "team-standup",
-		"Café Paris": "_af___aris",
+		"Café Paris":   "_af___aris",
 		"":             "",
 	}
 	for in, want := range cases {

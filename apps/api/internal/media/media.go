@@ -64,3 +64,8 @@ func (s *Service) Issue(room, identity, name string, grant Grant) (string, error
 func (s *Service) URL() string {
 	return s.url
 }
+
+// Secret exposes the API secret for webhook signature verification.
+func (s *Service) Secret() string {
+	return s.apiSecret
+}

@@ -13,6 +13,15 @@ type Config struct {
 
 	AllowRegistration bool
 	Porte             porte.Config
+
+	// TranscriberToken authenticates the transcriber worker against the
+	// transcript ingestion endpoint. It is required: an open ingestion
+	// endpoint is worse than a refused boot.
+	TranscriberToken string
+
+	// RecordingsDir is the directory the egress volume is mounted at, and
+	// the root every stored recording path is resolved against.
+	RecordingsDir string
 }
 
 // Load reads and validates every environment variable the API needs.
@@ -42,6 +51,11 @@ func Load() (Config, error) {
 	if cfg.Porte.SSOOnly, err = troncenv.Bool("SSO_ONLY", false); err != nil {
 		return Config{}, err
 	}
+	cfg.TranscriberToken = troncenv.String("TRANSCRIBER_TOKEN", "")
+	if cfg.TranscriberToken == "" {
+		return Config{}, fmt.Errorf("TRANSCRIBER_TOKEN must be set: it authenticates transcript ingestion")
+	}
+	cfg.RecordingsDir = troncenv.String("RECORDINGS_DIR", "/recordings")
 	if cfg.Porte.SSOOnly && !cfg.Porte.Enabled() {
 		return Config{}, fmt.Errorf("SSO_ONLY=true with no OIDC_ISSUER leaves no way to sign in")
 	}

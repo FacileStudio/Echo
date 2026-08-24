@@ -13,6 +13,8 @@
 	let displayName = $state('');
 	let error = $state('');
 
+	const historyHref = $derived(me && slug ? `/room/${slug}/history` : '');
+
 	onMount(async () => {
 		me = await fetchMe();
 		if (me) {
@@ -40,7 +42,7 @@
 <svelte:head><title>Echo · {slug}</title></svelte:head>
 
 {#if grant}
-	<LiveRoom url={grant.url} token={grant.token} {displayName} {slug} />
+	<LiveRoom url={grant.url} token={grant.token} {displayName} {slug} {historyHref} />
 {:else}
 	<Page width="sm" gap="content">
 		<PageHeader title="Join “{slug}”" description="Pick how you want to appear in the call." />
@@ -49,7 +51,12 @@
 			<Card><div class="flex justify-center py-4"><Spinner /></div></Card>
 		{:else if error}
 			<Alert tone="danger" title="Could not join">{error}</Alert>
-			<Button href="/">Back</Button>
+			<div class="flex gap-2">
+				<Button href="/">Back</Button>
+				{#if historyHref}
+					<Button href={historyHref} variant="outline">History</Button>
+				{/if}
+			</div>
 		{:else if me}
 			<Card>
 				<div class="flex items-center gap-4">

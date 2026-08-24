@@ -18,9 +18,10 @@
 		token: string;
 		displayName: string;
 		slug?: string;
+		historyHref?: string;
 	}
 
-	let { url, token, displayName, slug = '' }: Props = $props();
+	let { url, token, displayName, slug = '', historyHref = '' }: Props = $props();
 
 	let room: Room | null = null;
 	let participants = $state<(LocalParticipant | RemoteParticipant)[]>([]);
@@ -171,9 +172,14 @@
 <div class="flex h-dvh flex-col gap-4 p-4">
 	<header class="flex items-center justify-between">
 		<h1 class="text-fc-lg font-semibold text-fc-fg">{displayName}</h1>
-		<Button variant="ghost" size="sm" onclick={() => (chatOpen = !chatOpen)}>
-			{chatOpen ? 'Hide chat' : 'Show chat'}
-		</Button>
+		<div class="flex items-center gap-2">
+			{#if historyHref}
+				<Button variant="ghost" size="sm" href={historyHref}>History</Button>
+			{/if}
+			<Button variant="ghost" size="sm" onclick={() => (chatOpen = !chatOpen)}>
+				{chatOpen ? 'Hide chat' : 'Show chat'}
+			</Button>
+		</div>
 	</header>
 
 	{#if error}

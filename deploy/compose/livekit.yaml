@@ -1,3 +1,7 @@
+# Canonical livekit-server config.
+# Production does NOT mount this file: livekit runs from the raw "Echo Media"
+# Dokploy compose, which cannot mount repo files. Paste the body of this file
+# into the LIVEKIT_CONFIG environment variable on that compose instead.
 port: 7880
 bind_addresses:
   - ""
@@ -11,3 +15,7 @@ turn:
   udp_port: 3478
 redis:
   address: redis:6379
+webhook:
+  api_key: ${LIVEKIT_API_KEY}
+  urls:
+    - https://echo-v2.facile.studio/livekit/webhook

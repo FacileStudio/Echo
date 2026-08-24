@@ -22,6 +22,12 @@ dependency like Postgres, not a fork. The Jitsi fork this repo used to be is tag
 - Rooms are persistent and named (slug); calls are recorded per session
 - Recordings land on local disk; Nuage upload is an opt-in per room
 - Transcripts and AI summaries belong to a call and are visible to logged-in users only
+- The transcriber persists only FINAL utterances, over `POST /api/rooms/{slug}/transcript` with
+  `Authorization: Bearer $TRANSCRIBER_TOKEN`; a failure there never interrupts live captions
+- livekit-server posts room and egress events to `POST /livekit/webhook`, which sits outside
+  `/api` because it authenticates with LiveKit's signed JWT, not a cookie
+- AI summaries degrade: no `ANTHROPIC_API_KEY` means the summary endpoint returns 503 and the
+  transcript stays useful on its own
 - Room events flow to Nook via enveloppe (`call.started`, `call.ended`,
   `participant.joined`), keyed on `actor_email`
 

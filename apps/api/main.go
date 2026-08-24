@@ -15,9 +15,13 @@ import (
 	"github.com/FacileStudio/Echo/apps/api/internal/env"
 	"github.com/FacileStudio/Echo/apps/api/internal/media"
 	"github.com/FacileStudio/Echo/apps/api/internal/middleware"
+	"github.com/FacileStudio/Echo/apps/api/internal/summarize"
 	"github.com/FacileStudio/Echo/apps/api/modules/auth"
+	"github.com/FacileStudio/Echo/apps/api/modules/history"
 	"github.com/FacileStudio/Echo/apps/api/modules/recording"
 	"github.com/FacileStudio/Echo/apps/api/modules/rooms"
+	"github.com/FacileStudio/Echo/apps/api/modules/transcripts"
+	"github.com/FacileStudio/Echo/apps/api/modules/webhooks"
 	"github.com/FacileStudio/Echo/apps/api/schemas"
 	"github.com/FacileStudio/porte/local"
 	"github.com/FacileStudio/porte/oidc"
@@ -81,11 +85,15 @@ func run() int {
 		},
 	})
 	health.Mount(router)
+	webhooks.New(db, mediaService.Secret()).RegisterRoutes(router)
 	router.Route("/api", func(r chi.Router) {
 		authKit.Mount(r, cfg.Porte.SSOOnly)
 		roomsService := rooms.NewService(db, mediaService)
 		rooms.RegisterRoutes(r, roomsService, authKit.service, authKit.requireAuth)
 		recording.RegisterRoutes(r, recording.NewRecording(roomsService, mediaService), authKit.requireAuth)
+		historyService := history.NewService(db, roomsService, summarize.NewFromEnv(), cfg.RecordingsDir)
+		history.RegisterRoutes(r, historyService, authKit.requireAuth)
+		transcripts.RegisterRoutes(r, transcripts.NewService(db), cfg.TranscriberToken)
 	})
 
 	go sweepSessions(shutdown, authKit.sessions, log)
