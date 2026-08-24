@@ -31,7 +31,7 @@
 					{/if}
 				</td>
 				<td class="whitespace-nowrap">
-					{#if call.recording_path}
+					{#if call.has_recording}
 						<Badge tone="info">Available</Badge>
 					{:else}
 						<span class="text-fc-fg-muted">None</span>

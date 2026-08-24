@@ -56,7 +56,7 @@ func (h handler) append(w http.ResponseWriter, r *http.Request) {
 	if speaker == "" {
 		speaker = "unknown"
 	}
-	if err := h.service.Append(chi.URLParam(r, "slug"), speaker, req.Text); err != nil {
+	if err := h.service.Append(r.Context(), chi.URLParam(r, "slug"), speaker, req.Text); err != nil {
 		httpjson.WriteError(w, err)
 		return
 	}

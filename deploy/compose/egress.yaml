@@ -1,3 +1,10 @@
+# Config for the livekit/egress container in app.yml.
+#
+# Recordings land in /output, where the echo-recordings volume is mounted here.
+# The API mounts that same volume read-only at /recordings (RECORDINGS_DIR) and
+# opens the basename of the stored path inside it, so egress must write flat
+# into /output and the StartEgress filepath must be absolute — a relative one
+# resolves against this container's working directory, outside the volume.
 log_level: info
 api_key: ${LIVEKIT_API_KEY}
 api_secret: ${LIVEKIT_API_SECRET}

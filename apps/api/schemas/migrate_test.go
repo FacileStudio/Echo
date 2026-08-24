@@ -103,3 +103,54 @@ func TestMigrationsAreIdempotent(t *testing.T) {
 		t.Fatalf("migrate is not idempotent: %v", err)
 	}
 }
+
+// The deployed database is populated, so a re-migration has to be a no-op
+// over existing rows and not just over an empty schema. The rows here carry
+// the empty livekit_room_sid a pre-webhook call would have, which is exactly
+// the case the partial unique index has to tolerate.
+func TestASecondMigrateLeavesExistingRowsAlone(t *testing.T) {
+	db := testdb.Migrated(t)
+
+	room := schemas.Room{ID: uuid.New(), Slug: "legacy", Name: "Legacy"}
+	if err := db.Create(&room).Error; err != nil {
+		t.Fatalf("seed room: %v", err)
+	}
+	for range 2 {
+		call := schemas.Call{ID: uuid.New(), RoomID: room.ID, LivekitRoomName: "legacy"}
+		if err := db.Create(&call).Error; err != nil {
+			t.Fatalf("seed a call with no room sid: %v", err)
+		}
+	}
+
+	if err := schemas.Migrate(db); err != nil {
+		t.Fatalf("re-migrating a populated database failed: %v", err)
+	}
+
+	var calls int64
+	if err := db.Model(&schemas.Call{}).Count(&calls).Error; err != nil {
+		t.Fatalf("count calls: %v", err)
+	}
+	if calls != 2 {
+		t.Fatalf("calls = %d, want the 2 seeded rows to survive", calls)
+	}
+}
+
+// Two live sessions cannot share a room sid, whatever a retried or duplicated
+// delivery says. The constraint is in the database, not in the handler.
+func TestTheRoomSIDIsUniqueAcrossCalls(t *testing.T) {
+	db := testdb.Migrated(t)
+
+	room := schemas.Room{ID: uuid.New(), Slug: "standup", Name: "Standup"}
+	if err := db.Create(&room).Error; err != nil {
+		t.Fatalf("seed room: %v", err)
+	}
+	first := schemas.Call{ID: uuid.New(), RoomID: room.ID, LivekitRoomName: "standup", LivekitRoomSID: "RM_1"}
+	if err := db.Create(&first).Error; err != nil {
+		t.Fatalf("seed the first call: %v", err)
+	}
+
+	second := schemas.Call{ID: uuid.New(), RoomID: room.ID, LivekitRoomName: "standup", LivekitRoomSID: "RM_1"}
+	if err := db.Create(&second).Error; err == nil {
+		t.Fatal("a second call took the same LiveKit room sid")
+	}
+}

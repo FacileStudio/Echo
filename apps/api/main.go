@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -28,6 +29,7 @@ import (
 	portepg "github.com/FacileStudio/porte/pg"
 	"github.com/FacileStudio/porte/session"
 
+	troncenv "github.com/FacileStudio/tronc/env"
 	"github.com/FacileStudio/tronc/health"
 	"github.com/FacileStudio/tronc/healthcheck"
 	"github.com/FacileStudio/tronc/httpx"
@@ -85,8 +87,9 @@ func run() int {
 		},
 	})
 	health.Mount(router)
-	webhooks.New(db, mediaService.Secret()).RegisterRoutes(router)
+	webhooks.New(db, troncenv.String("LIVEKIT_API_KEY", ""), mediaService.Secret()).RegisterRoutes(router)
 	router.Route("/api", func(r chi.Router) {
+		r.Use(extendWriteDeadline("/summary", summaryWriteBudget))
 		authKit.Mount(r, cfg.Porte.SSOOnly)
 		roomsService := rooms.NewService(db, mediaService)
 		rooms.RegisterRoutes(r, roomsService, authKit.service, authKit.requireAuth)
@@ -191,6 +194,29 @@ func setupAuth(shutdown context.Context, cfg env.Config, db *gorm.DB, log *slog.
 		service:     service,
 		requireAuth: middleware.RequireAuth(sessions, service),
 	}, nil
+}
+
+// summaryWriteBudget is what one route is allowed to spend writing its
+// response. It has to clear the summarizer's own upstream timeout with room
+// to spare: the server's 30s WriteTimeout used to kill a slow summary as a
+// network error for the owner, after the row was committed and the model
+// billed.
+const summaryWriteBudget = 3 * time.Minute
+
+// extendWriteDeadline lifts the server's WriteTimeout for the routes whose
+// path ends in suffix, and leaves every other route on the short one. The
+// deadline is per-connection, so raising it here costs nothing elsewhere.
+func extendWriteDeadline(suffix string, budget time.Duration) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if strings.HasSuffix(r.URL.Path, suffix) {
+				if err := http.NewResponseController(w).SetWriteDeadline(time.Now().Add(budget)); err != nil {
+					slog.Debug("write deadline not settable", slog.Any("error", err))
+				}
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 func serve(router http.Handler, port int, shutdown <-chan struct{}, log *slog.Logger) int {

@@ -86,7 +86,7 @@ export interface CallListItem {
 	id: CallId;
 	started_at: string;
 	ended_at?: string;
-	recording_path?: string;
+	has_recording?: boolean;
 }
 
 export interface CallParticipant {
@@ -132,6 +132,29 @@ export async function generateCallSummary(id: CallId): Promise<CallSummary> {
 
 export function callRecordingUrl(id: CallId): string {
 	return `${API_BASE}/api/calls/${encodeURIComponent(String(id))}/recording`;
+}
+
+export interface RecordingFile {
+	blob: Blob;
+	filename: string;
+}
+
+/** Fetch a call recording as a blob.
+ *
+ * A plain `<a href>` cannot be used here: when the file is not on this node the
+ * API answers with a JSON error envelope and no `Content-Disposition`, and the
+ * browser renders that envelope as a page, throwing the user out of the SPA.
+ */
+export async function fetchCallRecording(id: CallId): Promise<RecordingFile> {
+	const res = await fetch(callRecordingUrl(id), { credentials: 'include' });
+	if (!res.ok) throw new ApiError(await apiErrorMessage(res), res.status);
+	return { blob: await res.blob(), filename: filenameFrom(res, id) };
+}
+
+function filenameFrom(res: Response, id: CallId): string {
+	const disposition = res.headers.get('Content-Disposition') ?? '';
+	const match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(disposition);
+	return match ? decodeURIComponent(match[1]) : `call-${id}.mp4`;
 }
 
 export function slugify(name: string): string {

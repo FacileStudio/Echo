@@ -10,6 +10,7 @@ import (
 	troncerrors "github.com/FacileStudio/tronc/errors"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 const listLimit = 200
@@ -140,36 +141,43 @@ func (s *Service) Summarize(ctx context.Context, callID string, callerID int64) 
 	return s.storeSummary(ctx, call.ID, content)
 }
 
+// storeSummary writes the call's summary as a single upsert on call_id. A
+// read-then-write would either duplicate the row or, once call_id is unique,
+// lose the race to a constraint violation.
 func (s *Service) storeSummary(ctx context.Context, callID uuid.UUID, content string) (*summaryPayload, error) {
-	existing, err := s.summaryOf(ctx, callID)
-	if err != nil {
-		return nil, err
-	}
-	if existing != nil {
-		existing.Content = content
-		existing.Model = s.summarizer.Model()
-		if err := s.orm.WithContext(ctx).Save(existing).Error; err != nil {
-			return nil, err
-		}
-		payload := toSummary(*existing)
-		return &payload, nil
-	}
 	row := schemas.Summary{
 		ID:      uuid.New(),
 		CallID:  callID,
 		Content: content,
 		Model:   s.summarizer.Model(),
 	}
-	if err := s.orm.WithContext(ctx).Create(&row).Error; err != nil {
+	upsert := clause.OnConflict{
+		Columns:   []clause.Column{{Name: "call_id"}},
+		DoUpdates: clause.AssignmentColumns([]string{"content", "model", "updated_at"}),
+	}
+	if err := s.orm.WithContext(ctx).Clauses(upsert).Create(&row).Error; err != nil {
 		return nil, err
 	}
-	payload := toSummary(row)
+	stored, err := s.summaryOf(ctx, callID)
+	if err != nil {
+		return nil, err
+	}
+	if stored == nil {
+		return nil, troncerrors.Internal("the summary vanished immediately after being written", nil)
+	}
+	payload := toSummary(*stored)
 	return &payload, nil
 }
 
+// transcriptOf returns the call's newest transcript, or nil when it has none.
+// The ordering is explicit because First() otherwise falls back to the
+// primary key, and that is a v4 UUID — lexical noise, unrelated to recency.
 func (s *Service) transcriptOf(ctx context.Context, callID uuid.UUID) (*schemas.Transcript, error) {
 	var transcript schemas.Transcript
-	err := s.orm.WithContext(ctx).Where("call_id = ?", callID).First(&transcript).Error
+	err := s.orm.WithContext(ctx).
+		Where("call_id = ?", callID).
+		Order("created_at DESC").
+		First(&transcript).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}
@@ -179,9 +187,14 @@ func (s *Service) transcriptOf(ctx context.Context, callID uuid.UUID) (*schemas.
 	return &transcript, nil
 }
 
+// summaryOf returns the call's newest summary, or nil when it has none. Same
+// reason as transcriptOf for the explicit ordering.
 func (s *Service) summaryOf(ctx context.Context, callID uuid.UUID) (*schemas.Summary, error) {
 	var summary schemas.Summary
-	err := s.orm.WithContext(ctx).Where("call_id = ?", callID).First(&summary).Error
+	err := s.orm.WithContext(ctx).
+		Where("call_id = ?", callID).
+		Order("created_at DESC").
+		First(&summary).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}

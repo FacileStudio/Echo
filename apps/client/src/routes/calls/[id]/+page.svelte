@@ -1,8 +1,7 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { Alert, Button, Card, Page, PageHeader, Section, Spinner, icons } from '@facile/muse';
-	import { ApiError, callRecordingUrl, fetchCall, type CallDetail } from '$lib/api';
+	import { ApiError, fetchCall, fetchCallRecording, type CallDetail } from '$lib/api';
 	import { formatDateTime, formatDuration } from '$lib/format';
 	import ParticipantTable from '$lib/components/ParticipantTable.svelte';
 	import TranscriptPane from '$lib/components/TranscriptPane.svelte';
@@ -19,18 +18,65 @@
 		call ? `${formatDateTime(call.started_at)} · ${formatDuration(call.started_at, call.ended_at)}` : ''
 	);
 
-	onMount(async () => {
-		try {
-			call = await fetchCall(id);
-		} catch (e) {
-			if (e instanceof ApiError && (e.status === 401 || e.status === 403)) {
-				denied = true;
-			} else {
-				error = e instanceof Error ? e.message : String(e);
-			}
+	let downloading = $state(false);
+	let downloadError = $state('');
+
+	// SvelteKit reuses this component between two /calls/[id] routes, so the
+	// fetch is keyed on the id rather than on mount. `sequence` drops a slow
+	// answer for a previous id that lands after a newer one.
+	let sequence = 0;
+
+	$effect(() => {
+		const wanted = id;
+		const ticket = ++sequence;
+		call = null;
+		loaded = false;
+		error = '';
+		denied = false;
+		downloadError = '';
+
+		if (!wanted) {
+			loaded = true;
+			return;
 		}
-		loaded = true;
+
+		void (async () => {
+			try {
+				const detail = await fetchCall(wanted);
+				if (ticket !== sequence) return;
+				call = detail;
+			} catch (e) {
+				if (ticket !== sequence) return;
+				if (e instanceof ApiError && (e.status === 401 || e.status === 403)) {
+					denied = true;
+				} else {
+					error = e instanceof Error ? e.message : String(e);
+				}
+			}
+			if (ticket === sequence) loaded = true;
+		})();
 	});
+
+	async function download(callId: CallDetail['id']): Promise<void> {
+		downloading = true;
+		downloadError = '';
+		let objectUrl = '';
+		try {
+			const { blob, filename } = await fetchCallRecording(callId);
+			objectUrl = URL.createObjectURL(blob);
+			const anchor = document.createElement('a');
+			anchor.href = objectUrl;
+			anchor.download = filename;
+			anchor.click();
+		} catch (e) {
+			downloadError = e instanceof Error ? e.message : String(e);
+		} finally {
+			// Revoking synchronously after click() cancels the download in
+			// Chrome; give the browser a turn to pick the blob up first.
+			if (objectUrl) setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
+			downloading = false;
+		}
+	}
 </script>
 
 <svelte:head><title>Call · Echo</title></svelte:head>
@@ -52,9 +98,19 @@
 		</Section>
 
 		<Section title="Recording" card>
-			{#if call.recording_path}
-				<Button href={callRecordingUrl(call.id)} variant="outline" size="sm" icon={icons.download}>
-					Download the video (MP4)
+			{#if call.has_recording}
+				{@const recordingId = call.id}
+				{#if downloadError}
+					<Alert tone="danger" title="Download failed">{downloadError}</Alert>
+				{/if}
+				<Button
+					variant="outline"
+					size="sm"
+					icon={icons.download}
+					disabled={downloading}
+					onclick={() => download(recordingId)}
+				>
+					{downloading ? 'Preparing the download…' : 'Download the video (MP4)'}
 				</Button>
 			{:else}
 				<p class="text-fc-sm text-fc-fg-muted">

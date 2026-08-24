@@ -16,22 +16,39 @@ import (
 
 const egressRequestTimeout = 15 * time.Second
 
+// egressOutputDir is where the shared echo-recordings volume is mounted
+// inside the egress container (deploy/compose/app.yml). Egress resolves a
+// relative filepath against its own working directory, so anything but an
+// absolute path here writes the MP4 outside the volume and the API never
+// sees the file.
+const egressOutputDir = "/output"
+
 // EgressInfo is the subset of livekit.EgressInfo the API surfaces to clients.
 type EgressInfo struct {
 	EgressID string `json:"egressId,omitempty"`
 	Status   string `json:"status,omitempty"`
 }
 
-// StartRecording launches a RoomComposite egress for the given LiveKit room,
-// writing an audio+video MP4 into the egress container's /output volume. It
-// returns the egress id, which StopRecording needs.
+// StartRecording launches a RoomComposite egress for the given LiveKit room
+// and returns the egress id, which StopRecording needs.
+//
+// The recording path contract has three ends and they must agree:
+//
+//   - Egress writes the MP4 flat into egressOutputDir, an absolute path,
+//     which is the echo-recordings volume inside that container.
+//   - The egress_ended webhook stores on the call whatever filename LiveKit
+//     reports, so an absolute /output/<name>.mp4.
+//   - The API mounts the same volume read-only at RECORDINGS_DIR and opens
+//     the stored path's basename inside that root. Flat writes make the
+//     basename the volume-relative name, so neither end has to know the
+//     other's mount point.
 func (s *Service) StartRecording(ctx context.Context, roomName string) (EgressInfo, error) {
 	token, err := s.recorderToken(roomName)
 	if err != nil {
 		return EgressInfo{}, err
 	}
 	file, _ := json.Marshal(map[string]any{
-		"filepath": fmt.Sprintf("recordings/%s-%d.mp4", sanitizeRoom(roomName), time.Now().Unix()),
+		"filepath": fmt.Sprintf("%s/%s-%d.mp4", egressOutputDir, sanitizeRoom(roomName), time.Now().Unix()),
 	})
 	body := map[string]any{
 		"room_name":    roomName,

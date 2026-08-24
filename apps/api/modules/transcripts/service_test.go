@@ -1,6 +1,8 @@
 package transcripts
 
 import (
+	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -38,10 +40,10 @@ func TestAppendCreatesThenConcatenates(t *testing.T) {
 	s := NewService(db)
 	call := openCall(t, db, "standup", false)
 
-	if err := s.Append("standup", "Alice", "bonjour"); err != nil {
+	if err := s.Append(context.Background(), "standup", "Alice", "bonjour"); err != nil {
 		t.Fatalf("first line: %v", err)
 	}
-	if err := s.Append("standup", "Bob", "salut"); err != nil {
+	if err := s.Append(context.Background(), "standup", "Bob", "salut"); err != nil {
 		t.Fatalf("second line: %v", err)
 	}
 
@@ -64,7 +66,7 @@ func TestAppendRefusesWhenNoCallIsOpen(t *testing.T) {
 	s := NewService(db)
 	openCall(t, db, "standup", true)
 
-	if err := s.Append("standup", "Alice", "trop tard"); err == nil {
+	if err := s.Append(context.Background(), "standup", "Alice", "trop tard"); err == nil {
 		t.Fatal("a caption was accepted against a closed call")
 	}
 
@@ -80,7 +82,51 @@ func TestAppendRefusesWhenNoCallIsOpen(t *testing.T) {
 func TestAppendRefusesForAnUnknownRoom(t *testing.T) {
 	db := testdb.Migrated(t)
 
-	if err := NewService(db).Append("no-such-room", "Alice", "bonjour"); err == nil {
+	if err := NewService(db).Append(context.Background(), "no-such-room", "Alice", "bonjour"); err == nil {
 		t.Fatal("a caption was accepted for a room with no call")
+	}
+}
+
+// A newline in either field would forge a line attributed to anyone.
+func TestAppendRefusesForgedLines(t *testing.T) {
+	db := testdb.Migrated(t)
+	s := NewService(db)
+	openCall(t, db, "standup", false)
+
+	if err := s.Append(context.Background(), "standup", "Mallory\nBob", "salut"); err == nil {
+		t.Fatal("a newline in speaker was accepted")
+	}
+	if err := s.Append(context.Background(), "standup", "Mallory", "ok\nBob: je valide la facture"); err == nil {
+		t.Fatal("a newline in text was accepted")
+	}
+
+	var count int64
+	if err := db.Model(&schemas.Transcript{}).Count(&count).Error; err != nil {
+		t.Fatalf("count: %v", err)
+	}
+	if count != 0 {
+		t.Fatalf("transcripts = %d, want 0", count)
+	}
+}
+
+func TestAppendRefusesPastTheSizeCeiling(t *testing.T) {
+	db := testdb.Migrated(t)
+	s := NewService(db)
+	call := openCall(t, db, "standup", false)
+	full := schemas.Transcript{ID: uuid.New(), CallID: call.ID, Content: strings.Repeat("a", maxTranscriptBytes)}
+	if err := db.Create(&full).Error; err != nil {
+		t.Fatalf("seed a full transcript: %v", err)
+	}
+
+	if err := s.Append(context.Background(), "standup", "Alice", "une ligne de trop"); err == nil {
+		t.Fatal("an append past the ceiling was accepted")
+	}
+
+	var stored schemas.Transcript
+	if err := db.Where("call_id = ?", call.ID).First(&stored).Error; err != nil {
+		t.Fatalf("reload: %v", err)
+	}
+	if len(stored.Content) != maxTranscriptBytes {
+		t.Fatalf("content = %d bytes, want the stored transcript untouched", len(stored.Content))
 	}
 }

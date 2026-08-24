@@ -2,6 +2,7 @@ package env
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/FacileStudio/porte"
 	troncenv "github.com/FacileStudio/tronc/env"
@@ -22,6 +23,25 @@ type Config struct {
 	// RecordingsDir is the directory the egress volume is mounted at, and
 	// the root every stored recording path is resolved against.
 	RecordingsDir string
+}
+
+// minTranscriberToken is the shortest token the API will boot with. The
+// ingestion endpoint is unthrottled, so a constant-time compare is worth
+// nothing unless the search space is out of reach of an online guess.
+const minTranscriberToken = 32
+
+// checkTranscriberToken refuses a token nobody would have to guess.
+func checkTranscriberToken(token string) error {
+	if strings.TrimSpace(token) == "" {
+		return fmt.Errorf("TRANSCRIBER_TOKEN must be set: it authenticates transcript ingestion")
+	}
+	if len(token) < minTranscriberToken {
+		return fmt.Errorf(
+			"TRANSCRIBER_TOKEN must be at least %d characters; generate one with: openssl rand -hex 32",
+			minTranscriberToken,
+		)
+	}
+	return nil
 }
 
 // Load reads and validates every environment variable the API needs.
@@ -52,8 +72,8 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 	cfg.TranscriberToken = troncenv.String("TRANSCRIBER_TOKEN", "")
-	if cfg.TranscriberToken == "" {
-		return Config{}, fmt.Errorf("TRANSCRIBER_TOKEN must be set: it authenticates transcript ingestion")
+	if err := checkTranscriberToken(cfg.TranscriberToken); err != nil {
+		return Config{}, err
 	}
 	cfg.RecordingsDir = troncenv.String("RECORDINGS_DIR", "/recordings")
 	if cfg.Porte.SSOOnly && !cfg.Porte.Enabled() {

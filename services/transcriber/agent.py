@@ -26,6 +26,7 @@ from urllib.parse import quote
 import aiohttp
 from livekit import rtc
 from livekit.agents import AgentSession, JobContext, WorkerOptions, cli, stt
+from livekit.agents.types import DEFAULT_API_CONNECT_OPTIONS, NOT_GIVEN
 from vosk import Model, KaldiRecognizer, SetLogLevel
 
 VOSK_MODEL_PATH = os.environ.get("VOSK_MODEL_PATH", "models/vosk-model-small-fr-0.22")
@@ -43,6 +44,37 @@ if not PERSIST_TRANSCRIPTS:
         "ECHO_API_URL or TRANSCRIBER_TOKEN is unset: live captions still broadcast, "
         "but transcripts are not persisted"
     )
+
+
+_INFLIGHT: set[asyncio.Task] = set()
+
+
+def _spawn(coro, what: str) -> None:
+    """Run `coro` in the background, holding a strong reference until it ends.
+
+    `asyncio.ensure_future` alone is not enough: the loop keeps only a weak
+    reference, so CPython may collect a task mid-flight and drop the utterance
+    with no log line. The done-callback also surfaces the exception, which an
+    unawaited task would otherwise hide until interpreter shutdown.
+    """
+    task = asyncio.ensure_future(coro)
+    _INFLIGHT.add(task)
+    task.add_done_callback(lambda done: _on_task_done(done, what))
+
+
+def _on_task_done(task: asyncio.Task, what: str) -> None:
+    _INFLIGHT.discard(task)
+    if task.cancelled():
+        return
+    error = task.exception()
+    if error is not None:
+        logger.warning("%s failed: %r", what, error)
+
+
+async def _drain_inflight() -> None:
+    pending = [task for task in _INFLIGHT if not task.done()]
+    if pending:
+        await asyncio.wait(pending, timeout=PERSIST_TIMEOUT_SECONDS + 1.0)
 
 
 @dataclass
@@ -67,12 +99,12 @@ class VoskSTT(stt.STT):
     async def _recognize_impl(self, buffer, language):  # pragma: no cover - batch path unused
         raise NotImplementedError("VoskSTT is streaming-only")
 
-    def stream(self, *, language=None, conn_options=None):
+    def stream(self, *, language=NOT_GIVEN, conn_options=DEFAULT_API_CONNECT_OPTIONS):
         return VoskStream(self, conn_options)
 
 
 class VoskStream(stt.SpeechStream):
-    def __init__(self, stt_instance: VoskSTT, conn_options=None) -> None:
+    def __init__(self, stt_instance: VoskSTT, conn_options=DEFAULT_API_CONNECT_OPTIONS) -> None:
         super().__init__(stt=stt_instance, conn_options=conn_options)
         self._recognizer = KaldiRecognizer(stt_instance._model, SAMPLE_RATE)
         self._recognizer.SetWords(False)
@@ -85,29 +117,26 @@ class VoskStream(stt.SpeechStream):
                 return json.loads(self._recognizer.Result())
             return None
 
-        while True:
-            frame = await self._input_ch.get()
-            if isinstance(frame, getattr(self, "_flush_sentinel", ())):  # end of utterance
+        async for frame in self._input_ch:
+            if isinstance(frame, stt.SpeechStream._FlushSentinel):  # end of utterance
                 text = json.loads(self._recognizer.FinalResult()).get("text", "")
                 if text:
-                    self._event_ch.send_nowait(
-                        stt.SpeechEvent(
-                            type=stt.SpeechEventType.INTERIM_TRANSCRIPT,
-                            alternatives=[stt.SpeechData(language="fr-FR", text=text)],
-                        )
-                    )
+                    self._send_final(text)
                 continue
             pcm = getattr(frame, "data", b"")
             if not pcm:
                 continue
             result = await loop.run_in_executor(None, recognize, bytes(pcm))
             if result and result.get("text"):
-                self._event_ch.send_nowait(
-                    stt.SpeechEvent(
-                        type=stt.SpeechEventType.FINAL_TRANSCRIPT,
-                        alternatives=[stt.SpeechData(language="fr-FR", text=result["text"])],
-                    )
-                )
+                self._send_final(result["text"])
+
+    def _send_final(self, text: str) -> None:
+        self._event_ch.send_nowait(
+            stt.SpeechEvent(
+                type=stt.SpeechEventType.FINAL_TRANSCRIPT,
+                alternatives=[stt.SpeechData(language="fr-FR", text=text)],
+            )
+        )
 
 
 def _speaker_of(event) -> str:
@@ -137,8 +166,10 @@ async def _post_transcript(http: aiohttp.ClientSession, room_name: str, speaker:
                 logger.debug("no open call for room %s, utterance dropped", room_name)
             elif response.status != 204:
                 logger.warning("transcript refused for room %s: HTTP %s", room_name, response.status)
-    except (aiohttp.ClientError, asyncio.TimeoutError) as error:
-        logger.warning("transcript post failed for room %s: %s", room_name, error)
+    except asyncio.CancelledError:
+        raise
+    except Exception as error:
+        logger.warning("transcript post failed for room %s: %r", room_name, error)
 
 
 async def entrypoint(ctx: JobContext) -> None:
@@ -151,7 +182,13 @@ async def entrypoint(ctx: JobContext) -> None:
     http: aiohttp.ClientSession | None = None
     if PERSIST_TRANSCRIPTS:
         http = aiohttp.ClientSession()
-        ctx.add_shutdown_callback(http.close)
+        session_http = http
+
+        async def _close_http() -> None:
+            await _drain_inflight()
+            await session_http.close()
+
+        ctx.add_shutdown_callback(_close_http)
 
     @session.on("user_input_transcribed")
     def _on_transcript(event) -> None:
@@ -162,9 +199,12 @@ async def entrypoint(ctx: JobContext) -> None:
             text=event.transcript,
             final=event.is_final,
         )
-        asyncio.ensure_future(local.publish_data(message.encode(), topic="transcription"))
+        _spawn(local.publish_data(message.encode(), topic="transcription"), "caption publish")
         if http is not None and event.is_final and event.transcript:
-            asyncio.ensure_future(_post_transcript(http, room.name, speaker, event.transcript))
+            _spawn(
+                _post_transcript(http, room.name, speaker, event.transcript),
+                "transcript persist",
+            )
 
     await session.start(room=room)
 

@@ -15,6 +15,7 @@ func Migrate(db *gorm.DB) error {
 
 	statements := []string{
 		porteSchema,
+		callIndexes,
 	}
 	for _, statement := range statements {
 		if err := db.Exec(statement).Error; err != nil {
@@ -23,6 +24,20 @@ func Migrate(db *gorm.DB) error {
 	}
 	return nil
 }
+
+// callIndexes carries the one index GORM's struct tags cannot express.
+//
+// The uniqueness that matters is on a real LiveKit session id, not on the
+// empty string a row gets from the column default, so the index is partial.
+// That is also what makes it safe to add to a database that already holds
+// call rows: every pre-existing row carries the empty string and is excluded,
+// so the
+// statement cannot fail on legacy data. A full unique index would have
+// depended on `calls` being empty at deploy time.
+const callIndexes = `
+CREATE UNIQUE INDEX IF NOT EXISTS calls_livekit_room_sid_key
+	ON calls (livekit_room_sid) WHERE livekit_room_sid <> '';
+`
 
 const porteSchema = `
 CREATE TABLE IF NOT EXISTS porte_identities (

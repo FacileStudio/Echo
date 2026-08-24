@@ -6,11 +6,14 @@ import (
 	"github.com/FacileStudio/Echo/apps/api/schemas"
 )
 
+// callResponse is one call on the wire. It carries whether a recording
+// exists, never where it lives: the stored path is a server filesystem path
+// and the client only ever needs to decide whether to show the download link.
 type callResponse struct {
-	ID            string `json:"id"`
-	StartedAt     string `json:"started_at"`
-	EndedAt       string `json:"ended_at,omitempty"`
-	RecordingPath string `json:"recording_path,omitempty"`
+	ID           string `json:"id"`
+	StartedAt    string `json:"started_at"`
+	EndedAt      string `json:"ended_at,omitempty"`
+	HasRecording bool   `json:"has_recording"`
 }
 
 type summaryPayload struct {
@@ -35,9 +38,9 @@ type callDetail struct {
 
 func toResponse(call schemas.Call) callResponse {
 	resp := callResponse{
-		ID:            call.ID.String(),
-		StartedAt:     call.StartedAt.UTC().Format(time.RFC3339),
-		RecordingPath: call.RecordingPath,
+		ID:           call.ID.String(),
+		StartedAt:    call.StartedAt.UTC().Format(time.RFC3339),
+		HasRecording: call.RecordingPath != "",
 	}
 	if call.EndedAt != nil {
 		resp.EndedAt = call.EndedAt.UTC().Format(time.RFC3339)

@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { Alert, Button, Card, EmptyState, Page, PageHeader, Spinner, icons } from '@facile/muse';
 	import { ApiError, fetchRoomCalls, type CallListItem } from '$lib/api';
@@ -18,17 +17,39 @@
 		);
 	}
 
-	onMount(async () => {
-		try {
-			calls = newestFirst(await fetchRoomCalls(slug));
-		} catch (e) {
-			if (e instanceof ApiError && (e.status === 401 || e.status === 403)) {
-				denied = true;
-			} else {
-				error = e instanceof Error ? e.message : String(e);
-			}
+	// SvelteKit reuses this component between two /room/[slug]/history routes,
+	// so the fetch is keyed on the slug rather than on mount. `sequence` drops a
+	// slow answer for a previous slug that lands after a newer one.
+	let sequence = 0;
+
+	$effect(() => {
+		const wanted = slug;
+		const ticket = ++sequence;
+		calls = [];
+		loaded = false;
+		error = '';
+		denied = false;
+
+		if (!wanted) {
+			loaded = true;
+			return;
 		}
-		loaded = true;
+
+		void (async () => {
+			try {
+				const list = await fetchRoomCalls(wanted);
+				if (ticket !== sequence) return;
+				calls = newestFirst(list);
+			} catch (e) {
+				if (ticket !== sequence) return;
+				if (e instanceof ApiError && (e.status === 401 || e.status === 403)) {
+					denied = true;
+				} else {
+					error = e instanceof Error ? e.message : String(e);
+				}
+			}
+			if (ticket === sequence) loaded = true;
+		})();
 	});
 </script>
 

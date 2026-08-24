@@ -51,7 +51,7 @@ services:
     depends_on:
       - echo
     environment:
-      LIVEKIT_URL: ws://65.108.2.107:7880
+      LIVEKIT_URL: ${LIVEKIT_URL:?LIVEKIT_URL is required}
       LIVEKIT_API_KEY: ${LIVEKIT_API_KEY}
       LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET}
       VOSK_MODEL_PATH: /models/vosk-model-small-fr-0.22

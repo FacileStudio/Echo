@@ -2,9 +2,19 @@
 # Production does NOT mount this file: livekit runs from the raw "Echo Media"
 # Dokploy compose, which cannot mount repo files. Paste the body of this file
 # into the LIVEKIT_CONFIG environment variable on that compose instead.
+#
+# Substitute the API key and secret LITERALLY before pasting. A ${VAR} inside
+# the value of an environment variable is never expanded, so a reference left
+# in place reaches livekit-server as the six characters "${VAR}" and the
+# webhook JWT is signed with garbage. Replace every APIxxxxxxxxxxxx and
+# SECRETxxxxxxxxxxxx below with the real values, and keep the key in `keys:`
+# identical to `webhook.api_key` — livekit-server signs the webhook with the
+# secret it finds under that key and refuses to start if the name is missing.
 port: 7880
 bind_addresses:
   - ""
+keys:
+  APIxxxxxxxxxxxx: SECRETxxxxxxxxxxxx
 rtc:
   tcp_port: 7881
   use_external_ip: true
@@ -16,6 +26,6 @@ turn:
 redis:
   address: redis:6379
 webhook:
-  api_key: ${LIVEKIT_API_KEY}
+  api_key: APIxxxxxxxxxxxx
   urls:
     - https://echo-v2.facile.studio/livekit/webhook
