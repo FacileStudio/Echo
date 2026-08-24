@@ -16,7 +16,6 @@ import (
 )
 
 // Handler serves the rooms HTTP endpoints.
-// Handler serves the rooms HTTP endpoints.
 type Handler struct {
 	service  *Service
 	resolver middleware.IdentityResolver
@@ -41,7 +40,11 @@ func (h *Handler) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ownerID := callerID(r.Context())
+	ownerID, err := h.callerID(r.Context())
+	if err != nil {
+		httpjson.WriteError(w, err)
+		return
+	}
 	room, err := h.service.Create(r.Context(), slug, req.Name, ownerID)
 	if err != nil {
 		httpjson.WriteError(w, err)
@@ -60,7 +63,12 @@ func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
 		httpjson.WriteError(w, errors.NotFound("room not found"))
 		return
 	}
-	httpjson.WriteJSON(w, http.StatusOK, toRoomResponse(*room, callerID(r.Context())))
+	viewerID, err := h.callerID(r.Context())
+	if err != nil {
+		httpjson.WriteError(w, err)
+		return
+	}
+	httpjson.WriteJSON(w, http.StatusOK, toRoomResponse(*room, viewerID))
 }
 
 func (h *Handler) list(w http.ResponseWriter, r *http.Request) {
@@ -145,12 +153,24 @@ func (h *Handler) token(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func callerID(ctx context.Context) *int64 {
-	identity, ok := authcontext.From(ctx)
-	if !ok {
-		return nil
+// callerID resolves the logged-in caller on a route that may be public.
+// It reads porte's session context, NOT authcontext, which only RequireAuth
+// hydrates: a public route reading authcontext always sees an anonymous
+// caller, which is how every room was created without an owner. Routes
+// behind RequireAuth carry the porte context too, so this works on both.
+func (h *Handler) callerID(ctx context.Context) (*int64, error) {
+	if identity, ok := authcontext.From(ctx); ok {
+		return &identity.UserID, nil
 	}
-	return &identity.UserID
+	authenticated, ok := porte.From(ctx)
+	if !ok {
+		return nil, nil
+	}
+	identity, err := h.resolver.IdentityForUser(ctx, authenticated.UserID)
+	if err != nil {
+		return nil, err
+	}
+	return &identity.UserID, nil
 }
 
 func toRoomResponse(room schemas.Room, viewerID *int64) RoomResponse {
