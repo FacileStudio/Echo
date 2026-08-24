@@ -24,7 +24,7 @@
 			const res = await fetch(`${apiBase}/api/rooms/${slug}/token`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ identity: crypto.randomUUID(), displayName, guest: true })
+				body: JSON.stringify({ identity: crypto.randomUUID(), displayName, guest: false })
 			})
 			if (!res.ok) throw new Error(`token request failed: ${res.status}`)
 			const data = await res.json()
