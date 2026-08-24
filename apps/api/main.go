@@ -137,7 +137,15 @@ type authKit struct {
 	requireAuth func(http.Handler) http.Handler
 }
 
+// Mount wires the auth routes and, first, porte's Optional middleware over
+// the whole group. Without it porte's identity exists only inside RequireAuth,
+// so every public route that serves both a guest and a signed-in caller — the
+// room token endpoint, room create, room get — sees everyone as anonymous.
+// That is what minted guest grants for logged-in users and created every room
+// without an owner. Optional must be registered before any route on this
+// router: chi refuses a Use after the first handler.
 func (k *authKit) Mount(r chi.Router, ssoOnly bool) {
+	r.Use(k.sessions.Optional)
 	k.sessions.Mount(r)
 	k.kit.Mount(r)
 	auth.RegisterRoutes(r, k.service, ssoOnly, k.requireAuth)
