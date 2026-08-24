@@ -10,6 +10,8 @@
 # expected place for that, and each one names its reason so that removing it is
 # an argument rather than an edit.
 
+kind: app
+
 ignore:
   - node_modules
   - vendor
