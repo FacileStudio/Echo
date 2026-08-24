@@ -100,6 +100,12 @@ func (s *Service) Delete(ctx context.Context, slug string, callerID int64) error
 	return s.orm.WithContext(ctx).Delete(room).Error
 }
 
+// RequireOwner fails unless slug names an existing room owned by callerID.
+func (s *Service) RequireOwner(ctx context.Context, slug string, callerID int64) error {
+	_, err := s.bySlugOwned(ctx, slug, callerID)
+	return err
+}
+
 func (s *Service) bySlugOwned(ctx context.Context, slug string, callerID int64) (*schemas.Room, error) {
 	room, err := s.BySlug(ctx, slug)
 	if err != nil {

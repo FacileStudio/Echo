@@ -16,6 +16,7 @@ import (
 	"github.com/FacileStudio/Echo/apps/api/internal/media"
 	"github.com/FacileStudio/Echo/apps/api/internal/middleware"
 	"github.com/FacileStudio/Echo/apps/api/modules/auth"
+	"github.com/FacileStudio/Echo/apps/api/modules/recording"
 	"github.com/FacileStudio/Echo/apps/api/modules/rooms"
 	"github.com/FacileStudio/Echo/apps/api/schemas"
 	"github.com/FacileStudio/porte/local"
@@ -83,6 +84,7 @@ func run() int {
 		authKit.Mount(r, cfg.Porte.SSOOnly)
 		roomsService := rooms.NewService(db, mediaService)
 		rooms.RegisterRoutes(r, roomsService, authKit.service, authKit.requireAuth)
+		recording.RegisterRoutes(r, recording.NewRecording(roomsService, mediaService), authKit.requireAuth)
 	})
 
 	go sweepSessions(shutdown, authKit.sessions, log)

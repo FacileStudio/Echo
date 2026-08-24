@@ -37,6 +37,34 @@ export async function requestToken(
 	return (await res.json()) as TokenGrant;
 }
 
+export async function startRecording(slug: string): Promise<{ egressId: string }> {
+	const res = await fetch(`${API_BASE}/api/rooms/${encodeURIComponent(slug)}/record/start`, {
+		method: 'POST',
+		headers: { 'X-Facile-CSRF': '1' },
+		credentials: 'include'
+	});
+	if (!res.ok) throw new Error(await recordingError(res));
+	return (await res.json()) as { egressId: string };
+}
+
+export async function stopRecording(slug: string): Promise<void> {
+	const res = await fetch(`${API_BASE}/api/rooms/${encodeURIComponent(slug)}/record/stop`, {
+		method: 'POST',
+		headers: { 'X-Facile-CSRF': '1' },
+		credentials: 'include'
+	});
+	if (!res.ok) throw new Error(await recordingError(res));
+}
+
+async function recordingError(res: Response): Promise<string> {
+	try {
+		const body = (await res.json()) as { error?: string; message?: string };
+		return body.error ?? body.message ?? `recording request failed (${res.status})`;
+	} catch {
+		return `recording request failed (${res.status})`;
+	}
+}
+
 export function slugify(name: string): string {
 	return name
 		.toLowerCase()

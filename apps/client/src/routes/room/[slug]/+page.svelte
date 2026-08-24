@@ -40,7 +40,7 @@
 <svelte:head><title>Echo · {slug}</title></svelte:head>
 
 {#if grant}
-	<LiveRoom url={grant.url} token={grant.token} {displayName} />
+	<LiveRoom url={grant.url} token={grant.token} {displayName} {slug} />
 {:else}
 	<Page width="sm" gap="content">
 		<PageHeader title="Join “{slug}”" description="Pick how you want to appear in the call." />

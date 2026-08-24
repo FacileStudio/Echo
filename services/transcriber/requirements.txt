@@ -1,0 +1,4 @@
+livekit-agents[openai]>=1.0
+livekit>=1.0
+vosk==0.3.45
+numpy<2.4,>=1.26

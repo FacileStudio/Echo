@@ -18,3 +18,42 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+
+  # RoomComposite egress: records rooms to MP4 under /output on the host.
+  # Heavyweight: spawns a headless Chrome per active recording.
+  egress:
+    image: livekit/egress:v1.13.0
+    restart: unless-stopped
+    environment:
+      API_KEY: ${LIVEKIT_API_KEY:?LIVEKIT_API_KEY is required}
+      API_SECRET: ${LIVEKIT_API_SECRET:?LIVEKIT_API_SECRET is required}
+      WS_URL: ws://livekit:7880
+      REDIS_HOST: redis://redis:6379
+    volumes:
+      - recordings:/output
+    cap_add:
+      - SYS_ADMIN
+    shm_size: 2gb
+    depends_on:
+      - redis
+      - livekit
+
+  # Local French transcription: LiveKit Agents worker + Vosk, captions over
+  # the room data channel.
+  transcriber:
+    build:
+      context: ../../services/transcriber
+    restart: unless-stopped
+    environment:
+      LIVEKIT_URL: ws://livekit:7880
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:?LIVEKIT_API_KEY is required}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:?LIVEKIT_API_SECRET is required}
+      VOSK_MODEL_PATH: /models/vosk-model-small-fr-0.22
+    volumes:
+      - vosk-model:/models
+    depends_on:
+      - livekit
+
+volumes:
+  recordings:
+  vosk-model:

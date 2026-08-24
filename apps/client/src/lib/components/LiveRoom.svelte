@@ -7,17 +7,20 @@
 		type RemoteParticipant
 	} from 'livekit-client';
 	import { Button, Card } from '@facile/muse';
+	import { startRecording, stopRecording } from '$lib/api';
 	import ParticipantTile from './ParticipantTile.svelte';
 	import ControlsBar from './ControlsBar.svelte';
 	import ChatPanel, { type ChatMessage } from './ChatPanel.svelte';
+	import CaptionsOverlay, { type Caption } from './CaptionsOverlay.svelte';
 
 	interface Props {
 		url: string;
 		token: string;
 		displayName: string;
+		slug?: string;
 	}
 
-	let { url, token, displayName }: Props = $props();
+	let { url, token, displayName, slug = '' }: Props = $props();
 
 	let room: Room | null = null;
 	let participants = $state<(LocalParticipant | RemoteParticipant)[]>([]);
@@ -26,6 +29,9 @@
 	let screenOn = $state(false);
 	let chatOpen = $state(true);
 	let messages = $state<ChatMessage[]>([]);
+	let captions = $state<Caption[]>([]);
+	let recording = $state(false);
+	let recordError = $state('');
 	let error = $state('');
 
 	const encoder = new TextEncoder();
@@ -40,7 +46,25 @@
 			room.localParticipant.getTrackPublication(Track.Source.ScreenShare)?.isMuted === false;
 	}
 
-	function handleData(payload: Uint8Array<ArrayBuffer>, from?: RemoteParticipant) {
+	function handleData(
+		payload: Uint8Array<ArrayBuffer>,
+		from?: RemoteParticipant,
+		_kind?: unknown,
+		topic?: string
+	) {
+		if (topic === 'transcription') {
+			try {
+				const msg = JSON.parse(decoder.decode(payload)) as { speaker?: string; text?: string };
+				if (!msg.text) return;
+				captions = [
+					...captions.slice(-20),
+					{ speaker: String(msg.speaker ?? 'unknown'), text: String(msg.text), at: Date.now() }
+				];
+			} catch {
+				return;
+			}
+			return;
+		}
 		try {
 			const msg = JSON.parse(decoder.decode(payload)) as Omit<ChatMessage, 'name'> & {
 				name?: string;
@@ -84,6 +108,22 @@
 	function leave() {
 		room?.disconnect();
 		window.location.href = '/';
+	}
+
+	async function toggleRecording() {
+		if (!slug) return;
+		recordError = '';
+		try {
+			if (recording) {
+				await stopRecording(slug);
+				recording = false;
+			} else {
+				await startRecording(slug);
+				recording = true;
+			}
+		} catch (e) {
+			recordError = e instanceof Error ? e.message : String(e);
+		}
 	}
 
 	$effect(() => {
@@ -142,6 +182,8 @@
 			{/each}
 		</main>
 
+		<CaptionsOverlay bind:captions />
+
 		{#if chatOpen}
 			<aside class="hidden w-80 shrink-0 rounded-fc-md bg-fc-component p-4 md:block">
 				<h2 class="mb-3 text-fc-md font-semibold text-fc-fg">Chat</h2>
@@ -153,6 +195,16 @@
 	</div>
 
 	<footer class="shrink-0 pb-2">
+		<div class="mb-1 flex flex-col items-center gap-1">
+			{#if recordError || recording}
+				<p class="text-fc-sm {recordError ? 'text-fc-danger' : 'text-fc-fg-muted'}">
+					{recordError ?? '● REC'}
+				</p>
+			{/if}
+			<Button variant="ghost" size="sm" onclick={() => void toggleRecording()} disabled={!slug}>
+				{recording ? 'Stop recording' : 'Record'}
+			</Button>
+		</div>
 		<ControlsBar
 			{micOn}
 			{camOn}
