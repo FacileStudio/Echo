@@ -7,20 +7,23 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       POSTGRES_DB: echo
     volumes:
-      - echo-pg:/var/lib/postgresql/data
+    - echo-pg:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U echo -d echo"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
+      test:
+      - CMD
+      - nc
+      - -z
+      - localhost
+      - '3000'
+      interval: 30s
+      timeout: 5s
+      retries: 3
     deploy:
       update_config:
         order: start-first
         parallelism: 1
       restart_policy:
         condition: any
-
-  # Mono-container: porte API + SvelteKit client behind one port.
   echo:
     build:
       context: ../..
@@ -33,22 +36,27 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgres://echo:${DB_PASSWORD}@postgres:5432/echo?sslmode=disable
-      PORT: "4020"
+      PORT: '4020'
       CLIENT_DIR: /client
       LIVEKIT_URL: ${LIVEKIT_URL:?LIVEKIT_URL is required}
       LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:?LIVEKIT_API_KEY is required}
       LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:?LIVEKIT_API_SECRET is required}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
-      ALLOW_REGISTRATION: "true"
+      ALLOW_REGISTRATION: 'true'
       LOG_LEVEL: info
       TRANSCRIBER_TOKEN: ${TRANSCRIBER_TOKEN:?TRANSCRIBER_TOKEN is required}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-5}
       RECORDINGS_DIR: /recordings
     volumes:
-      - echo-recordings:/recordings:ro
+    - echo-recordings:/recordings:ro
     healthcheck:
-      test: ["CMD","nc","-z","localhost","4020"]
+      test:
+      - CMD
+      - nc
+      - -z
+      - localhost
+      - '3000'
       interval: 30s
       timeout: 5s
       retries: 3
@@ -58,15 +66,12 @@ services:
         parallelism: 1
       restart_policy:
         condition: any
-
-  # Local French transcription worker; captions over the room data channel,
-  # final utterances POSTed to the API over the compose network.
   transcriber:
     build:
       context: ../../services/transcriber
     restart: unless-stopped
     depends_on:
-      - echo
+    - echo
     environment:
       LIVEKIT_URL: ${LIVEKIT_URL:?LIVEKIT_URL is required}
       LIVEKIT_API_KEY: ${LIVEKIT_API_KEY}
@@ -75,9 +80,14 @@ services:
       ECHO_API_URL: http://echo:4020
       TRANSCRIBER_TOKEN: ${TRANSCRIBER_TOKEN:?TRANSCRIBER_TOKEN is required}
     volumes:
-      - vosk-model-nonroot:/models
+    - vosk-model-nonroot:/models
     healthcheck:
-      test: ["CMD","nc","-z","localhost","3000"]
+      test:
+      - CMD
+      - nc
+      - -z
+      - localhost
+      - '3000'
       interval: 30s
       timeout: 5s
       retries: 3
@@ -87,12 +97,6 @@ services:
         parallelism: 1
       restart_policy:
         condition: any
-
-
-  # RoomComposite egress: records rooms to MP4 under the named volume.
-  # Heavyweight: spawns a headless Chrome per active recording. Host network
-  # to reach the shared livekit+redis on la ruche (127.0.0.1).
-  # Config lives beside this file so ${LIVEKIT_*} resolves from the same .env.
   egress:
     image: livekit/egress:v1.13.0
     restart: unless-stopped
@@ -100,10 +104,10 @@ services:
     environment:
       EGRESS_CONFIG_FILE: /etc/egress.yaml
     volumes:
-      - ./egress.yaml:/etc/egress.yaml:ro
-      - echo-recordings:/output
+    - ./egress.yaml:/etc/egress.yaml:ro
+    - echo-recordings:/output
     cap_add:
-      - SYS_ADMIN
+    - SYS_ADMIN
     shm_size: 2gb
     deploy:
       update_config:
@@ -111,11 +115,17 @@ services:
         parallelism: 1
       restart_policy:
         condition: any
-
+    healthcheck:
+      test:
+      - CMD
+      - nc
+      - -z
+      - localhost
+      - '3000'
+      interval: 30s
+      timeout: 5s
+      retries: 3
 volumes:
-  echo-pg:
-  # Renamed when the transcriber dropped root. Docker seeds ownership only
-  # when it creates a volume, so the old root-owned vosk-model could never
-  # be written by uid 10001. A new name gets the image's ownership.
-  vosk-model-nonroot:
-  echo-recordings:
+  echo-pg: null
+  vosk-model-nonroot: null
+  echo-recordings: null
