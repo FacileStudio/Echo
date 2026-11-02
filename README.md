@@ -25,10 +25,13 @@ product decisions live; LiveKit owns the WebRTC plumbing nobody should hand-writ
 
 ```sh
 mise install
-mise run dev        # API
-cd apps/client && bun run dev   # client
+mise run dev        # Postgres + LiveKit in docker, API on :8080, client on :5173
+mise run dev:down   # stop the docker services
 mise run check      # full quality gate
 ```
+
+Local overrides such as `ANTHROPIC_API_KEY` or the `OIDC_*` set go in a gitignored `.env`
+at the repo root, which mise loads.
 
 ## Configuration
 

@@ -43,8 +43,8 @@ dependency like Postgres, not a fork. The Jitsi fork this repo used to be is tag
 
 | Task | Command |
 |---|---|
-| Dev API | `mise run dev` |
-| Dev client | `cd apps/client && bun run dev` |
+| Dev stack (docker services, API, client) | `mise run dev` |
+| Stop dev services | `mise run dev:down` |
 | Quality gate | `mise run check` |
 | Go-only gate | `mise run check-go` |
 | Format Go | `mise run format` |

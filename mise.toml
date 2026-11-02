@@ -2,9 +2,43 @@
 go = "1.25"
 bun = "1"
 
+# local overrides (ANTHROPIC_API_KEY, OIDC_*) go in .env, which is gitignored
+[env]
+_.file = ".env"
+
 [tasks.dev]
-description = "Run the API locally"
-run = "cd apps/api && go run ."
+description = "Run Postgres, LiveKit, the API and the client locally"
+depends = ["dev:api", "dev:client"]
+
+[tasks."dev:services"]
+description = "Start local Postgres and LiveKit in docker"
+run = "docker compose -f deploy/compose/dev.yml up -d --wait"
+
+[tasks."dev:api"]
+description = "Run the API against the local services"
+depends = ["dev:services"]
+dir = "apps/api"
+run = "go run ."
+
+[tasks."dev:api".env]
+PORT = "8080"
+DATABASE_URL = "postgres://echo:echo@localhost:5433/echo?sslmode=disable"
+CORS_ALLOWED_ORIGINS = "http://localhost:5173"
+LIVEKIT_URL = "ws://localhost:7880"
+LIVEKIT_API_KEY = "devkey"
+LIVEKIT_API_SECRET = "secret"
+TRANSCRIBER_TOKEN = "dev-transcriber-token-not-for-production-use"
+RECORDINGS_DIR = "../../data/recordings"
+
+[tasks."dev:client"]
+description = "Run the SvelteKit dev server"
+depends = ["install"]
+dir = "apps/client"
+run = "bun run dev"
+
+[tasks."dev:down"]
+description = "Stop the local services"
+run = "docker compose -f deploy/compose/dev.yml down"
 
 [tasks.install]
 description = "Install client dependencies"
