@@ -11,9 +11,11 @@
 	import { Alert, prefersReducedMotion } from '@facile/muse';
 	import { parseCaption, parseChat } from '$lib/roomData';
 	import { gridCols, gridColumn, gridRows, tileWidth } from '$lib/grid';
+	import { bindRemoteAudio } from '$lib/roomAudio';
 	import { ApiError, startRecording, stopRecording } from '$lib/api';
 	import ParticipantTile from './ParticipantTile.svelte';
 	import RoomHeader from './RoomHeader.svelte';
+	import AudioPrompt from './AudioPrompt.svelte';
 	import ControlsBar from './ControlsBar.svelte';
 	import ChatPanel, { type ChatMessage } from './ChatPanel.svelte';
 	import CaptionsOverlay, { type Caption } from './CaptionsOverlay.svelte';
@@ -35,6 +37,7 @@
 	let screenOn = $state(false);
 	let chatOpen = $state(true);
 	let version = $state(0);
+	let audioBlocked = $state(false);
 	let messages = $state<ChatMessage[]>([]);
 	let captions = $state<Caption[]>([]);
 	let captionId = 0;
@@ -170,6 +173,8 @@
 			.on(RoomEvent.ActiveSpeakersChanged, refresh)
 			.on(RoomEvent.DataReceived, handleData);
 
+		const unbindAudio = bindRemoteAudio(r, (blocked) => (audioBlocked = blocked));
+
 		r.connect(url, token)
 			.then(async () => {
 				refresh();
@@ -187,6 +192,7 @@
 
 		return () => {
 			r.disconnect();
+			unbindAudio();
 			room = null;
 		};
 	});
@@ -194,6 +200,8 @@
 
 <div class="flex h-dvh flex-col">
 	<RoomHeader {slug} {recording} {historyHref} count={participants.length} />
+
+	<AudioPrompt blocked={audioBlocked} onEnable={() => void room?.startAudio()} />
 
 	{#if error || recordError}
 		<div class="px-4 pb-3">
