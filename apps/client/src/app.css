@@ -1,0 +1,11 @@
+@import 'tailwindcss';
+@import '@facile/muse/styles';
+
+@source '../node_modules/@facile/muse';
+
+/* Echo's brand is the logo's own gradient (static/logo.svg) */
+:root {
+	--fc-brand-from: #7c5cc5;
+	--fc-brand-to: #f097ff;
+	--fc-brand-angle: 135deg;
+}

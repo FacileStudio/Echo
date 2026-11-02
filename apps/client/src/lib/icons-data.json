@@ -1,0 +1,62 @@
+{
+ "iconoir:airplay": {
+  "body": "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M6 17H3V4h18v13h-3\"/><path d=\"M8.622 19.067L11.5 14.75a.6.6 0 0 1 .998 0l2.88 4.318a.6.6 0 0 1-.5.933H9.12a.6.6 0 0 1-.5-.933Z\"/></g>",
+  "width": 24,
+  "height": 24
+ },
+ "iconoir:chat-lines": {
+  "body": "<path fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M8 10h8m-8 4h4m0 8c5.523 0 10-4.477 10-10S17.523 2 12 2S2 6.477 2 12c0 1.821.487 3.53 1.338 5L2.5 21.5l4.5-.838A9.96 9.96 0 0 0 12 22\"/>",
+  "width": 24,
+  "height": 24
+ },
+ "iconoir:circle": {
+  "body": "<path fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2S2 6.477 2 12s4.477 10 10 10\"/>",
+  "width": 24,
+  "height": 24
+ },
+ "iconoir:closed-captions-tag": {
+  "body": "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M1 15V9a6 6 0 0 1 6-6h10a6 6 0 0 1 6 6v6a6 6 0 0 1-6 6H7a6 6 0 0 1-6-6Z\"/><path stroke-linecap=\"round\" d=\"m10.5 10l-.172-.172a2.828 2.828 0 0 0-4.828 2v.344a2.828 2.828 0 0 0 4.828 2L10.5 14m8-4l-.172-.172a2.828 2.828 0 0 0-4.828 2v.344a2.828 2.828 0 0 0 4.828 2L18.5 14\"/></g>",
+  "width": 24,
+  "height": 24
+ },
+ "iconoir:group": {
+  "body": "<g fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"2\"><path d=\"M1 20v-1a7 7 0 1 1 14 0v1\"/><path d=\"M13 14v0a5 5 0 0 1 10 0v.5\"/><path stroke-linejoin=\"round\" d=\"M8 12a4 4 0 1 0 0-8a4 4 0 0 0 0 8m10-3a3 3 0 1 0 0-6a3 3 0 0 0 0 6\"/></g>",
+  "width": 24,
+  "height": 24
+ },
+ "iconoir:link": {
+  "body": "<g fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\"><path d=\"M14 11.998C14 9.506 11.683 7 8.857 7H7.143C4.303 7 2 9.238 2 11.998c0 2.378 1.71 4.368 4 4.873a5.3 5.3 0 0 0 1.143.124\"/><path d=\"M10 11.998c0 2.491 2.317 4.997 5.143 4.997h1.714c2.84 0 5.143-2.237 5.143-4.997c0-2.379-1.71-4.37-4-4.874A5.3 5.3 0 0 0 16.857 7\"/></g>",
+  "width": 24,
+  "height": 24
+ },
+ "iconoir:microphone": {
+  "body": "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect width=\"6\" height=\"12\" x=\"9\" y=\"2\" rx=\"3\"/><path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M5 10v1a7 7 0 1 0 14 0v-1m-7 8v4m0 0H9m3 0h3\"/></g>",
+  "width": 24,
+  "height": 24
+ },
+ "iconoir:microphone-mute": {
+  "body": "<g fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\"><path d=\"m3 3l18 18M9 9za5 5 0 0 0 5 5m1-3.5V5a3 3 0 1 0-6 0v.5\"/><path d=\"M5 10v1a7 7 0 1 0 14 0v-1m-7 8v4m0 0H9m3 0h3\"/></g>",
+  "width": 24,
+  "height": 24
+ },
+ "iconoir:phone-disabled": {
+  "body": "<path fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"m8.78 8.5l.49-2.63L7.815 2H4.064c-1.128 0-2.016.93-1.848 2.046c.288 1.902.957 4.861 2.51 7.7M10.94 13.5c.837.744 1.847 1.392 3.059 2l4.118-.798L22 16.182v3.584c0 1.192-1.032 2.1-2.197 1.847c-2.83-.616-7.83-2.107-11.58-5.432M21 3L3 21\"/>",
+  "width": 24,
+  "height": 24
+ },
+ "iconoir:send": {
+  "body": "<path fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M22 12L3 20l3.563-8L3 4zM6.5 12H22\"/>",
+  "width": 24,
+  "height": 24
+ },
+ "iconoir:video-camera": {
+  "body": "<path fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M15 12v4.4a.6.6 0 0 1-.6.6H3.6a.6.6 0 0 1-.6-.6V7.6a.6.6 0 0 1 .6-.6h10.8a.6.6 0 0 1 .6.6zm0 0l5.016-4.18a.6.6 0 0 1 .984.461v7.438a.6.6 0 0 1-.984.46z\"/>",
+  "width": 24,
+  "height": 24
+ },
+ "iconoir:video-camera-off": {
+  "body": "<path fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M6.5 7H3.6a.6.6 0 0 0-.6.6v8.8a.6.6 0 0 0 .6.6h10.8a.6.6 0 0 0 .6-.6V15m-3.5-8h2.9a.6.6 0 0 1 .6.6v3.119a.6.6 0 0 0 .984.46l4.032-3.359a.6.6 0 0 1 .984.461V15.5M3 3l18 18\"/>",
+  "width": 24,
+  "height": 24
+ }
+}

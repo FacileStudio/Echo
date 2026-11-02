@@ -1,0 +1,27 @@
+# Canonical livekit-server config for the "Echo Media" deployment.
+#
+# Production does NOT mount this file. livekit runs from a raw Dokploy
+# compose, which cannot mount repo files, so this body is pasted into the
+# LIVEKIT_CONFIG environment variable on that compose.
+#
+# Substitute the key and secret LITERALLY before pasting. A ${VAR} inside the
+# value of an environment variable is never expanded, so a reference left in
+# place reaches livekit-server as the literal characters and the webhook JWT
+# is signed with garbage. The name under `keys:` must match `webhook.api_key`:
+# livekit-server signs the webhook with the secret it finds under that key.
+#
+# Everything not set here stays at livekit-server's own defaults, which is
+# what the deployment has effectively been running all along. The compose
+# also sets LIVEKIT_RTC__*, LIVEKIT_TURN__* and LIVEKIT_REDIS__* with double
+# underscores; livekit-server builds its env flags with a SINGLE underscore
+# and skips list and map fields entirely, so none of those are read. Turning
+# TURN, the ICE port range and Redis on is a real improvement and a separate
+# change: it needs a two-browser test from behind symmetric NAT, which is
+# exactly what those settings exist for.
+port: 7880
+keys:
+  APIxxxxxxxxxxxx: SECRETxxxxxxxxxxxx
+webhook:
+  api_key: APIxxxxxxxxxxxx
+  urls:
+    - https://echo-v2.facile.studio/livekit/webhook

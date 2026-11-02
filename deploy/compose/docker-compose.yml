@@ -1,0 +1,41 @@
+services:
+  livekit:
+    image: livekit/livekit-server:v1.13.5
+    command: --config /etc/livekit.yaml
+    restart: unless-stopped
+    environment:
+      LIVEKIT_KEYS: ${LIVEKIT_KEYS:?LIVEKIT_KEYS is required}
+    volumes:
+      - ./livekit.yaml:/etc/livekit.yaml:ro
+    ports:
+      - "7880:7880"
+      - "7881:7881"
+      - "3478:3478/udp"
+      - "50000-60000:50000-60000/udp"
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+
+  # RoomComposite egress: records rooms to MP4 under /output on the host.
+  # Heavyweight: spawns a headless Chrome per active recording. Runs on the
+  # host network like livekit/redis so it can reach them on 127.0.0.1.
+  egress:
+    image: livekit/egress:v1.13.0
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      API_KEY: ${LIVEKIT_API_KEY:?LIVEKIT_API_KEY is required}
+      API_SECRET: ${LIVEKIT_API_SECRET:?LIVEKIT_API_SECRET is required}
+      WS_URL: ws://127.0.0.1:7880
+      REDIS_HOST: 127.0.0.1:6379
+    volumes:
+      - /opt/echo-recordings:/output
+    cap_add:
+      - SYS_ADMIN
+    shm_size: 2gb
+
+volumes:
+  recordings:

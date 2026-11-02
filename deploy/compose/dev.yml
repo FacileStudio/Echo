@@ -1,0 +1,29 @@
+name: echo-dev
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: echo
+      POSTGRES_PASSWORD: echo
+      POSTGRES_DB: echo
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U echo"]
+      interval: 2s
+      retries: 15
+
+  # --dev ships the devkey/secret pair; --node-ip keeps ICE candidates reachable from the host browser
+  livekit:
+    image: livekit/livekit-server:v1.13.5
+    command: --dev --bind 0.0.0.0 --node-ip 127.0.0.1
+    ports:
+      - "7880:7880"
+      - "7881:7881"
+      - "7882:7882/udp"
+
+volumes:
+  pgdata:
