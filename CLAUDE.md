@@ -49,4 +49,4 @@ dependency like Postgres, not a fork. The Jitsi fork this repo used to be is tag
 | Go-only gate | `mise run check-go` |
 | Format Go | `mise run format` |
 
-Deploy target: Dokploy on la ruche, alongside the still-running Jitsi deployment until cutover.
+Deploy target: Dokploy compose `Echo v2` on gare.facile.studio, source `deploy/compose/app.yml`, autoDeploy from `master`, served at echo.facile.studio. LiveKit runs in the separate `Echo Media` compose (echo-live.facile.studio). Jitsi was removed on 2026-11-02; its last version is tagged `jitsi-final`.
