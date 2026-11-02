@@ -24,4 +24,4 @@ keys:
 webhook:
   api_key: APIxxxxxxxxxxxx
   urls:
-    - https://echo-v2.facile.studio/livekit/webhook
+    - https://echo.facile.studio/livekit/webhook

@@ -78,7 +78,7 @@ final utterance to the open call of that room, and answers 404 when no call is o
 transcriber treats as normal.
 
 To make livekit-server call the webhook, its config needs a `webhook` block pointing at
-`https://echo-v2.facile.studio/livekit/webhook`. See `deploy/compose/livekit.yaml`, and read the
+`https://echo.facile.studio/livekit/webhook`. See `deploy/compose/livekit.yaml`, and read the
 comment at the top of that file: production supplies the config through the `LIVEKIT_CONFIG`
 environment variable, not by mounting the file.
 
