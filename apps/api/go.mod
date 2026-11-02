@@ -3,7 +3,7 @@ module github.com/FacileStudio/Echo/apps/api
 go 1.26
 
 require (
-	github.com/FacileStudio/porte v0.3.1
+	github.com/FacileStudio/porte v0.5.2
 	github.com/FacileStudio/tronc v0.10.1
 	github.com/go-chi/chi/v5 v5.3.1
 	github.com/google/uuid v1.6.0
