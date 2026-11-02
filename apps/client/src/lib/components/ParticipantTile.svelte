@@ -1,29 +1,29 @@
 <script lang="ts">
 	import { Track, type LocalParticipant, type RemoteParticipant } from 'livekit-client';
-	import { cn } from '@facile/muse';
+	import { Icon, cn } from '@facile/muse';
+	import { callIcons } from '$lib/icons';
 
 	interface Props {
 		participant: LocalParticipant | RemoteParticipant;
 		isLocal?: boolean;
+		version: number;
 	}
 
-	let { participant, isLocal = false }: Props = $props();
+	let { participant, isLocal = false, version }: Props = $props();
 
 	let videoEl: HTMLVideoElement | undefined = $state();
 
-	const name = $derived(participant.name || participant.identity);
-	const cameraTrack = $derived(
-		participant.getTrackPublication(Track.Source.Camera)?.videoTrack ?? null
-	);
-	const micOn = $derived(participant.isMicrophoneEnabled);
-
-	$effect(() => {
-		const track = cameraTrack;
-		const el = videoEl;
-		if (!track || !el) return;
-		track.attach(el);
-		return () => track.detach(el);
+	// `version` bumps on every room event; the participant object itself never changes identity
+	const live = $derived.by(() => {
+		void version;
+		return {
+			camera: participant.getTrackPublication(Track.Source.Camera)?.videoTrack ?? null,
+			micOn: participant.isMicrophoneEnabled,
+			speaking: participant.isSpeaking
+		};
 	});
+
+	const name = $derived(participant.name || participant.identity);
 
 	const initials = $derived(
 		name
@@ -34,26 +34,45 @@
 			.join('')
 			.toUpperCase() || '?'
 	);
+
+	$effect(() => {
+		const track = live.camera;
+		const el = videoEl;
+
+		if (!track || !el)
+			return;
+
+		track.attach(el);
+		return () => track.detach(el);
+	});
 </script>
 
 <div
 	class={cn(
-		'relative aspect-video overflow-hidden rounded-fc-md bg-fc-surface',
-		isLocal && 'ring-2 ring-fc-ring/40'
+		'relative isolate aspect-video overflow-hidden rounded-fc border border-transparent bg-fc-surface',
+		live.speaking && 'border-1 border-fc-brand'
 	)}
 >
-	{#if cameraTrack}
-		<video bind:this={videoEl} autoplay playsinline muted={isLocal} class="size-full object-cover"></video>
+	{#if live.camera}
+		<video
+			bind:this={videoEl}
+			autoplay
+			playsinline
+			muted={isLocal}
+			class={cn('size-full rounded-fc object-cover', isLocal && '-scale-x-100')}
+		></video>
 	{:else}
-		<div
-			class="flex size-full items-center justify-center bg-fc-component text-fc-xl font-medium text-fc-fg-muted"
-		>
-			{initials}
+		<div class="flex size-full items-center justify-center">
+			<span class="fc-selected flex size-20 items-center justify-center rounded-full text-fc-subtitle">
+				{initials}
+			</span>
 		</div>
 	{/if}
 
-	<div class="absolute bottom-2 left-2 flex items-center gap-1.5 rounded-fc-md bg-fc-scrim px-2 py-1">
-		<span class="block size-2 rounded-full {micOn ? 'bg-fc-success' : 'bg-fc-danger'}"></span>
-		<span class="text-fc-xs text-white">{name}{isLocal ? ' (you)' : ''}</span>
+	<div class="absolute bottom-2 left-2 flex max-w-[calc(100%-1rem)] items-center gap-1 rounded-fc bg-fc-scrim px-2 py-1">
+		{#if !live.micOn}
+			<Icon icon={callIcons.micOff} size={14} class="shrink-0 text-fc-danger" aria-label="Muted" />
+		{/if}
+		<span class="truncate text-fc-subtext text-fc-ink">{name}{isLocal ? ' (you)' : ''}</span>
 	</div>
 </div>

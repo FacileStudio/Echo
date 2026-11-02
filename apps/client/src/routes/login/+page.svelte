@@ -7,7 +7,7 @@
 
 <svelte:head><title>Sign in · Echo</title></svelte:head>
 
-<Page width="sm" gap="content">
+<Page width="sm" class="gap-4 px-4 py-10">
 	<PageHeader title="Sign in" description="Echo uses the studio single sign-on." />
 
 	{#if error}

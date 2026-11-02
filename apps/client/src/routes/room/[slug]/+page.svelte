@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
-	import { Alert, Button, Card, Field, Input, Page, PageHeader, Spinner } from '@facile/muse';
+	import { Alert, TextElevate, Button, Card, Field, Input, Spinner } from '@facile/muse';
 	import { fetchMe, requestToken, type Me, type TokenGrant } from '$lib/api';
 	import LiveRoom from '$lib/components/LiveRoom.svelte';
 
@@ -26,7 +26,8 @@
 
 	async function joinGuest(e: SubmitEvent) {
 		e.preventDefault();
-		if (!me && displayName.trim()) await join();
+		if (!me && displayName.trim())
+			await join();
 	}
 
 	async function join() {
@@ -39,44 +40,47 @@
 	}
 </script>
 
-<svelte:head><title>Echo · {slug}</title></svelte:head>
+<svelte:head><title>{slug} · Echo</title></svelte:head>
 
 {#if grant}
 	<LiveRoom url={grant.url} token={grant.token} {displayName} {slug} {historyHref} />
 {:else}
-	<Page width="sm" gap="content">
-		<PageHeader title="Join “{slug}”" description="Pick how you want to appear in the call." />
-
-		{#if !checked}
-			<Card><div class="flex justify-center py-4"><Spinner /></div></Card>
-		{:else if error}
-			<Alert tone="danger" title="Could not join">{error}</Alert>
-			<div class="flex gap-2">
-				<Button href="/">Back</Button>
-				{#if historyHref}
-					<Button href={historyHref} variant="outline">History</Button>
-				{/if}
+	<main class="flex min-h-screen items-center justify-center px-4">
+		<div class="flex w-full max-w-sm flex-col gap-1">
+			<div class="flex items-center gap-2">
+				<img src="/logo.svg" alt="Echo" class="size-12" />
+				<h1 class="text-fc-title min-w-0 break-words text-fc-ink"><TextElevate text={slug} delay={0} /></h1>
 			</div>
-		{:else if me}
-			<Card>
-				<div class="flex items-center gap-4">
+			<p class="text-fc-p text-fc-muted">
+				<TextElevate text="Join the room." delay={0.15} />
+			</p>
+
+			<Card class="mt-4">
+				{#if !checked}
 					<Spinner />
-					<p class="text-fc-sm text-fc-fg-muted">Signed in as {displayName}. Joining…</p>
-				</div>
-			</Card>
-		{:else}
-			<Card>
-				<form onsubmit={joinGuest} class="flex flex-col gap-4">
-					<Field
-						label="Display name"
-						helper="Guests see only this name. Sign in to get moderator rights."
-					>
-						<Input bind:value={displayName} placeholder="Ada Lovelace" required minlength={2} />
-					</Field>
-					<Button type="submit" disabled={!slug || displayName.trim().length < 2}>Join as guest</Button>
-					<Button variant="ghost" href="/" size="sm">Back to Echo</Button>
-				</form>
-			</Card>
-		{/if}
-	</Page>
+				{:else if error}
+					<div class="flex flex-col gap-1">
+						<Alert tone="danger" title="Could not join">{error}</Alert>
+						<Button href="/" size="lg" variant="outline" class="w-full">Back</Button>
+						{#if historyHref}
+							<Button href={historyHref} variant="ghost" class="w-full">History</Button>
+						{/if}
+					</div>
+				{:else if me}
+					<div class="flex items-center gap-1">
+						<Spinner />
+						<p class="text-fc-p text-fc-muted">Joining as {displayName}…</p>
+					</div>
+				{:else}
+					<form onsubmit={joinGuest} class="flex flex-col gap-1">
+						<Field>
+							<Input bind:value={displayName} placeholder="Your name" aria-label="Your name" class="text-fc-p" autocomplete="name" required minlength={2} />
+						</Field>
+						<Button type="submit" size="lg" class="w-full" disabled={!slug || displayName.trim().length < 2}>Join as guest</Button>
+					</form>
+					{/if}
+				</Card>
+				<Button href="/" variant="ghost" class="w-full">Back to Echo</Button>
+		</div>
+	</main>
 {/if}

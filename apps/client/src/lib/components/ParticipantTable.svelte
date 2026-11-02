@@ -11,7 +11,7 @@
 </script>
 
 {#if participants.length === 0}
-	<p class="text-fc-sm text-fc-fg-muted">No participants recorded for this call.</p>
+	<p class="text-fc-p text-fc-muted">No participants recorded for this call.</p>
 {:else}
 	<Table>
 		<thead>
@@ -25,14 +25,14 @@
 			{#each participants as p (p.identity + p.joined_at)}
 				<tr>
 					<td>
-						<span class="font-medium text-fc-fg">{p.name || p.identity}</span>
+						<span class="font-medium text-fc-ink">{p.name || p.identity}</span>
 					</td>
 					<td class="whitespace-nowrap">{formatTime(p.joined_at)}</td>
 					<td class="whitespace-nowrap">
 						{#if p.left_at}
 							{formatTime(p.left_at)}
 						{:else}
-							<span class="text-fc-fg-muted">Still connected</span>
+							<span class="text-fc-muted">Still connected</span>
 						{/if}
 					</td>
 				</tr>

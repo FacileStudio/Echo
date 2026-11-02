@@ -34,7 +34,7 @@
 					{#if call.has_recording}
 						<Badge tone="info">Available</Badge>
 					{:else}
-						<span class="text-fc-fg-muted">None</span>
+						<span class="text-fc-muted">None</span>
 					{/if}
 				</td>
 				<td class="text-right">

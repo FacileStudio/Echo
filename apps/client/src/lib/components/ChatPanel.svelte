@@ -1,5 +1,7 @@
 <script lang="ts">
-	import { Button, Input } from '@facile/muse';
+	import gsap from 'gsap';
+	import { Button, Icon, IconButton, Input, TextElevate, prefersReducedMotion } from '@facile/muse';
+	import { callIcons } from '$lib/icons';
 
 	export interface ChatMessage {
 		from: string;
@@ -11,45 +13,83 @@
 	interface Props {
 		messages: ChatMessage[];
 		onSend: (text: string) => void;
+		onClose: () => void;
+		open?: boolean;
 	}
 
-	let { messages, onSend }: Props = $props();
+	let { messages, onSend, onClose, open = true }: Props = $props();
 
 	let draft = $state('');
 	let listEl: HTMLDivElement | undefined = $state();
+	let sendEl: HTMLSpanElement | undefined = $state();
+
+	const ready = $derived(draft.trim().length > 0);
 
 	$effect(() => {
-		messages.length;
-		if (listEl) listEl.scrollTop = listEl.scrollHeight;
+		void messages.length;
+		if (listEl)
+			listEl.scrollTop = listEl.scrollHeight;
+	});
+
+	$effect(() => {
+		if (!ready || !sendEl || prefersReducedMotion())
+			return;
+
+		gsap.fromTo(
+			sendEl,
+			{
+				opacity: 0.4,
+			},
+			{
+				opacity: 1,
+				duration: 0.35,
+				ease: 'back.out(2)',
+				clearProps: 'opacity,transform',
+			}
+		);
 	});
 
 	function send(e: SubmitEvent) {
 		e.preventDefault();
 		const text = draft.trim();
-		if (!text) return;
+
+		if (!text)
+			return;
+
 		onSend(text);
 		draft = '';
 	}
 </script>
 
-<div class="flex h-full min-h-0 flex-col gap-3">
-	<div bind:this={listEl} class="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
-		{#if messages.length === 0}
-			<p class="text-fc-sm text-fc-fg-muted">No messages yet. Chat is visible only in this call.</p>
-		{/if}
-		{#each messages as m, i ((m.at ?? '') + '-' + i)}
-			<div class="text-fc-sm">
-				<span class="font-medium text-fc-fg">{m.name}</span>
-				<span class="ml-2 text-fc-xs text-fc-fg-muted">
-					{new Date(m.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-				</span>
-				<p class="text-fc-fg">{m.text}</p>
-			</div>
-		{/each}
+<div class="flex min-h-0 flex-1 flex-col gap-1">
+	<div class="relative flex min-h-0 flex-1">
+		<div bind:this={listEl} class="flex min-h-0 flex-1 bg-fc-surface p-4 rounded-fc flex-col gap-3 overflow-y-auto">
+			{#each messages as m, i (m.at + '-' + i)}
+				<div class="flex flex-col ">
+					<p class="flex justify-between items-baseline">
+						<TextElevate text={m.name} visible={open} delay={0} class="text-fc-lead text-fc-ink" />
+						<span class="text-fc-subtext text-fc-muted">
+							{new Date(m.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+						</span>
+					</p>
+					<TextElevate text={m.text} visible={open} delay={0.05} class="text-fc-p warp-break-words text-fc-muted" />
+				</div>
+				{/each}
+		</div>
 	</div>
 
-	<form onsubmit={send} class="flex gap-2">
-		<Input bind:value={draft} placeholder="Message…" aria-label="Chat message" />
-		<Button type="submit" size="md">Send</Button>
+	<form onsubmit={send} class="flex gap-1">
+		<Input bind:value={draft} placeholder="Message" aria-label="Chat message" autocomplete="off" class="text-fc-p" />
+		<span bind:this={sendEl} class="inline-flex">
+			<Button
+				type="submit"
+				size="lg"
+				variant={ready ? 'primary' : 'ghost'}
+				class="gap-2.5 {ready ? '' : 'bg-fc-surface disabled:opacity-100'}"
+				disabled={!ready}
+			>
+				<Icon icon={callIcons.send} />Send
+			</Button>
+		</span>
 	</form>
 </div>

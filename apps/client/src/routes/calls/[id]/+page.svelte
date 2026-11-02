@@ -81,7 +81,7 @@
 
 <svelte:head><title>Call · Echo</title></svelte:head>
 
-<Page width="lg" gap="section">
+<Page width="lg" class="gap-1 px-4 py-10">
 	<PageHeader title="Call details" description={subtitle} back={{ href: '/', label: 'Home' }} />
 
 	{#if !loaded}
@@ -113,7 +113,7 @@
 					{downloading ? 'Preparing the download…' : 'Download the video (MP4)'}
 				</Button>
 			{:else}
-				<p class="text-fc-sm text-fc-fg-muted">
+				<p class="text-fc-p text-fc-muted">
 					No recording for this call, or the file is not available on this server.
 				</p>
 			{/if}

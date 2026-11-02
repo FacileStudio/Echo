@@ -24,7 +24,8 @@
 		"vite": "^8.0.16"
 	},
 	"dependencies": {
-		"@facile/muse": "github:FacileStudio/muse",
+		"@facile/muse": "github:FacileStudio/muse#006adfc",
+		"gsap": "^3.13.0",
 		"livekit-client": "^2.22.0"
 	}
 }

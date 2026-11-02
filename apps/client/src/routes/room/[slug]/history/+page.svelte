@@ -55,7 +55,7 @@
 
 <svelte:head><title>History · {slug} · Echo</title></svelte:head>
 
-<Page width="lg" gap="content">
+<Page width="lg" class="gap-1 px-4 py-10">
 	<PageHeader
 		title="History of “{slug}”"
 		description="Past calls in this room, newest first."

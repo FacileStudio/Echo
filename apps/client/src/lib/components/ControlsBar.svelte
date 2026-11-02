@@ -1,62 +1,92 @@
 <script lang="ts">
-	import { IconButton } from '@facile/muse';
+	import { Button, Icon, IconButton } from '@facile/muse';
+	import { callIcons } from '$lib/icons';
 
 	interface Props {
 		micOn: boolean;
 		camOn: boolean;
 		screenOn: boolean;
+		chatOpen: boolean;
+		recording: boolean;
+		canRecord: boolean;
 		onToggleMic: () => void;
 		onToggleCam: () => void;
 		onToggleScreen: () => void;
+		onToggleChat: () => void;
+		onToggleRecording: () => void;
 		onLeave: () => void;
 	}
 
-	let { micOn, camOn, screenOn, onToggleMic, onToggleCam, onToggleScreen, onLeave }: Props =
-		$props();
+	let {
+		micOn,
+		camOn,
+		screenOn,
+		chatOpen,
+		recording,
+		canRecord,
+		onToggleMic,
+		onToggleCam,
+		onToggleScreen,
+		onToggleChat,
+		onToggleRecording,
+		onLeave
+	}: Props = $props();
+
+	const off = 'bg-fc-danger/10 text-fc-danger hover:bg-fc-danger/20';
 </script>
 
-<div class="flex items-center justify-center gap-3">
+<div class="flex items-center gap-1">
 	<IconButton
-		variant={micOn ? 'default' : 'danger'}
+		variant="ghost"
+		class={micOn ? 'text-fc-ink' : off}
 		aria-label={micOn ? 'Mute microphone' : 'Unmute microphone'}
+		aria-pressed={!micOn}
 		onclick={onToggleMic}
 	>
-		<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-			<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
-			<path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-			{#if !micOn}<line x1="2" y1="2" x2="22" y2="22" />{/if}
-		</svg>
+		<Icon icon={micOn ? callIcons.mic : callIcons.micOff} />
 	</IconButton>
 
 	<IconButton
-		variant={camOn ? 'default' : 'danger'}
+		variant="ghost"
+		class={camOn ? 'text-fc-ink' : off}
 		aria-label={camOn ? 'Turn camera off' : 'Turn camera on'}
+		aria-pressed={!camOn}
 		onclick={onToggleCam}
 	>
-		<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-			<path d="m22 8-6 4 6 4V8Z" />
-			<rect x="2" y="6" width="14" height="12" rx="2" />
-			{#if !camOn}<line x1="2" y1="2" x2="22" y2="22" />{/if}
-		</svg>
+		<Icon icon={camOn ? callIcons.cam : callIcons.camOff} />
 	</IconButton>
 
 	<IconButton
-		variant={screenOn ? 'default' : 'ghost'}
+		variant="ghost"
+		class={screenOn ? 'fc-selected' : ''}
 		aria-label={screenOn ? 'Stop sharing screen' : 'Share screen'}
+		aria-pressed={screenOn}
 		onclick={onToggleScreen}
 	>
-		<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-			<rect x="2" y="3" width="20" height="14" rx="2" />
-			<line x1="8" y1="21" x2="16" y2="21" />
-			<line x1="12" y1="17" x2="12" y2="21" />
-		</svg>
+		<Icon icon={callIcons.screen} />
 	</IconButton>
 
-	<button
-		type="button"
-		class="inline-flex h-11 items-center rounded-fc-pill bg-fc-danger px-5 text-fc-sm font-medium text-fc-danger-fg hover:opacity-90"
-		onclick={onLeave}
+	<IconButton
+		variant="ghost"
+		class="hidden md:inline-flex {chatOpen ? 'fc-selected' : ''}"
+		aria-label={chatOpen ? 'Hide chat' : 'Show chat'}
+		aria-pressed={chatOpen}
+		onclick={onToggleChat}
 	>
-		Leave
-	</button>
+		<Icon icon={callIcons.chat} />
+	</IconButton>
+
+	{#if canRecord}
+		<IconButton
+			variant="ghost"
+			class={recording ? off : ''}
+			aria-label={recording ? 'Stop recording' : 'Start recording'}
+			aria-pressed={recording}
+			onclick={onToggleRecording}
+		>
+			<Icon icon={callIcons.record} />
+		</IconButton>
+	{/if}
+
+	<Button variant="danger" size="lg" class="gap-2.5" onclick={onLeave}><Icon icon={callIcons.leave} />Leave</Button>
 </div>

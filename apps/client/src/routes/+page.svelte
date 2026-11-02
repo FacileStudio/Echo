@@ -1,31 +1,20 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { Button, Card, Field, Input, Alert, Page, PageHeader } from '@facile/muse';
+	import { Alert, TextElevate, Button, Card, Field, Input } from '@facile/muse';
 	import { slugify } from '$lib/api';
 
-	let roomName = $state('');
-	let joinSlug = $state('');
-	let joinError = $state('');
+	let room = $state('');
+	let error = $state('');
 
-	const loginError = $derived(
-		typeof page.url.searchParams.get('error') === 'string'
-			? (page.url.searchParams.get('error') ?? '')
-			: ''
-	);
+	const loginError = $derived(page.url.searchParams.get('error') ?? '');
 
-	function createRoom(e: SubmitEvent) {
+	function open(e: SubmitEvent) {
 		e.preventDefault();
-		const slug = slugify(roomName);
-		if (!slug) return;
-		goto(`/room/${slug}`);
-	}
+		const slug = slugify(room.split('/room/').pop() ?? '');
 
-	function joinRoom(e: SubmitEvent) {
-		e.preventDefault();
-		const slug = slugify(joinSlug);
 		if (!slug) {
-			joinError = 'Enter a room name or link';
+			error = 'Enter a room name or paste a room link';
 			return;
 		}
 		goto(`/room/${slug}`);
@@ -34,31 +23,29 @@
 
 <svelte:head><title>Echo</title></svelte:head>
 
-<Page width="sm" gap="content">
-	{#if loginError}
-		<Alert tone="danger" title="Login failed">{loginError}</Alert>
-	{/if}
+<main class="flex min-h-screen items-center justify-center px-4">
+	<div class="flex w-full max-w-sm flex-col gap-2">
+		<div class="flex items-center gap-2 text-center">
+			<img src="/logo.svg" alt="Echo" class="size-12" />
+			<div>
+				<h1 class="text-fc-title text-fc-ink"><TextElevate text="Echo" delay={0} /></h1>
+			</div>
+		</div>
+		<p class="text-fc-p text-fc-muted">
+			<TextElevate text="Video rooms for the studio." delay={0.15} />
+		</p>
 
-	<PageHeader
-		title="Echo"
-		description="Video rooms for the studio. Create a room or join one by name."
-	/>
+		<Card class="mt-4">
+			<form onsubmit={open} class="flex flex-col gap-1">
+				{#if loginError}
+					<Alert tone="danger" title="Login failed">{loginError}</Alert>
+				{/if}
 
-	<Card>
-		<form onsubmit={createRoom} class="flex flex-col gap-4">
-			<Field label="New room" helper="A readable name — it becomes the room address.">
-				<Input bind:value={roomName} placeholder="Weekly sync" required />
-			</Field>
-			<Button type="submit">Create room</Button>
-		</form>
-	</Card>
-
-	<Card>
-		<form onsubmit={joinRoom} class="flex flex-col gap-4">
-			<Field label="Join a room" error={joinError}>
-				<Input bind:value={joinSlug} placeholder="weekly-sync" required />
-			</Field>
-			<Button type="submit" variant="outline">Join</Button>
-		</form>
-	</Card>
-</Page>
+				<Field {error}>
+					<Input bind:value={room} placeholder="Room name" aria-label="Room name" class="text-fc-p" autocomplete="off" required />
+				</Field>
+				<Button type="submit" size="lg" class="w-full">Open room</Button>
+			</form>
+		</Card>
+	</div>
+</main>

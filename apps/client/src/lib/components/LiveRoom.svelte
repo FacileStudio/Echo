@@ -6,7 +6,10 @@
 		type LocalParticipant,
 		type RemoteParticipant
 	} from 'livekit-client';
-	import { Button, Card } from '@facile/muse';
+	import { MediaQuery } from 'svelte/reactivity';
+	import gsap from 'gsap';
+	import { Alert, Badge, Button, Icon, IconButton, prefersReducedMotion } from '@facile/muse';
+	import { callIcons } from '$lib/icons';
 	import { ApiError, startRecording, stopRecording } from '$lib/api';
 	import ParticipantTile from './ParticipantTile.svelte';
 	import ControlsBar from './ControlsBar.svelte';
@@ -29,6 +32,8 @@
 	let camOn = $state(false);
 	let screenOn = $state(false);
 	let chatOpen = $state(true);
+	let version = $state(0);
+	let copied = $state(false);
 	let messages = $state<ChatMessage[]>([]);
 	let captions = $state<Caption[]>([]);
 	let captionId = 0;
@@ -39,8 +44,56 @@
 	const encoder = new TextEncoder();
 	const decoder = new TextDecoder();
 
+	const canRecord = $derived(Boolean(historyHref));
+
+	let asideEl: HTMLElement | undefined = $state();
+	let asideShown = false;
+
+	$effect(() => {
+		const open = chatOpen;
+
+		if (!asideEl)
+			return;
+
+		const instant = !asideShown || prefersReducedMotion();
+
+		asideShown = true;
+		gsap.to(asideEl, {
+			width: open ? 'auto' : 0,
+			opacity: open ? 1 : 0,
+			x: open ? 0 : 24,
+			duration: instant ? 0 : 0.45,
+			ease: 'power3.inOut',
+		});
+	});
+
+	const wide = new MediaQuery('min-width: 768px');
+	const selfAside = $derived(chatOpen && wide.current && participants.length > 1);
+	const tiles = $derived(selfAside ? participants.filter((p) => !p.isLocal) : participants);
+	const self = $derived(participants.find((p) => p.isLocal));
+
+	// favour rows over columns: two people stack, three make 2 + 1
+	const rows = $derived(Math.max(1, Math.ceil(Math.sqrt(tiles.length))));
+	const cols = $derived(Math.max(1, Math.ceil(tiles.length / rows)));
+
+	// a tile is as wide as its cell, unless that makes the rows taller than the grid: then the row height (grid height minus the gaps, split across the rows) times 16/9
+	const tileWidth = $derived(`min(100%, calc((100cqh - ${rows - 1} * 0.25rem) / ${rows} * 16 / 9))`);
+
+	// each tile spans two half-tracks, so a short last row can start half a tile in and sit centred
+	function column(i: number) {
+		const lastRowStart = (rows - 1) * cols;
+		const remainder = tiles.length - lastRowStart;
+		// remaining tiles leave (cols - remainder) empty slots, half of them on each side
+		const offset = i === lastRowStart && remainder < cols ? cols - remainder + 1 : 'auto';
+
+		return `${offset} / span 2`;
+	}
+
 	function refresh() {
-		if (!room) return;
+		if (!room)
+			return;
+
+		version++;
 		participants = [room.localParticipant, ...Array.from(room.remoteParticipants.values())];
 		micOn = room.localParticipant.isMicrophoneEnabled;
 		camOn = room.localParticipant.isCameraEnabled;
@@ -107,6 +160,12 @@
 		refresh();
 	}
 
+	async function copyLink() {
+		await navigator.clipboard.writeText(window.location.href);
+		copied = true;
+		setTimeout(() => (copied = false), 2000);
+	}
+
 	function leave() {
 		room?.disconnect();
 		window.location.href = '/';
@@ -145,6 +204,7 @@
 			.on(RoomEvent.LocalTrackUnpublished, refresh)
 			.on(RoomEvent.TrackMuted, refresh)
 			.on(RoomEvent.TrackUnmuted, refresh)
+			.on(RoomEvent.ActiveSpeakersChanged, refresh)
 			.on(RoomEvent.DataReceived, handleData);
 
 		r.connect(url, token)
@@ -169,62 +229,81 @@
 	});
 </script>
 
-<div class="flex h-dvh flex-col gap-4 p-4">
-	<header class="flex items-center justify-between">
-		<h1 class="text-fc-lg font-semibold text-fc-fg">{displayName}</h1>
-		<div class="flex items-center gap-2">
+<div class="flex h-dvh flex-col">
+	<header class="flex items-center justify-between gap-1 px-4 py-3">
+		<div class="flex min-w-0 items-center gap-1">
+			<a href="/" class="flex items-center gap-1 text-fc-lead text-fc-ink">
+				<img src="/logo.svg" alt="" class="size-7" />
+				Echo
+			</a>
+			<span class="truncate text-fc-p text-fc-muted">{slug}</span>
+			{#if recording}
+				<Badge tone="danger">Recording</Badge>
+			{/if}
+		</div>
+		<div class="flex shrink-0 items-center gap-1">
+			<span class="flex items-center gap-1 px-2 text-fc-p text-fc-muted" aria-label="{participants.length} in the call">
+				<Icon icon={callIcons.people} size={16} />
+				{participants.length}
+			</span>
+			<Button variant="ghost" size="sm" icon={callIcons.link} onclick={() => void copyLink()}>
+				{copied ? 'Copied' : 'Copy link'}
+			</Button>
 			{#if historyHref}
 				<Button variant="ghost" size="sm" href={historyHref}>History</Button>
 			{/if}
-			<Button variant="ghost" size="sm" onclick={() => (chatOpen = !chatOpen)}>
-				{chatOpen ? 'Hide chat' : 'Show chat'}
-			</Button>
 		</div>
 	</header>
 
-	{#if error}
-		<Card><p class="text-fc-sm text-fc-danger">{error}</p></Card>
+	{#if error || recordError}
+		<div class="px-4 pb-3">
+			<Alert tone={error ? 'warning' : 'danger'} title={error ? 'Joined without media' : 'Recording failed'}>
+				{error || recordError}
+			</Alert>
+		</div>
 	{/if}
 
-	<div class="flex min-h-0 flex-1 gap-4">
-		<main class="grid min-h-0 flex-1 auto-rows-min content-start gap-3 overflow-y-auto sm:grid-cols-2 lg:grid-cols-3">
-			{#each participants as p (p.identity)}
-				<ParticipantTile participant={p} isLocal={p.isLocal} />
+	<div class="flex min-h-0 flex-1 pl-4 pr-1">
+		<main
+			class="grid min-h-0 flex-1 content-center gap-1 [container-type:size]"
+			style:grid-template-columns="repeat({cols * 2}, minmax(0, 1fr))"
+		>
+			{#each tiles as p, i (p.identity)}
+				<div class="flex min-w-0 justify-center" style:grid-column={column(i)}>
+					<div style:width={tileWidth}>
+						<ParticipantTile participant={p} isLocal={p.isLocal} {version} />
+					</div>
+				</div>
 			{:else}
-				<Card><p class="text-fc-sm text-fc-fg-muted">Connecting…</p></Card>
+				<p class="col-span-full self-center text-center text-fc-p text-fc-muted">Connecting…</p>
 			{/each}
 		</main>
 
-		<CaptionsOverlay bind:captions />
-
-		{#if chatOpen}
-			<aside class="hidden w-80 shrink-0 rounded-fc-md bg-fc-component p-4 md:block">
-				<h2 class="mb-3 text-fc-md font-semibold text-fc-fg">Chat</h2>
-				<div class="h-[calc(100%-2.5rem)]">
-					<ChatPanel {messages} onSend={sendChat} />
-				</div>
-			</aside>
-		{/if}
+		<aside bind:this={asideEl} class="hidden shrink-0 overflow-hidden md:block" aria-hidden={!chatOpen} inert={!chatOpen}>
+			<div class="flex h-full w-81 flex-col gap-1 pl-1">
+				{#if selfAside && self}
+					<ParticipantTile participant={self} isLocal {version} />
+				{/if}
+				<ChatPanel {messages} open={chatOpen} onSend={sendChat} onClose={() => (chatOpen = false)} />
+			</div>
+		</aside>
 	</div>
 
-	<footer class="shrink-0 pb-2">
-		<div class="mb-1 flex flex-col items-center gap-1">
-			{#if recordError || recording}
-				<p class="text-fc-sm {recordError ? 'text-fc-danger' : 'text-fc-fg-muted'}">
-					{recordError ?? '● REC'}
-				</p>
-			{/if}
-			<Button variant="ghost" size="sm" onclick={() => void toggleRecording()} disabled={!slug}>
-				{recording ? 'Stop recording' : 'Record'}
-			</Button>
-		</div>
+	<CaptionsOverlay bind:captions />
+
+	<footer class="flex justify-center pt-1 pb-1">
 		<ControlsBar
 			{micOn}
 			{camOn}
 			{screenOn}
+			{chatOpen}
+			{recording}
+			{canRecord}
 			onToggleMic={toggleMic}
 			onToggleCam={toggleCam}
 			onToggleScreen={toggleScreen}
+			onToggleChat={() => (chatOpen = !chatOpen)}
+			onToggleRecording={() => void toggleRecording()}
 			onLeave={leave}
 		/>
 	</footer>
