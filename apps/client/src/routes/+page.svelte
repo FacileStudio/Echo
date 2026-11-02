@@ -26,7 +26,7 @@
 <main class="flex min-h-screen items-center justify-center px-4">
 	<div class="flex w-full max-w-sm flex-col gap-2">
 		<div class="flex items-center gap-2 text-center">
-			<img src="/logo.svg" alt="Echo" class="size-12" />
+			<img src="/logo.svg" alt="" class="size-12" />
 			<div>
 				<h1 class="text-fc-title text-fc-ink"><TextElevate text="Echo" delay={0} /></h1>
 			</div>

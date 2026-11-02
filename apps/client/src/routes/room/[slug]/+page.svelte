@@ -48,7 +48,7 @@
 	<main class="flex min-h-screen items-center justify-center px-4">
 		<div class="flex w-full max-w-sm flex-col gap-1">
 			<div class="flex items-center gap-2">
-				<img src="/logo.svg" alt="Echo" class="size-12" />
+				<img src="/logo.svg" alt="" class="size-12" />
 				<h1 class="text-fc-title min-w-0 break-words text-fc-ink"><TextElevate text={slug} delay={0} /></h1>
 			</div>
 			<p class="text-fc-p text-fc-muted">

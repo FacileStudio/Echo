@@ -13,14 +13,17 @@
 
 	let videoEl: HTMLVideoElement | undefined = $state();
 
-	// `version` bumps on every room event; the participant object itself never changes identity
-	const live = $derived.by(() => {
+	const camera = $derived.by(() => {
 		void version;
-		return {
-			camera: participant.getTrackPublication(Track.Source.Camera)?.videoTrack ?? null,
-			micOn: participant.isMicrophoneEnabled,
-			speaking: participant.isSpeaking
-		};
+		return participant.getTrackPublication(Track.Source.Camera)?.videoTrack ?? null;
+	});
+	const micOn = $derived.by(() => {
+		void version;
+		return participant.isMicrophoneEnabled;
+	});
+	const speaking = $derived.by(() => {
+		void version;
+		return participant.isSpeaking;
 	});
 
 	const name = $derived(participant.name || participant.identity);
@@ -36,7 +39,7 @@
 	);
 
 	$effect(() => {
-		const track = live.camera;
+		const track = camera;
 		const el = videoEl;
 
 		if (!track || !el)
@@ -50,10 +53,10 @@
 <div
 	class={cn(
 		'relative isolate aspect-video overflow-hidden rounded-fc border border-transparent bg-fc-surface',
-		live.speaking && 'border-1 border-fc-brand'
+		speaking && 'border-1 border-fc-brand'
 	)}
 >
-	{#if live.camera}
+	{#if camera}
 		<video
 			bind:this={videoEl}
 			autoplay
@@ -70,7 +73,7 @@
 	{/if}
 
 	<div class="absolute bottom-2 left-2 flex max-w-[calc(100%-1rem)] items-center gap-1 rounded-fc bg-fc-scrim px-2 py-1">
-		{#if !live.micOn}
+		{#if !micOn}
 			<Icon icon={callIcons.micOff} size={14} class="shrink-0 text-fc-danger" aria-label="Muted" />
 		{/if}
 		<span class="truncate text-fc-subtext text-fc-ink">{name}{isLocal ? ' (you)' : ''}</span>

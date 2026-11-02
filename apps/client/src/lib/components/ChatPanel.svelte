@@ -1,6 +1,6 @@
 <script lang="ts">
 	import gsap from 'gsap';
-	import { Button, Icon, IconButton, Input, TextElevate, prefersReducedMotion } from '@facile/muse';
+	import { Button, Icon, Input, TextElevate, prefersReducedMotion } from '@facile/muse';
 	import { callIcons } from '$lib/icons';
 
 	export interface ChatMessage {
@@ -13,11 +13,10 @@
 	interface Props {
 		messages: ChatMessage[];
 		onSend: (text: string) => void;
-		onClose: () => void;
 		open?: boolean;
 	}
 
-	let { messages, onSend, onClose, open = true }: Props = $props();
+	let { messages, onSend, open = true }: Props = $props();
 
 	let draft = $state('');
 	let listEl: HTMLDivElement | undefined = $state();
@@ -64,6 +63,9 @@
 <div class="flex min-h-0 flex-1 flex-col gap-1">
 	<div class="relative flex min-h-0 flex-1">
 		<div bind:this={listEl} class="flex min-h-0 flex-1 bg-fc-surface p-4 rounded-fc flex-col gap-3 overflow-y-auto">
+			{#if messages.length === 0}
+				<p class="text-fc-p text-fc-muted">No messages yet. Chat is visible only in this call.</p>
+			{/if}
 			{#each messages as m, i (m.at + '-' + i)}
 				<div class="flex flex-col ">
 					<p class="flex justify-between items-baseline">
@@ -72,7 +74,7 @@
 							{new Date(m.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
 						</span>
 					</p>
-					<TextElevate text={m.text} visible={open} delay={0.05} class="text-fc-p warp-break-words text-fc-muted" />
+					<TextElevate text={m.text} visible={open} delay={0.05} class="text-fc-p wrap-break-word text-fc-muted" />
 				</div>
 				{/each}
 		</div>

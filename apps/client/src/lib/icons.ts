@@ -10,8 +10,6 @@ export const callIcons = {
 	camOff: 'iconoir:video-camera-off',
 	screen: 'iconoir:airplay',
 	chat: 'iconoir:chat-lines',
-	close: 'iconoir:xmark',
-	captions: 'iconoir:closed-captions-tag',
 	leave: 'iconoir:phone-disabled',
 	record: 'iconoir:circle',
 	send: 'iconoir:send',

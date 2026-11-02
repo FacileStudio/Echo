@@ -8,10 +8,12 @@
 	} from 'livekit-client';
 	import { MediaQuery } from 'svelte/reactivity';
 	import gsap from 'gsap';
-	import { Alert, Badge, Button, Icon, IconButton, prefersReducedMotion } from '@facile/muse';
-	import { callIcons } from '$lib/icons';
+	import { Alert, prefersReducedMotion } from '@facile/muse';
+	import { parseCaption, parseChat } from '$lib/roomData';
+	import { gridCols, gridColumn, gridRows, tileWidth } from '$lib/grid';
 	import { ApiError, startRecording, stopRecording } from '$lib/api';
 	import ParticipantTile from './ParticipantTile.svelte';
+	import RoomHeader from './RoomHeader.svelte';
 	import ControlsBar from './ControlsBar.svelte';
 	import ChatPanel, { type ChatMessage } from './ChatPanel.svelte';
 	import CaptionsOverlay, { type Caption } from './CaptionsOverlay.svelte';
@@ -33,7 +35,6 @@
 	let screenOn = $state(false);
 	let chatOpen = $state(true);
 	let version = $state(0);
-	let copied = $state(false);
 	let messages = $state<ChatMessage[]>([]);
 	let captions = $state<Caption[]>([]);
 	let captionId = 0;
@@ -72,22 +73,9 @@
 	const tiles = $derived(selfAside ? participants.filter((p) => !p.isLocal) : participants);
 	const self = $derived(participants.find((p) => p.isLocal));
 
-	// favour rows over columns: two people stack, three make 2 + 1
-	const rows = $derived(Math.max(1, Math.ceil(Math.sqrt(tiles.length))));
-	const cols = $derived(Math.max(1, Math.ceil(tiles.length / rows)));
-
-	// a tile is as wide as its cell, unless that makes the rows taller than the grid: then the row height (grid height minus the gaps, split across the rows) times 16/9
-	const tileWidth = $derived(`min(100%, calc((100cqh - ${rows - 1} * 0.25rem) / ${rows} * 16 / 9))`);
-
-	// each tile spans two half-tracks, so a short last row can start half a tile in and sit centred
-	function column(i: number) {
-		const lastRowStart = (rows - 1) * cols;
-		const remainder = tiles.length - lastRowStart;
-		// remaining tiles leave (cols - remainder) empty slots, half of them on each side
-		const offset = i === lastRowStart && remainder < cols ? cols - remainder + 1 : 'auto';
-
-		return `${offset} / span 2`;
-	}
+	const rows = $derived(gridRows(tiles.length));
+	const cols = $derived(gridCols(tiles.length, rows));
+	const width = $derived(tileWidth(rows));
 
 	function refresh() {
 		if (!room)
@@ -107,35 +95,16 @@
 		_kind?: unknown,
 		topic?: string
 	) {
+		const text = decoder.decode(payload);
+
 		if (topic === 'transcription') {
-			try {
-				const msg = JSON.parse(decoder.decode(payload)) as { speaker?: string; text?: string };
-				if (!msg.text) return;
-				captions = [
-					...captions.slice(-20),
-					{ id: ++captionId, speaker: String(msg.speaker ?? 'unknown'), text: String(msg.text) }
-				];
-			} catch {
-				return;
-			}
+			const caption = parseCaption(text, ++captionId);
+			if (caption) captions = [...captions.slice(-20), caption];
 			return;
 		}
-		try {
-			const msg = JSON.parse(decoder.decode(payload)) as Omit<ChatMessage, 'name'> & {
-				name?: string;
-			};
-			messages = [
-				...messages,
-				{
-					from: String(msg.from ?? ''),
-					name: msg.name ?? from?.name ?? from?.identity ?? 'Unknown',
-					text: String(msg.text ?? ''),
-					at: Number(msg.at) || Date.now()
-				}
-			];
-		} catch {
-			return;
-		}
+
+		const message = parseChat(text, from?.name ?? from?.identity);
+		if (message) messages = [...messages, message];
 	}
 
 	function sendChat(text: string) {
@@ -158,12 +127,6 @@
 	async function toggleScreen() {
 		await room?.localParticipant.setScreenShareEnabled(!screenOn);
 		refresh();
-	}
-
-	async function copyLink() {
-		await navigator.clipboard.writeText(window.location.href);
-		copied = true;
-		setTimeout(() => (copied = false), 2000);
 	}
 
 	function leave() {
@@ -230,30 +193,7 @@
 </script>
 
 <div class="flex h-dvh flex-col">
-	<header class="flex items-center justify-between gap-1 px-4 py-3">
-		<div class="flex min-w-0 items-center gap-1">
-			<a href="/" class="flex items-center gap-1 text-fc-lead text-fc-ink">
-				<img src="/logo.svg" alt="" class="size-7" />
-				Echo
-			</a>
-			<span class="truncate text-fc-p text-fc-muted">{slug}</span>
-			{#if recording}
-				<Badge tone="danger">Recording</Badge>
-			{/if}
-		</div>
-		<div class="flex shrink-0 items-center gap-1">
-			<span class="flex items-center gap-1 px-2 text-fc-p text-fc-muted" aria-label="{participants.length} in the call">
-				<Icon icon={callIcons.people} size={16} />
-				{participants.length}
-			</span>
-			<Button variant="ghost" size="sm" icon={callIcons.link} onclick={() => void copyLink()}>
-				{copied ? 'Copied' : 'Copy link'}
-			</Button>
-			{#if historyHref}
-				<Button variant="ghost" size="sm" href={historyHref}>History</Button>
-			{/if}
-		</div>
-	</header>
+	<RoomHeader {slug} {recording} {historyHref} count={participants.length} />
 
 	{#if error || recordError}
 		<div class="px-4 pb-3">
@@ -269,8 +209,8 @@
 			style:grid-template-columns="repeat({cols * 2}, minmax(0, 1fr))"
 		>
 			{#each tiles as p, i (p.identity)}
-				<div class="flex min-w-0 justify-center" style:grid-column={column(i)}>
-					<div style:width={tileWidth}>
+				<div class="flex min-w-0 justify-center" style:grid-column={gridColumn(i, tiles.length, rows, cols)}>
+					<div style:width={width}>
 						<ParticipantTile participant={p} isLocal={p.isLocal} {version} />
 					</div>
 				</div>
@@ -284,7 +224,7 @@
 				{#if selfAside && self}
 					<ParticipantTile participant={self} isLocal {version} />
 				{/if}
-				<ChatPanel {messages} open={chatOpen} onSend={sendChat} onClose={() => (chatOpen = false)} />
+				<ChatPanel {messages} open={chatOpen} onSend={sendChat} />
 			</div>
 		</aside>
 	</div>
