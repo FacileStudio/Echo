@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-11-02
+
+### Fixed
+- Remote audio is played. v2.0.0 received microphone audio but never attached it, so participants could not hear each other.
+- An Enable sound button appears when the browser blocks audio autoplay.
+
 ## [2.0.0] - 2026-11-02
 
 ### Added
