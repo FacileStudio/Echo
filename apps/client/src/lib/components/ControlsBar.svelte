@@ -9,6 +9,7 @@
 		chatOpen: boolean;
 		recording: boolean;
 		canRecord: boolean;
+		canShare: boolean;
 		onToggleMic: () => void;
 		onToggleCam: () => void;
 		onToggleScreen: () => void;
@@ -24,6 +25,7 @@
 		chatOpen,
 		recording,
 		canRecord,
+		canShare,
 		onToggleMic,
 		onToggleCam,
 		onToggleScreen,
@@ -56,15 +58,17 @@
 		<Icon icon={camOn ? callIcons.cam : callIcons.camOff} />
 	</IconButton>
 
-	<IconButton
-		variant="ghost"
-		class={screenOn ? 'fc-selected' : ''}
-		aria-label={screenOn ? 'Stop sharing screen' : 'Share screen'}
-		aria-pressed={screenOn}
-		onclick={onToggleScreen}
-	>
-		<Icon icon={callIcons.screen} />
-	</IconButton>
+	{#if canShare}
+		<IconButton
+			variant="ghost"
+			class={screenOn ? 'fc-selected' : ''}
+			aria-label={screenOn ? 'Stop sharing screen' : 'Share screen'}
+			aria-pressed={screenOn}
+			onclick={onToggleScreen}
+		>
+			<Icon icon={callIcons.screen} />
+		</IconButton>
+	{/if}
 
 	<IconButton
 		variant="ghost"

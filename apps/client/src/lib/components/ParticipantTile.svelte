@@ -6,16 +6,18 @@
 	interface Props {
 		participant: LocalParticipant | RemoteParticipant;
 		isLocal?: boolean;
+		screen?: boolean;
 		version: number;
 	}
 
-	let { participant, isLocal = false, version }: Props = $props();
+	let { participant, isLocal = false, screen = false, version }: Props = $props();
 
 	let videoEl: HTMLVideoElement | undefined = $state();
 
 	const camera = $derived.by(() => {
 		void version;
-		return participant.getTrackPublication(Track.Source.Camera)?.videoTrack ?? null;
+		const source = screen ? Track.Source.ScreenShare : Track.Source.Camera;
+		return participant.getTrackPublication(source)?.videoTrack ?? null;
 	});
 	const micOn = $derived.by(() => {
 		void version;
@@ -27,6 +29,7 @@
 	});
 
 	const name = $derived(participant.name || participant.identity);
+	const label = $derived(screen ? (isLocal ? 'Your screen' : `${name}'s screen`) : `${name}${isLocal ? ' (you)' : ''}`);
 
 	const initials = $derived(
 		name
@@ -52,8 +55,9 @@
 
 <div
 	class={cn(
-		'relative isolate aspect-video overflow-hidden rounded-fc border border-transparent bg-fc-surface',
-		speaking && 'border-1 border-fc-brand'
+		'relative isolate overflow-hidden rounded-fc border border-transparent bg-fc-surface',
+		screen ? 'size-full' : 'aspect-video',
+		speaking && !screen && 'border-1 border-fc-brand'
 	)}
 >
 	{#if camera}
@@ -62,7 +66,7 @@
 			autoplay
 			playsinline
 			muted={isLocal}
-			class={cn('size-full rounded-fc object-cover', isLocal && '-scale-x-100')}
+			class={cn('size-full rounded-fc', screen ? 'object-contain' : 'object-cover', isLocal && !screen && '-scale-x-100')}
 		></video>
 	{:else}
 		<div class="flex size-full items-center justify-center">
@@ -73,9 +77,9 @@
 	{/if}
 
 	<div class="absolute bottom-2 left-2 flex max-w-[calc(100%-1rem)] items-center gap-1 rounded-fc bg-fc-scrim px-2 py-1">
-		{#if !micOn}
+		{#if !micOn && !screen}
 			<Icon icon={callIcons.micOff} size={14} class="shrink-0 text-fc-danger" aria-label="Muted" />
 		{/if}
-		<span class="truncate text-fc-subtext text-fc-ink">{name}{isLocal ? ' (you)' : ''}</span>
+		<span class="truncate text-fc-subtext text-fc-ink">{label}</span>
 	</div>
 </div>

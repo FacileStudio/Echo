@@ -1,19 +1,14 @@
 <script lang="ts">
-	import {
-		Room,
-		RoomEvent,
-		Track,
-		type LocalParticipant,
-		type RemoteParticipant
-	} from 'livekit-client';
+	import { Room, RoomEvent, type LocalParticipant, type RemoteParticipant } from 'livekit-client';
 	import { MediaQuery } from 'svelte/reactivity';
 	import gsap from 'gsap';
 	import { Alert, prefersReducedMotion } from '@facile/muse';
 	import { parseCaption, parseChat } from '$lib/roomData';
-	import { gridCols, gridColumn, gridRows, tileWidth } from '$lib/grid';
 	import { bindRemoteAudio } from '$lib/roomAudio';
 	import { ApiError, startRecording, stopRecording } from '$lib/api';
+	import { canShareScreen, setScreenShare } from '$lib/screenShare';
 	import ParticipantTile from './ParticipantTile.svelte';
+	import Stage from './Stage.svelte';
 	import RoomHeader from './RoomHeader.svelte';
 	import AudioPrompt from './AudioPrompt.svelte';
 	import ControlsBar from './ControlsBar.svelte';
@@ -46,6 +41,7 @@
 	let recording = $state(false);
 	let recordError = $state('');
 	let error = $state('');
+	let screenError = $state('');
 
 	const encoder = new TextEncoder();
 	const decoder = new TextDecoder();
@@ -78,10 +74,6 @@
 	const tiles = $derived(selfAside ? participants.filter((p) => !p.isLocal) : participants);
 	const self = $derived(participants.find((p) => p.isLocal));
 
-	const rows = $derived(gridRows(tiles.length));
-	const cols = $derived(gridCols(tiles.length, rows));
-	const width = $derived(tileWidth(rows));
-
 	function refresh() {
 		if (!room)
 			return;
@@ -90,8 +82,7 @@
 		participants = [room.localParticipant, ...Array.from(room.remoteParticipants.values())];
 		micOn = room.localParticipant.isMicrophoneEnabled;
 		camOn = room.localParticipant.isCameraEnabled;
-		screenOn =
-			room.localParticipant.getTrackPublication(Track.Source.ScreenShare)?.isMuted === false;
+		screenOn = room.localParticipant.isScreenShareEnabled;
 	}
 
 	function handleData(
@@ -130,7 +121,8 @@
 	}
 
 	async function toggleScreen() {
-		await room?.localParticipant.setScreenShareEnabled(!screenOn);
+		if (!room) return;
+		screenError = await setScreenShare(room.localParticipant, !screenOn);
 		refresh();
 	}
 
@@ -208,29 +200,16 @@
 
 	<AudioPrompt blocked={audioBlocked} onEnable={() => void room?.startAudio()} />
 
-	{#if error || recordError}
+	{#if error || recordError || screenError}
 		<div class="px-4 pb-3">
-			<Alert tone={error ? 'warning' : 'danger'} title={error ? 'Joined without media' : 'Recording failed'}>
-				{error || recordError}
+			<Alert tone={recordError ? 'danger' : 'warning'} title={recordError ? 'Recording failed' : 'Media problem'}>
+				{error || recordError || screenError}
 			</Alert>
 		</div>
 	{/if}
 
 	<div class="flex min-h-0 flex-1 pl-4 pr-1">
-		<main
-			class="grid min-h-0 flex-1 content-center gap-1 [container-type:size]"
-			style:grid-template-columns="repeat({cols * 2}, minmax(0, 1fr))"
-		>
-			{#each tiles as p, i (p.identity)}
-				<div class="flex min-w-0 justify-center" style:grid-column={gridColumn(i, tiles.length, rows, cols)}>
-					<div style:width={width}>
-						<ParticipantTile participant={p} isLocal={p.isLocal} {version} />
-					</div>
-				</div>
-			{:else}
-				<p class="col-span-full self-center text-center text-fc-p text-fc-muted">Connecting…</p>
-			{/each}
-		</main>
+		<Stage {participants} {tiles} {version} />
 
 		<aside bind:this={asideEl} class="hidden shrink-0 overflow-hidden md:block" aria-hidden={!chatOpen} inert={!chatOpen}>
 			<div class="flex h-full w-81 flex-col gap-1 pl-1">
@@ -252,6 +231,7 @@
 			{chatOpen}
 			{recording}
 			{canRecord}
+			canShare={canShareScreen()}
 			onToggleMic={toggleMic}
 			onToggleCam={toggleCam}
 			onToggleScreen={toggleScreen}
