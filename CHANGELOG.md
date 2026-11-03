@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [2.2.0] - 2026-11-03
 
 ### Added
 - Every call is end-to-end encrypted with LiveKit E2EE: audio, video, screen shares and chat. The room key lives in the link fragment (`#key=`), which no server sees. A room link opened without a key gets a fresh one, remembered per room in the browser.
