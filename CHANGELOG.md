@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [2.1.1] - 2026-11-03
+
+### Fixed
+- The integration API no longer reports the captions transcriber as a call participant, in forwarded events or in the room's participant list.
+
 ## [2.1.0] - 2026-11-03
 
 ### Added
