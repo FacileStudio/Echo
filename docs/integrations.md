@@ -99,8 +99,10 @@ Answer `200`:
 - A room of another app answers `404`.
 
 `embed_url` opens the call on the embed route with the token in the URL fragment. Browsers never
-send a fragment to a server, so the token does not land in access logs. Apps that run their own
-LiveKit client use `livekit_url` and `token` directly.
+send a fragment to a server, so the token does not land in access logs. Append `&key=<room key>`
+before opening it (see [End-to-end encryption](#end-to-end-encryption)): `embed_url` carries no
+key, because Echo never knows it. Apps that run their own LiveKit client use `livekit_url` and
+`token` directly, with LiveKit end-to-end encryption on and the same key.
 
 ### Read a room
 
@@ -120,10 +122,35 @@ An integration room is joined only with tokens its app mints. Echo's public rout
 `POST /api/rooms/{slug}/token` answers `403` and `GET /api/rooms/{slug}` answers `404`. A leaked
 `join_url` without a token opens nothing.
 
+## End-to-end encryption
+
+Every Echo call is end-to-end encrypted, always. Audio, video, screen shares and chat leave the
+browser encrypted with a shared room key, through LiveKit's E2EE
+(https://docs.livekit.io/transport/encryption/). The LiveKit server routes ciphertext and never
+learns the key.
+
+The integrating app owns the key and its distribution:
+
+- Derive or generate one key per room and give the same key to everyone in that room. Prisme
+  derives one per Matrix room and never sends it to Echo.
+- Pass it in the fragment as `key`. Any string works: Echo hands it to LiveKit's
+  `ExternalE2EEKeyProvider.setKey` as a passphrase (PBKDF2). Use at least 32 random bytes,
+  base64url-encoded.
+- Never send the key to Echo's API. Echo's backend has no route that accepts one.
+
+Someone who joins with a different key receives nothing they can decode. The call shows "Can't
+decrypt this call: your link is missing the right key" instead of crashing. A browser without
+insertable streams or `RTCRtpScriptTransform` cannot encrypt, so the page tells the person to
+switch browsers rather than join in plaintext.
+
+Server-side features cannot read encrypted media, so integration rooms have no recording, live
+captions, transcript or AI summary.
+
 ## Embed route
 
-`/embed/{room_id}#token=<JWT>&url=<livekit_url>` renders the call without Echo's header: video
-grid, chat and controls only. The page reads the fragment, then removes it from the address bar.
+`/embed/{room_id}#token=<JWT>&url=<livekit_url>&key=<room key>` renders the call without Echo's
+header: video grid, chat and controls only. The page reads the fragment, then removes it from the
+address bar. Without `key` the page refuses to join and says the link has no encryption key.
 Leaving posts `{"type": "echo.left", "room": "<room_id>"}` to the parent window, so the app can
 close its panel.
 
@@ -146,14 +173,15 @@ https://developer.mozilla.org/en-US/docs/Web/API/Screen_Capture_API/Using_Screen
 
 ```html
 <iframe
-  src="https://echo.facile.studio/embed/prisme-4f9c2a1b0d3e5f60#token=...&url=..."
+  src="https://echo.facile.studio/embed/prisme-4f9c2a1b0d3e5f60#token=...&url=...&key=..."
   allow="camera; microphone; display-capture; autoplay; fullscreen"
 ></iframe>
 ```
 
-If the parent page sends its own `Permissions-Policy` header, it must allow these features for
-`https://echo.facile.studio` too. Without `autoplay` the call shows an Enable sound button until
-the person clicks in the frame.
+Screen sharing needs `display-capture` in that list: without it the browser rejects the share
+before showing its picker. If the parent page sends its own `Permissions-Policy` header, it must
+allow these features for `https://echo.facile.studio` too. Without `autoplay` the call shows an
+Enable sound button until the person clicks in the frame.
 
 ## Call events
 
@@ -206,6 +234,8 @@ Recorded 2026-11-03, when the API was built for Prisme.
   header, which is the contract Prisme was built against. Replay data lives in the signed body.
 - **The token rides in the URL fragment** rather than a query string or `postMessage`, so it
   stays out of server logs and needs no handshake between frames.
+- **The encryption key rides in the fragment too, and the app owns it** (added 2026-11-03). Echo
+  cannot hand out a key it is meant never to see.
 - **No third-party cookie is involved.** The embed page needs nothing from Echo but the token,
   so browsers that block third-party cookies still work.
 - **The public base URL comes from the request**, not a setting. One fewer variable to keep in

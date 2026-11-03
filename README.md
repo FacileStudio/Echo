@@ -17,9 +17,33 @@ product decisions live; LiveKit owns the WebRTC plumbing nobody should hand-writ
 | API | Go 1.25, chi via tronc, porte (OIDC SSO + local passwords), PostgreSQL |
 | Client | SvelteKit 5 (runes mode), muse tokens/components, `livekit-client` |
 | Media | livekit-server, coturn (TURN), Redis (multi-node ready) |
-| Recording | livekit/egress → local disk, Nuage opt-in upload |
-| Transcription | Vosk (kaldi-fr) behind a transcriber service |
+| Encryption | LiveKit end-to-end encryption, always on; the key stays in the link fragment |
+| Recording | livekit/egress; off, because the server cannot decode encrypted calls |
+| Transcription | Vosk transcriber in `services/transcriber`; not deployed, for the same reason |
 | Quality gate | `mise run check` (gofmt/vet/test + svelte-check) and filet |
+
+## End-to-end encryption
+
+Every call is end-to-end encrypted with LiveKit's E2EE
+(https://docs.livekit.io/transport/encryption/): audio, video, screen shares and chat. The room key
+lives in the link, `/room/<slug>#key=<base64url>`. Browsers never send a fragment to a server, so
+neither Echo nor LiveKit sees it.
+
+- Opening a room link without a key generates 32 random bytes, writes them into the address bar
+  and remembers them for that slug in `localStorage`, so the creator's next visits reuse them.
+- Copy link copies the whole address, key included. Share that link, not the bare `/room/<slug>`.
+- Someone with a different key sees "Can't decrypt this call" instead of the media.
+- A browser that cannot encrypt media is told so and does not join.
+- Integration rooms take the key from the app that opens them; see `docs/integrations.md`.
+
+The server cannot read encrypted media, so these are off:
+
+- Live captions: the transcriber service is no longer in `deploy/compose/app.yml`, so it joins no
+  room. Its code stays in `services/transcriber`.
+- Recording: the Record button is gone from the call. The egress container and the record routes
+  stay, unused.
+- Transcripts and AI summaries: new calls have none. The call page says why, and older calls keep
+  what they already have.
 
 ## Development
 
@@ -50,7 +74,8 @@ The API reads these on top of the tronc core variables (`PORT`, `DATABASE_URL`, 
 | `ECHO_INTEGRATION_KEYS` | no | empty | `app:secret` pairs, comma-separated, for the integration API; empty refuses every app |
 | `ECHO_EMBED_ORIGINS` | no | empty | Origins allowed to frame `/embed/{room}`, comma-separated; empty allows none |
 
-The transcriber worker reads `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`,
+The transcriber worker is not deployed (see End-to-end encryption). When run, it reads
+`LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`,
 `VOSK_MODEL_PATH`, plus `ECHO_API_URL` and `TRANSCRIBER_TOKEN`. If either of the last two is
 unset it logs a warning at startup and keeps broadcasting captions without persisting them.
 

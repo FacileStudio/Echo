@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### Added
+- Every call is end-to-end encrypted with LiveKit E2EE: audio, video, screen shares and chat. The room key lives in the link fragment (`#key=`), which no server sees. A room link opened without a key gets a fresh one, remembered per room in the browser.
+- A lock in the call controls shows the call is encrypted. A participant with the wrong key sees "Can't decrypt this call" instead of a broken call, and a browser that cannot encrypt is refused with an explanation.
+- `/embed/{room}` requires a `key` in its fragment. The integrating app owns key distribution; see `docs/integrations.md`.
+
+### Fixed
+- Screen sharing works: a shared screen shows as a large, uncropped tile for everyone, the sharer included. Before, it was published but never rendered.
+- Cancelling the screen picker no longer throws, and stopping from the browser's own "Stop sharing" bar resets the share button.
+
+### Removed
+- Live captions, recording and new AI summaries, because the server cannot decode encrypted media. The transcriber service is gone from `deploy/compose/app.yml` and the Record button from the call; the backend routes stay.
+
 ## [2.1.1] - 2026-11-03
 
 ### Fixed
