@@ -59,27 +59,6 @@ services:
         parallelism: 1
       restart_policy:
         condition: any
-  transcriber:
-    build:
-      context: ../../services/transcriber
-    restart: unless-stopped
-    depends_on:
-    - echo
-    environment:
-      LIVEKIT_URL: ${LIVEKIT_URL:?LIVEKIT_URL is required}
-      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY}
-      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET}
-      VOSK_MODEL_PATH: /models/vosk-model-small-fr-0.22
-      ECHO_API_URL: http://echo:4020
-      TRANSCRIBER_TOKEN: ${TRANSCRIBER_TOKEN:?TRANSCRIBER_TOKEN is required}
-    volumes:
-    - vosk-model-nonroot:/models
-    deploy:
-      update_config:
-        order: start-first
-        parallelism: 1
-      restart_policy:
-        condition: any
   egress:
     image: livekit/egress:v1.13.0
     restart: unless-stopped
@@ -100,5 +79,4 @@ services:
         condition: any
 volumes:
   echo-pg: null
-  vosk-model-nonroot: null
   echo-recordings: null
