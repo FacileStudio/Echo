@@ -3,21 +3,21 @@
 	import { MediaQuery } from 'svelte/reactivity';
 	import gsap from 'gsap';
 	import { Alert, prefersReducedMotion } from '@facile/muse';
-	import { parseCaption, parseChat } from '$lib/roomData';
+	import { parseChat } from '$lib/roomData';
 	import { bindRemoteAudio } from '$lib/roomAudio';
-	import { ApiError, startRecording, stopRecording } from '$lib/api';
 	import { canShareScreen, setScreenShare } from '$lib/screenShare';
+	import { connectEncrypted, decryptError, encryption, isE2EESupported } from '$lib/e2ee';
 	import ParticipantTile from './ParticipantTile.svelte';
 	import Stage from './Stage.svelte';
 	import RoomHeader from './RoomHeader.svelte';
 	import AudioPrompt from './AudioPrompt.svelte';
 	import ControlsBar from './ControlsBar.svelte';
 	import ChatPanel, { type ChatMessage } from './ChatPanel.svelte';
-	import CaptionsOverlay, { type Caption } from './CaptionsOverlay.svelte';
 
 	interface Props {
 		url: string;
 		token: string;
+		e2eeKey: string;
 		displayName: string;
 		slug?: string;
 		historyHref?: string;
@@ -25,7 +25,7 @@
 		onLeave?: () => void;
 	}
 
-	let { url, token, displayName, slug = '', historyHref = '', embedded = false, onLeave }: Props = $props();
+	let { url, token, e2eeKey, displayName, slug = '', historyHref = '', embedded = false, onLeave }: Props = $props();
 
 	let room: Room | null = null;
 	let participants = $state<(LocalParticipant | RemoteParticipant)[]>([]);
@@ -36,17 +36,16 @@
 	let version = $state(0);
 	let audioBlocked = $state(false);
 	let messages = $state<ChatMessage[]>([]);
-	let captions = $state<Caption[]>([]);
-	let captionId = 0;
-	let recording = $state(false);
-	let recordError = $state('');
 	let error = $state('');
 	let screenError = $state('');
+	let cryptError = $state('');
+	const failing = new Set<string>();
+	let encrypted = $state(false);
+
+	const supported = isE2EESupported();
 
 	const encoder = new TextEncoder();
 	const decoder = new TextDecoder();
-
-	const canRecord = $derived(Boolean(historyHref));
 
 	let asideEl: HTMLElement | undefined = $state();
 	let asideShown = false;
@@ -83,23 +82,11 @@
 		micOn = room.localParticipant.isMicrophoneEnabled;
 		camOn = room.localParticipant.isCameraEnabled;
 		screenOn = room.localParticipant.isScreenShareEnabled;
+		encrypted = room.isE2EEEnabled;
 	}
 
-	function handleData(
-		payload: Uint8Array<ArrayBuffer>,
-		from?: RemoteParticipant,
-		_kind?: unknown,
-		topic?: string
-	) {
-		const text = decoder.decode(payload);
-
-		if (topic === 'transcription') {
-			const caption = parseCaption(text, ++captionId);
-			if (caption) captions = [...captions.slice(-20), caption];
-			return;
-		}
-
-		const message = parseChat(text, from?.name ?? from?.identity);
+	function handleData(payload: Uint8Array<ArrayBuffer>, from?: RemoteParticipant) {
+		const message = parseChat(decoder.decode(payload), from?.name ?? from?.identity);
 		if (message) messages = [...messages, message];
 	}
 
@@ -132,30 +119,18 @@
 		else window.location.href = '/';
 	}
 
-	async function toggleRecording() {
-		if (!slug) return;
-		recordError = '';
-		try {
-			if (recording) {
-				await stopRecording(slug);
-				recording = false;
-			} else {
-				await startRecording(slug);
-				recording = true;
-			}
-		} catch (e) {
-			const message = e instanceof Error ? e.message : String(e);
-			const status = e instanceof ApiError ? e.status : 0;
-			if (!recording && status === 409) {
-				recording = true;
-				return;
-			}
-			recordError = message;
-		}
+	function publishMedia(r: Room) {
+		refresh();
+		Promise.all([r.localParticipant.setCameraEnabled(true), r.localParticipant.setMicrophoneEnabled(true)])
+			.catch(() => (error = 'Camera or microphone unavailable. You joined without publishing.'))
+			.finally(refresh);
 	}
 
 	$effect(() => {
-		const r = new Room({ adaptiveStream: true, dynacast: true });
+		if (!supported) return;
+
+		const { keyProvider, worker } = encryption();
+		const r = new Room({ adaptiveStream: true, dynacast: true, encryption: { keyProvider, worker } });
 		room = r;
 		r.on(RoomEvent.ParticipantConnected, refresh)
 			.on(RoomEvent.ParticipantDisconnected, refresh)
@@ -166,44 +141,46 @@
 			.on(RoomEvent.TrackMuted, refresh)
 			.on(RoomEvent.TrackUnmuted, refresh)
 			.on(RoomEvent.ActiveSpeakersChanged, refresh)
+			.on(RoomEvent.ParticipantEncryptionStatusChanged, refresh)
+			.on(RoomEvent.EncryptionError, (_e, p) => {
+				if (p) failing.add(p.name || p.identity);
+				cryptError = decryptError([...failing], r.remoteParticipants.size);
+			})
 			.on(RoomEvent.DataReceived, handleData);
 
 		const unbindAudio = bindRemoteAudio(r, (blocked) => (audioBlocked = blocked));
 
-		r.connect(url, token)
-			.then(async () => {
-				refresh();
-				try {
-					await r.localParticipant.setCameraEnabled(true);
-					await r.localParticipant.setMicrophoneEnabled(true);
-				} catch {
-					error = 'Camera or microphone unavailable. You joined without publishing.';
-				}
-				refresh();
-			})
-			.catch((e: unknown) => {
-				error = e instanceof Error ? e.message : String(e);
-			});
+		connectEncrypted(r, keyProvider, e2eeKey, { url, token })
+			.then(() => publishMedia(r))
+			.catch((e: unknown) => (error = e instanceof Error ? e.message : String(e)));
 
 		return () => {
-			r.disconnect();
+			r.disconnect().finally(() => worker.terminate());
 			unbindAudio();
 			room = null;
 		};
 	});
 </script>
 
+{#if !supported}
+	<main class="flex min-h-dvh items-center justify-center px-4">
+		<Alert tone="danger" title="This browser cannot join">
+			Echo calls are end-to-end encrypted, and this browser cannot encrypt media. Open the link in a
+			recent Chrome, Edge, Firefox or Safari.
+		</Alert>
+	</main>
+{:else}
 <div class="flex h-dvh flex-col">
 	{#if !embedded}
-		<RoomHeader {slug} {recording} {historyHref} count={participants.length} />
+		<RoomHeader {slug} {historyHref} count={participants.length} />
 	{/if}
 
 	<AudioPrompt blocked={audioBlocked} onEnable={() => void room?.startAudio()} />
 
-	{#if error || recordError || screenError}
+	{#if cryptError || error || screenError}
 		<div class="px-4 pb-3">
-			<Alert tone={recordError ? 'danger' : 'warning'} title={recordError ? 'Recording failed' : 'Media problem'}>
-				{error || recordError || screenError}
+			<Alert tone={cryptError ? 'danger' : 'warning'} title={cryptError ? 'Cannot decrypt' : 'Media problem'}>
+				{cryptError || error || screenError}
 			</Alert>
 		</div>
 	{/if}
@@ -221,23 +198,20 @@
 		</aside>
 	</div>
 
-	<CaptionsOverlay bind:captions />
-
 	<footer class="flex justify-center pt-1 pb-1">
 		<ControlsBar
 			{micOn}
 			{camOn}
 			{screenOn}
 			{chatOpen}
-			{recording}
-			{canRecord}
+			{encrypted}
 			canShare={canShareScreen()}
 			onToggleMic={toggleMic}
 			onToggleCam={toggleCam}
 			onToggleScreen={toggleScreen}
 			onToggleChat={() => (chatOpen = !chatOpen)}
-			onToggleRecording={() => void toggleRecording()}
 			onLeave={leave}
 		/>
 	</footer>
 </div>
+{/if}

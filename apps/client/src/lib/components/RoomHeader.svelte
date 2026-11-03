@@ -1,15 +1,14 @@
 <script lang="ts">
-	import { Badge, Button, Icon } from '@facile/muse';
+	import { Button, Icon } from '@facile/muse';
 	import { callIcons } from '$lib/icons';
 
 	interface Props {
 		slug: string;
-		recording: boolean;
 		historyHref: string;
 		count: number;
 	}
 
-	let { slug, recording, historyHref, count }: Props = $props();
+	let { slug, historyHref, count }: Props = $props();
 
 	let copied = $state(false);
 
@@ -31,9 +30,6 @@
 			Echo
 		</a>
 		<span class="truncate text-fc-p text-fc-muted">{slug}</span>
-		{#if recording}
-			<Badge tone="danger">Recording</Badge>
-		{/if}
 	</div>
 	<div class="flex shrink-0 items-center gap-1">
 		<span class="flex items-center gap-1 px-2 text-fc-p text-fc-muted" aria-label="{count} in the call">

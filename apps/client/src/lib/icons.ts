@@ -14,5 +14,6 @@ export const callIcons = {
 	record: 'iconoir:circle',
 	send: 'iconoir:send',
 	link: 'iconoir:link',
-	people: 'iconoir:group'
+	people: 'iconoir:group',
+	lock: 'iconoir:lock'
 } as const;

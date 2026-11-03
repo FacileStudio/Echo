@@ -3,6 +3,7 @@
 	import { page } from '$app/state';
 	import { Alert, TextElevate, Button, Card, Field, Input } from '@facile/muse';
 	import { slugify } from '$lib/api';
+	import { readKey } from '$lib/e2ee';
 
 	let room = $state('');
 	let error = $state('');
@@ -11,13 +12,15 @@
 
 	function open(e: SubmitEvent) {
 		e.preventDefault();
-		const slug = slugify(room.split('/room/').pop() ?? '');
+		const [path, fragment = ''] = room.split('#');
+		const slug = slugify(path.split('/room/').pop() ?? '');
+		const key = readKey(fragment);
 
 		if (!slug) {
 			error = 'Enter a room name or paste a room link';
 			return;
 		}
-		goto(`/room/${slug}`);
+		goto(key ? `/room/${slug}#key=${encodeURIComponent(key)}` : `/room/${slug}`);
 	}
 </script>
 

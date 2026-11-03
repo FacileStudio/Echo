@@ -7,14 +7,12 @@
 		camOn: boolean;
 		screenOn: boolean;
 		chatOpen: boolean;
-		recording: boolean;
-		canRecord: boolean;
+		encrypted: boolean;
 		canShare: boolean;
 		onToggleMic: () => void;
 		onToggleCam: () => void;
 		onToggleScreen: () => void;
 		onToggleChat: () => void;
-		onToggleRecording: () => void;
 		onLeave: () => void;
 	}
 
@@ -23,14 +21,12 @@
 		camOn,
 		screenOn,
 		chatOpen,
-		recording,
-		canRecord,
+		encrypted,
 		canShare,
 		onToggleMic,
 		onToggleCam,
 		onToggleScreen,
 		onToggleChat,
-		onToggleRecording,
 		onLeave
 	}: Props = $props();
 
@@ -38,6 +34,13 @@
 </script>
 
 <div class="flex items-center gap-1">
+	{#if encrypted}
+		<span class="flex items-center gap-1 px-2 text-fc-subtext text-fc-muted" title="End-to-end encrypted">
+			<Icon icon={callIcons.lock} size={16} />
+			<span class="sr-only md:not-sr-only">Encrypted</span>
+		</span>
+	{/if}
+
 	<IconButton
 		variant="ghost"
 		class={micOn ? 'text-fc-ink' : off}
@@ -79,18 +82,6 @@
 	>
 		<Icon icon={callIcons.chat} />
 	</IconButton>
-
-	{#if canRecord}
-		<IconButton
-			variant="ghost"
-			class={recording ? off : ''}
-			aria-label={recording ? 'Stop recording' : 'Start recording'}
-			aria-pressed={recording}
-			onclick={onToggleRecording}
-		>
-			<Icon icon={callIcons.record} />
-		</IconButton>
-	{/if}
 
 	<Button variant="danger" size="lg" class="gap-2.5" onclick={onLeave}><Icon icon={callIcons.leave} />Leave</Button>
 </div>

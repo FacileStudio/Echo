@@ -114,7 +114,7 @@
 				</Button>
 			{:else}
 				<p class="text-fc-p text-fc-muted">
-					No recording for this call, or the file is not available on this server.
+					No recording. Calls are end-to-end encrypted, so the server cannot record them.
 				</p>
 			{/if}
 		</Section>

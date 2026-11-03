@@ -29,8 +29,23 @@
 	<main class="flex min-h-dvh items-center justify-center px-4">
 		<p class="text-fc-p text-fc-muted">You left the call.</p>
 	</main>
+{:else if grant && !grant.key}
+	<main class="flex min-h-dvh items-center justify-center px-4">
+		<Alert tone="danger" title="Cannot join">
+			This call link has no encryption key. Echo calls are end-to-end encrypted, so the app that opened
+			this call must pass the key. Open the call again from your app.
+		</Alert>
+	</main>
 {:else if grant}
-	<LiveRoom url={grant.url} token={grant.token} displayName={grant.name} {slug} embedded onLeave={leave} />
+	<LiveRoom
+		url={grant.url}
+		token={grant.token}
+		e2eeKey={grant.key}
+		displayName={grant.name}
+		{slug}
+		embedded
+		onLeave={leave}
+	/>
 {:else if checked}
 	<main class="flex min-h-dvh items-center justify-center px-4">
 		<Alert tone="danger" title="Cannot join">This call link has no join token. Open the call again from your app.</Alert>

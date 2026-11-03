@@ -4,6 +4,7 @@
 	import { Alert, TextElevate, Button, Card, Field, Input, Spinner } from '@facile/muse';
 	import { fetchMe, requestToken, type Me, type TokenGrant } from '$lib/api';
 	import LiveRoom from '$lib/components/LiveRoom.svelte';
+	import { roomKey } from '$lib/e2ee';
 
 	const slug = $derived(page.params.slug ?? '');
 
@@ -11,11 +12,13 @@
 	let checked = $state(false);
 	let grant = $state<TokenGrant | null>(null);
 	let displayName = $state('');
+	let key = $state('');
 	let error = $state('');
 
 	const historyHref = $derived(me && slug ? `/room/${slug}/history` : '');
 
 	onMount(async () => {
+		key = roomKey(slug);
 		me = await fetchMe();
 		if (me) {
 			displayName = me.name || me.email;
@@ -43,7 +46,7 @@
 <svelte:head><title>{slug} · Echo</title></svelte:head>
 
 {#if grant}
-	<LiveRoom url={grant.url} token={grant.token} {displayName} {slug} {historyHref} />
+	<LiveRoom url={grant.url} token={grant.token} e2eeKey={key} {displayName} {slug} {historyHref} />
 {:else}
 	<main class="flex min-h-screen items-center justify-center px-4">
 		<div class="flex w-full max-w-sm flex-col gap-1">

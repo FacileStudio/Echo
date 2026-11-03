@@ -55,25 +55,6 @@ async function apiErrorMessage(res: Response): Promise<string> {
 	}
 }
 
-export async function startRecording(slug: string): Promise<{ egressId: string }> {
-	const res = await fetch(`${API_BASE}/api/rooms/${encodeURIComponent(slug)}/record/start`, {
-		method: 'POST',
-		headers: { 'X-Facile-CSRF': '1' },
-		credentials: 'include'
-	});
-	if (!res.ok) throw new ApiError(await apiErrorMessage(res), res.status);
-	return (await res.json()) as { egressId: string };
-}
-
-export async function stopRecording(slug: string): Promise<void> {
-	const res = await fetch(`${API_BASE}/api/rooms/${encodeURIComponent(slug)}/record/stop`, {
-		method: 'POST',
-		headers: { 'X-Facile-CSRF': '1' },
-		credentials: 'include'
-	});
-	if (!res.ok) throw new ApiError(await apiErrorMessage(res), res.status);
-}
-
 export type CallId = string | number;
 
 export interface CallSummary {

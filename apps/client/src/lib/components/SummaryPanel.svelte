@@ -63,7 +63,7 @@
 		</p>
 	{:else if !hasTranscript}
 		<p class="text-fc-p text-fc-muted">
-			A summary needs a transcript. Turn transcription on during the call to get one.
+			No summary. Calls are end-to-end encrypted, so the server cannot transcribe or summarise them.
 		</p>
 	{:else}
 		<p class="text-fc-p text-fc-muted">No summary has been generated for this call yet.</p>

@@ -10,7 +10,7 @@
 
 {#if !text}
 	<p class="text-fc-p text-fc-muted">
-		No transcript for this call. Transcription happens during the call, if it was turned on.
+		No transcript. Calls are end-to-end encrypted, so the server cannot transcribe them.
 	</p>
 {:else}
 	<div
