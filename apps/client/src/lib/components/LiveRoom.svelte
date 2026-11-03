@@ -26,9 +26,11 @@
 		displayName: string;
 		slug?: string;
 		historyHref?: string;
+		embedded?: boolean;
+		onLeave?: () => void;
 	}
 
-	let { url, token, displayName, slug = '', historyHref = '' }: Props = $props();
+	let { url, token, displayName, slug = '', historyHref = '', embedded = false, onLeave }: Props = $props();
 
 	let room: Room | null = null;
 	let participants = $state<(LocalParticipant | RemoteParticipant)[]>([]);
@@ -134,7 +136,8 @@
 
 	function leave() {
 		room?.disconnect();
-		window.location.href = '/';
+		if (onLeave) onLeave();
+		else window.location.href = '/';
 	}
 
 	async function toggleRecording() {
@@ -199,7 +202,9 @@
 </script>
 
 <div class="flex h-dvh flex-col">
-	<RoomHeader {slug} {recording} {historyHref} count={participants.length} />
+	{#if !embedded}
+		<RoomHeader {slug} {recording} {historyHref} count={participants.length} />
+	{/if}
 
 	<AudioPrompt blocked={audioBlocked} onEnable={() => void room?.startAudio()} />
 

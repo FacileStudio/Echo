@@ -28,6 +28,9 @@ dependency like Postgres, not a fork. The Jitsi fork this repo used to be is tag
   `/api` because it authenticates with LiveKit's signed JWT, not a cookie
 - AI summaries degrade: no `ANTHROPIC_API_KEY` means the summary endpoint returns 503 and the
   transcript stays useful on its own
+- Other suite apps run calls through `/api/integrations/*` (per-app bearer secret from
+  `ECHO_INTEGRATION_KEYS`) and frame `/embed/{room}`; integration rooms refuse the public guest
+  token route. Contract and decisions: `docs/integrations.md`
 - Room events flow to Nook via enveloppe (`call.started`, `call.ended`,
   `participant.joined`), keyed on `actor_email`
 

@@ -19,6 +19,7 @@ import (
 	"github.com/FacileStudio/Echo/apps/api/internal/summarize"
 	"github.com/FacileStudio/Echo/apps/api/modules/auth"
 	"github.com/FacileStudio/Echo/apps/api/modules/history"
+	"github.com/FacileStudio/Echo/apps/api/modules/integrations"
 	"github.com/FacileStudio/Echo/apps/api/modules/recording"
 	"github.com/FacileStudio/Echo/apps/api/modules/rooms"
 	"github.com/FacileStudio/Echo/apps/api/modules/transcripts"
@@ -86,8 +87,12 @@ func run() int {
 			AllowCredentials: true,
 		},
 	})
+	router.Use(middleware.FrameAncestors(cfg.EmbedOrigins))
 	health.Mount(router)
-	webhooks.New(db, troncenv.String("LIVEKIT_API_KEY", ""), mediaService.Secret()).RegisterRoutes(router)
+	integrationKeys := integrations.NewKeys(cfg.IntegrationKeys)
+	webhooks.New(db, troncenv.String("LIVEKIT_API_KEY", ""), mediaService.Secret()).
+		NotifyWith(integrations.NewForwarder(db, integrationKeys, log)).
+		RegisterRoutes(router)
 	router.Route("/api", func(r chi.Router) {
 		r.Use(extendWriteDeadline("/summary", summaryWriteBudget))
 		authKit.Mount(r, cfg.Porte.SSOOnly)
@@ -97,6 +102,7 @@ func run() int {
 		historyService := history.NewService(db, roomsService, summarize.NewFromEnv(), cfg.RecordingsDir)
 		history.RegisterRoutes(r, historyService, authKit.requireAuth)
 		transcripts.RegisterRoutes(r, transcripts.NewService(db), cfg.TranscriberToken)
+		integrations.RegisterRoutes(r, integrations.NewService(db, mediaService, integrationKeys))
 	})
 
 	go sweepSessions(shutdown, authKit.sessions, log)

@@ -43,5 +43,8 @@ func (h handler) receive(w http.ResponseWriter, r *http.Request) {
 		httpjson.WriteError(w, err)
 		return
 	}
+	if h.webhooks.notifier != nil {
+		h.webhooks.notifier.Notify(r.Context(), event)
+	}
 	w.WriteHeader(http.StatusNoContent)
 }

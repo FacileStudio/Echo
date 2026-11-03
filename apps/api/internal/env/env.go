@@ -23,6 +23,13 @@ type Config struct {
 	// RecordingsDir is the directory the egress volume is mounted at, and
 	// the root every stored recording path is resolved against.
 	RecordingsDir string
+
+	// IntegrationKeys maps each suite app allowed on the integration API to
+	// its shared secret. Empty means the integration API refuses everyone.
+	IntegrationKeys map[string]string
+
+	// EmbedOrigins are the origins allowed to frame /embed/{room}.
+	EmbedOrigins []string
 }
 
 // minTranscriberToken is the shortest token the API will boot with. The
@@ -71,8 +78,7 @@ func Load() (Config, error) {
 	if cfg.Porte.SSOOnly, err = troncenv.Bool("SSO_ONLY", false); err != nil {
 		return Config{}, err
 	}
-	cfg.TranscriberToken = troncenv.String("TRANSCRIBER_TOKEN", "")
-	if err := checkTranscriberToken(cfg.TranscriberToken); err != nil {
+	if err := cfg.loadServiceSecrets(); err != nil {
 		return Config{}, err
 	}
 	cfg.RecordingsDir = troncenv.String("RECORDINGS_DIR", "/recordings")
@@ -84,4 +90,24 @@ func Load() (Config, error) {
 	}
 
 	return cfg, nil
+}
+
+// loadServiceSecrets reads what other services present to Echo: the
+// transcriber's token, the integrated apps' secrets and the origins allowed
+// to frame the embed route.
+func (cfg *Config) loadServiceSecrets() error {
+	cfg.TranscriberToken = troncenv.String("TRANSCRIBER_TOKEN", "")
+	if err := checkTranscriberToken(cfg.TranscriberToken); err != nil {
+		return err
+	}
+	keys, err := ParseIntegrationKeys(troncenv.String("ECHO_INTEGRATION_KEYS", ""))
+	if err != nil {
+		return err
+	}
+	origins, err := ParseEmbedOrigins(troncenv.String("ECHO_EMBED_ORIGINS", ""))
+	if err != nil {
+		return err
+	}
+	cfg.IntegrationKeys, cfg.EmbedOrigins = keys, origins
+	return nil
 }

@@ -47,6 +47,8 @@ The API reads these on top of the tronc core variables (`PORT`, `DATABASE_URL`, 
 | `ANTHROPIC_API_KEY` | no | empty | Enables AI summaries; without it the summary endpoint returns 503 |
 | `ANTHROPIC_MODEL` | no | `claude-sonnet-5` | Model used for summaries |
 | `RECORDINGS_DIR` | no | `/recordings` | Directory the recordings volume is mounted at, read-only |
+| `ECHO_INTEGRATION_KEYS` | no | empty | `app:secret` pairs, comma-separated, for the integration API; empty refuses every app |
+| `ECHO_EMBED_ORIGINS` | no | empty | Origins allowed to frame `/embed/{room}`, comma-separated; empty allows none |
 
 The transcriber worker reads `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`,
 `VOSK_MODEL_PATH`, plus `ECHO_API_URL` and `TRANSCRIBER_TOKEN`. If either of the last two is
@@ -63,12 +65,16 @@ boot without it: an unauthenticated ingestion endpoint is worse than a failed st
 
 ## Machine endpoints
 
-Two routes are called by infrastructure rather than by a browser.
+These routes are called by infrastructure or other apps rather than by a browser.
 
 | Route | Caller | Auth |
 |---|---|---|
 | `POST /livekit/webhook` | livekit-server | LiveKit's signed JWT in `Authorization`, verified with the API secret |
 | `POST /api/rooms/{slug}/transcript` | transcriber worker | `Authorization: Bearer $TRANSCRIBER_TOKEN` |
+| `/api/integrations/rooms...` | suite apps (Prisme) | `Authorization: Bearer <app secret>` from `ECHO_INTEGRATION_KEYS` |
+
+The integration API, the `/embed/{room}` route and the signed call events it forwards are
+documented in [docs/integrations.md](docs/integrations.md).
 
 The webhook sits outside `/api` on purpose: it carries no cookie and no CSRF header, only the
 signature. It upserts calls and participants and stamps the recording path when egress ends.
@@ -88,7 +94,7 @@ environment variable, not by mounting the file.
 apps/api/         Go API: modules/{rooms,media,webhooks,summarize}, migrations/
 apps/client/      SvelteKit 5 client
 deploy/           compose files for livekit-server, coturn, redis, egress, vosk
-docs/             REBUILD_PLAN.md and design notes
+docs/             REBUILD_PLAN.md, integrations.md and design notes
 ```
 
 ## History

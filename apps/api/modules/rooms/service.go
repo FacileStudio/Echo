@@ -165,6 +165,9 @@ func (s *Service) Token(ctx context.Context, slug string, userID *int64, email, 
 	if err != nil {
 		return "", err
 	}
+	if room.IntegrationApp != "" {
+		return "", troncerrors.Forbidden("this call is joined from the app that created it")
+	}
 	if userID != nil {
 		return s.media.Issue(room.Slug, fmt.Sprintf("user-%d", *userID), displayNameOr(email, displayName), moderatorGrant)
 	}

@@ -7,13 +7,21 @@ import (
 )
 
 // Room is a persistent named meeting room; OwnerID is nil for unowned rooms.
+//
+// IntegrationApp is set on a room another suite app created through the
+// integration API. Such a room is joined only with tokens that app mints,
+// ExternalID is the app's own key for it, and CallbackURL receives its
+// forwarded call events.
 type Room struct {
-	ID        uuid.UUID `json:"id" gorm:"column:id;type:uuid;primaryKey"`
-	Slug      string    `json:"slug" gorm:"column:slug;uniqueIndex;not null"`
-	Name      string    `json:"name" gorm:"column:name;not null"`
-	OwnerID   *int64    `json:"owner_id,omitempty" gorm:"column:owner_id;index"`
-	CreatedAt time.Time `json:"created_at" gorm:"column:created_at;autoCreateTime"`
-	UpdatedAt time.Time `json:"updated_at" gorm:"column:updated_at;autoUpdateTime"`
+	ID             uuid.UUID `json:"id" gorm:"column:id;type:uuid;primaryKey"`
+	Slug           string    `json:"slug" gorm:"column:slug;uniqueIndex;not null"`
+	Name           string    `json:"name" gorm:"column:name;not null"`
+	OwnerID        *int64    `json:"owner_id,omitempty" gorm:"column:owner_id;index"`
+	IntegrationApp string    `json:"-" gorm:"column:integration_app;not null;default:''"`
+	ExternalID     string    `json:"-" gorm:"column:external_id;not null;default:''"`
+	CallbackURL    string    `json:"-" gorm:"column:callback_url;not null;default:''"`
+	CreatedAt      time.Time `json:"created_at" gorm:"column:created_at;autoCreateTime"`
+	UpdatedAt      time.Time `json:"updated_at" gorm:"column:updated_at;autoUpdateTime"`
 }
 
 func (Room) TableName() string { return "rooms" }

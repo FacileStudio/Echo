@@ -16,6 +16,7 @@ func Migrate(db *gorm.DB) error {
 	statements := []string{
 		porteSchema,
 		callIndexes,
+		integrationIndexes,
 	}
 	for _, statement := range statements {
 		if err := db.Exec(statement).Error; err != nil {
@@ -37,6 +38,13 @@ func Migrate(db *gorm.DB) error {
 const callIndexes = `
 CREATE UNIQUE INDEX IF NOT EXISTS calls_livekit_room_sid_key
 	ON calls (livekit_room_sid) WHERE livekit_room_sid <> '';
+`
+
+// integrationIndexes makes the integration API idempotent at the database:
+// one room per app and external id, enforced only on integration rooms.
+const integrationIndexes = `
+CREATE UNIQUE INDEX IF NOT EXISTS rooms_integration_external_key
+	ON rooms (integration_app, external_id) WHERE integration_app <> '';
 `
 
 const porteSchema = `

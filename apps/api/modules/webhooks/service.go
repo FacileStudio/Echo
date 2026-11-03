@@ -18,9 +18,22 @@ import (
 // reordered delivery then costs one missing fact instead of merging two
 // meetings, and a retried delivery changes nothing.
 type Webhooks struct {
-	orm  *gorm.DB
-	keys auth.KeyProvider
-	now  func() time.Time
+	orm      *gorm.DB
+	keys     auth.KeyProvider
+	now      func() time.Time
+	notifier Notifier
+}
+
+// Notifier hears every event Echo has recorded, after its transaction
+// commits. The integration API uses it to forward events to other apps.
+type Notifier interface {
+	Notify(ctx context.Context, event *livekit.WebhookEvent)
+}
+
+// NotifyWith sets the notifier told about each recorded event.
+func (w *Webhooks) NotifyWith(n Notifier) *Webhooks {
+	w.notifier = n
+	return w
 }
 
 // New builds a Webhooks receiver that verifies LiveKit's signed requests

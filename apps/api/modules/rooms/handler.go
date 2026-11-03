@@ -59,7 +59,7 @@ func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
 		httpjson.WriteError(w, err)
 		return
 	}
-	if room == nil {
+	if room == nil || room.IntegrationApp != "" {
 		httpjson.WriteError(w, errors.NotFound("room not found"))
 		return
 	}

@@ -43,7 +43,22 @@ func NewServiceFromEnv() (*Service, error) {
 	return &Service{apiKey: key, apiSecret: secret, url: url}, nil
 }
 
+// Participant is who a join token is for and how long it can open a
+// connection. A zero TTL means the default six hours.
+type Participant struct {
+	Identity string
+	Name     string
+	Metadata string
+	TTL      time.Duration
+}
+
+// Issue mints a join token with the default lifetime.
 func (s *Service) Issue(room, identity, name string, grant Grant) (string, error) {
+	return s.IssueFor(room, Participant{Identity: identity, Name: name}, grant)
+}
+
+// IssueFor mints a join token for one participant of one room.
+func (s *Service) IssueFor(room string, who Participant, grant Grant) (string, error) {
 	video := &auth.VideoGrant{
 		RoomJoin: true,
 		Room:     room,
@@ -53,10 +68,15 @@ func (s *Service) Issue(room, identity, name string, grant Grant) (string, error
 	video.SetCanSubscribe(grant.CanSubscribe)
 	video.RoomAdmin = grant.RoomAdmin
 
+	ttl := who.TTL
+	if ttl <= 0 {
+		ttl = tokenTTL
+	}
 	token := auth.NewAccessToken(s.apiKey, s.apiSecret).
-		SetIdentity(identity).
-		SetName(name).
-		SetValidFor(tokenTTL).
+		SetIdentity(who.Identity).
+		SetName(who.Name).
+		SetMetadata(who.Metadata).
+		SetValidFor(ttl).
 		SetVideoGrant(video)
 	return token.ToJWT()
 }

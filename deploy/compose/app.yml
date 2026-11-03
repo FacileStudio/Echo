@@ -44,6 +44,8 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-5}
       RECORDINGS_DIR: /recordings
+      ECHO_INTEGRATION_KEYS: ${ECHO_INTEGRATION_KEYS:-}
+      ECHO_EMBED_ORIGINS: ${ECHO_EMBED_ORIGINS:-}
     volumes:
     - echo-recordings:/recordings:ro
     healthcheck:
