@@ -25,7 +25,7 @@ func TestATokenJoinsOnlyItsRoomWithAShortLife(t *testing.T) {
 	if claims.Video.Room != room.RoomID || !claims.Video.RoomJoin || claims.Video.RoomAdmin {
 		t.Fatalf("grant %+v, want a non-admin join on %s", claims.Video, room.RoomID)
 	}
-	if !strings.HasPrefix(claims.Identity, "@alice:prisme#") || AppIdentity(claims.Identity) != "@alice:prisme" {
+	if !strings.HasPrefix(claims.Identity, "@alice:prisme#") || !mintedOf(claims.Identity, "@alice:prisme") {
 		t.Fatalf("identity %q", claims.Identity)
 	}
 	if claims.Name != "Alice" || !strings.Contains(claims.Metadata, "https://prisme.test/a.png") {
@@ -51,6 +51,11 @@ func verify(t *testing.T, token string) *auth.ClaimGrants {
 		t.Fatalf("token lives until %s, longer than %s", expiry, tokenTTL)
 	}
 	return claims
+}
+
+func mintedOf(livekitIdentity, want string) bool {
+	got, minted := mintedIdentity(livekitIdentity)
+	return minted && got == want
 }
 
 func checkEmbedURL(t *testing.T, out TokenResponse, roomID string) {
@@ -110,6 +115,7 @@ func TestParticipantsListTheOpenCallOncePerPerson(t *testing.T) {
 		{CallID: call.ID, Identity: "@alice:prisme#aa", Name: "Alice", JoinedAt: now},
 		{CallID: call.ID, Identity: "@alice:prisme#bb", Name: "Alice", JoinedAt: now.Add(time.Second)},
 		{CallID: call.ID, Identity: "@bob:prisme#cc", Name: "Bob", JoinedAt: now, LeftAt: &now},
+		{CallID: call.ID, Identity: "agent-AJ_x", Name: "", JoinedAt: now},
 	})
 	got := decode[RoomState](t, h.call(http.MethodGet, "/integrations/rooms/"+room.RoomID, prismeSecret, nil))
 	if len(got.Participants) != 1 || got.Participants[0] != (Participant{Identity: "@alice:prisme", Name: "Alice"}) {

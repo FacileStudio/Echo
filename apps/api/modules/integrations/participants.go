@@ -73,8 +73,8 @@ func (s *Service) Participants(ctx context.Context, room *schemas.Room) ([]Parti
 	seen := map[string]bool{}
 	participants := []Participant{}
 	for _, row := range rows {
-		identity := AppIdentity(row.Identity)
-		if !seen[identity] {
+		identity, minted := mintedIdentity(row.Identity)
+		if minted && !seen[identity] {
 			seen[identity] = true
 			participants = append(participants, Participant{Identity: identity, Name: row.Name})
 		}
@@ -82,12 +82,15 @@ func (s *Service) Participants(ctx context.Context, room *schemas.Room) ([]Parti
 	return participants, nil
 }
 
-// AppIdentity turns a LiveKit identity back into the one the app supplied.
-func AppIdentity(livekitIdentity string) string {
-	if at := strings.LastIndex(livekitIdentity, identitySeparator); at > 0 {
-		return livekitIdentity[:at]
+// mintedIdentity returns the app identity behind a LiveKit identity, and
+// whether the integration API minted it at all. Workers that join on their
+// own, such as the transcriber agent, carry no suffix and are not people.
+func mintedIdentity(livekitIdentity string) (string, bool) {
+	at := strings.LastIndex(livekitIdentity, identitySeparator)
+	if at <= 0 {
+		return "", false
 	}
-	return livekitIdentity
+	return livekitIdentity[:at], true
 }
 
 func connectionIdentity(identity string) (string, error) {

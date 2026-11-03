@@ -93,6 +93,13 @@ func TestOnlyIntegrationRoomsWithACallbackAreForwarded(t *testing.T) {
 			t.Fatalf("room %s: prepared %+v, %v; want nothing", event.Room.Name, out, err)
 		}
 	}
+	h.call(http.MethodPost, "/integrations/rooms", prismeSecret,
+		CreateRoomRequest{ExternalID: "no-callback", CallbackURL: "https://prisme.test/events"})
+	agent := joinedEvent(silent.RoomID)
+	agent.Participant.Identity = "agent-AJ_x"
+	if out, _ := forwarder.prepare(context.Background(), agent); out != nil {
+		t.Fatal("the transcriber agent was forwarded as a participant")
+	}
 	started := joinedEvent(silent.RoomID)
 	started.Event = "room_started"
 	if out, _ := forwarder.prepare(context.Background(), started); out != nil {

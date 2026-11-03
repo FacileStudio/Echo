@@ -172,6 +172,9 @@ X-Echo-Signature: 3b1f...e9
   integration secret. Verify it over the exact bytes received, before parsing, with a
   constant-time compare.
 - `participant` is present on the two participant events only.
+- Only people who joined with a token from this API are reported. Workers that join every room
+  on their own, such as the captions transcriber (`agent-...` identities), are left out, here and
+  in `GET /api/integrations/rooms/{room_id}`.
 - `at` is when LiveKit says the event happened. `id` is unique per event.
 - Delivery is attempted 3 times, 2 then 4 seconds apart, with a 10 second timeout. Any `2xx`
   counts as delivered. Answer fast and do the work afterwards.

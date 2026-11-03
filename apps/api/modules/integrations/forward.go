@@ -69,6 +69,11 @@ func (f *Forwarder) prepare(ctx context.Context, event *livekit.WebhookEvent) (*
 	if !forwardedEvents[event.GetEvent()] || event.GetRoom().GetName() == "" {
 		return nil, nil
 	}
+	if who := event.GetParticipant(); who != nil {
+		if _, minted := mintedIdentity(who.GetIdentity()); !minted {
+			return nil, nil
+		}
+	}
 	var room schemas.Room
 	err := f.orm.WithContext(ctx).
 		Where("slug = ? AND integration_app <> '' AND callback_url <> ''", event.GetRoom().GetName()).
@@ -98,8 +103,8 @@ func callbackEvent(room *schemas.Room, event *livekit.WebhookEvent) CallbackEven
 		ExternalID: room.ExternalID,
 		At:         at.Format(time.RFC3339),
 	}
-	if who := event.GetParticipant(); who.GetIdentity() != "" {
-		payload.Participant = &Participant{Identity: AppIdentity(who.GetIdentity()), Name: who.GetName()}
+	if identity, minted := mintedIdentity(event.GetParticipant().GetIdentity()); minted {
+		payload.Participant = &Participant{Identity: identity, Name: event.GetParticipant().GetName()}
 	}
 	return payload
 }
