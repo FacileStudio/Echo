@@ -3,6 +3,7 @@ package middleware
 import (
 	"net"
 	"net/http"
+	"net/netip"
 	"strconv"
 	"sync"
 	"time"
@@ -16,10 +17,20 @@ import (
 // idleBucket is how long an unused bucket is kept before a sweep drops it.
 const idleBucket = 10 * time.Minute
 
+// maxBuckets caps the bucket map. Past it, every caller without a bucket of
+// its own shares one overflow bucket at the guest budget, so a flood of
+// fresh addresses costs a bounded amount of memory and still gets throttled.
+const maxBuckets = 50000
+
+// overflowKey is the bucket shared once the map is full.
+const overflowKey = "overflow"
+
 // RateLimiter caps requests per minute: per signed-in user at Member, and per
 // client address at Guest for everyone else. The address is RemoteAddr,
 // which tronc's router has already rewritten from X-Forwarded-For only when
-// the peer is a trusted proxy, so a client cannot hand itself a fresh bucket.
+// the peer is a trusted proxy (TRUSTED_PROXIES), so a client cannot hand
+// itself a fresh bucket. An IPv6 caller is keyed by its /64, which one
+// subscriber usually holds whole and could otherwise rotate through.
 type RateLimiter struct {
 	Guest  int
 	Member int
@@ -61,7 +72,21 @@ func (l *RateLimiter) keyOf(r *http.Request) (string, int) {
 	if err != nil {
 		host = r.RemoteAddr
 	}
-	return "ip:" + host, l.Guest
+	return addressKey(host), l.Guest
+}
+
+// addressKey is the bucket of one address: itself for IPv4, its /64 for IPv6.
+func addressKey(host string) string {
+	addr, err := netip.ParseAddr(host)
+	if err != nil {
+		return "ip:" + host
+	}
+	addr = addr.Unmap()
+	if addr.Is6() {
+		prefix, _ := addr.Prefix(64)
+		return "ip:" + prefix.String()
+	}
+	return "ip:" + addr.String()
 }
 
 // allow spends one request from key's bucket, and drops idle buckets at most
@@ -79,6 +104,10 @@ func (l *RateLimiter) allow(key string, perMinute int) bool {
 		l.lastSweep = now
 	}
 	b, ok := l.buckets[key]
+	if !ok && len(l.buckets) >= maxBuckets {
+		key, perMinute = overflowKey, l.Guest
+		b, ok = l.buckets[key]
+	}
 	if !ok {
 		b = &bucket{limiter: rate.NewLimiter(rate.Limit(float64(perMinute)/60), perMinute)}
 		l.buckets[key] = b

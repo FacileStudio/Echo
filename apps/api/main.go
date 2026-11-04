@@ -87,7 +87,8 @@ func run() int {
 	}
 
 	router := httpx.NewRouter(httpx.Config{
-		Logger: log,
+		Logger:         log,
+		TrustedProxies: cfg.TrustedProxies,
 		CORS: troncmiddleware.CORSConfig{
 			AllowedOrigins:   cfg.CORSAllowedOrigins,
 			AllowCredentials: true,
