@@ -13,6 +13,7 @@
 	import AudioPrompt from './AudioPrompt.svelte';
 	import ControlsBar from './ControlsBar.svelte';
 	import ChatPanel, { type ChatMessage } from './ChatPanel.svelte';
+	import CallCountdown from './CallCountdown.svelte';
 
 	interface Props {
 		url: string;
@@ -22,10 +23,21 @@
 		slug?: string;
 		historyHref?: string;
 		embedded?: boolean;
+		callDeadline?: string;
 		onLeave?: () => void;
 	}
 
-	let { url, token, e2eeKey, displayName, slug = '', historyHref = '', embedded = false, onLeave }: Props = $props();
+	let {
+		url,
+		token,
+		e2eeKey,
+		displayName,
+		slug = '',
+		historyHref = '',
+		embedded = false,
+		callDeadline = '',
+		onLeave
+	}: Props = $props();
 
 	let room: Room | null = null;
 	let participants = $state<(LocalParticipant | RemoteParticipant)[]>([]);
@@ -173,6 +185,10 @@
 <div class="flex h-dvh flex-col">
 	{#if !embedded}
 		<RoomHeader {slug} {historyHref} count={participants.length} />
+	{/if}
+
+	{#if callDeadline}
+		<CallCountdown deadline={callDeadline} />
 	{/if}
 
 	<AudioPrompt blocked={audioBlocked} onEnable={() => void room?.startAudio()} />

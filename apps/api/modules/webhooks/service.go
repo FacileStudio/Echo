@@ -18,10 +18,10 @@ import (
 // reordered delivery then costs one missing fact instead of merging two
 // meetings, and a retried delivery changes nothing.
 type Webhooks struct {
-	orm      *gorm.DB
-	keys     auth.KeyProvider
-	now      func() time.Time
-	notifier Notifier
+	orm       *gorm.DB
+	keys      auth.KeyProvider
+	now       func() time.Time
+	notifiers []Notifier
 }
 
 // Notifier hears every event Echo has recorded, after its transaction
@@ -30,9 +30,10 @@ type Notifier interface {
 	Notify(ctx context.Context, event *livekit.WebhookEvent)
 }
 
-// NotifyWith sets the notifier told about each recorded event.
+// NotifyWith adds a notifier told about each recorded event, after the ones
+// already added.
 func (w *Webhooks) NotifyWith(n Notifier) *Webhooks {
-	w.notifier = n
+	w.notifiers = append(w.notifiers, n)
 	return w
 }
 

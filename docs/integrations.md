@@ -241,3 +241,8 @@ Recorded 2026-11-03, when the API was built for Prisme.
 - **The public base URL comes from the request**, not a setting. One fewer variable to keep in
   sync; the cost is that apps must call Echo on its public host.
 - **Registre JWT auth is deferred** until Echo has OIDC configured.
+- **Integration rooms are not limited by any plan** (added 2026-11-04). Echo reads plan limits
+  (`echo.max_participants`, `echo.max_call_minutes`, `echo.recording`) from the room owner's
+  Registre subject, and an integration room has no owner: the app that created it pays for it
+  through its own product. Applying the free plan there would cut every existing Prisme call at
+  four people and forty minutes.

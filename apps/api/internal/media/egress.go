@@ -14,7 +14,11 @@ import (
 	"github.com/livekit/protocol/auth"
 )
 
-const egressRequestTimeout = 15 * time.Second
+const egressRequestTimeout = 10 * time.Second
+
+// ErrNotFound is what a LiveKit server API call answers when the room or
+// egress it names does not exist.
+var ErrNotFound = errors.New("livekit: not found")
 
 // egressOutputDir is where the shared echo-recordings volume is mounted
 // inside the egress container (deploy/compose/app.yml). Egress resolves a
@@ -56,7 +60,7 @@ func (s *Service) StartRecording(ctx context.Context, roomName string) (EgressIn
 		"file_outputs": []json.RawMessage{file},
 	}
 	var info EgressInfo
-	if err := s.egressCall(ctx, token, "StartEgress", body, &info); err != nil {
+	if err := s.twirp(ctx, token, "livekit.Egress/StartEgress", body, &info); err != nil {
 		return EgressInfo{}, err
 	}
 	return info, nil
@@ -69,7 +73,7 @@ func (s *Service) StopRecording(ctx context.Context, egressID string) (EgressInf
 		return EgressInfo{}, err
 	}
 	var info EgressInfo
-	if err := s.egressCall(ctx, token, "StopEgress", map[string]any{"egress_id": egressID}, &info); err != nil {
+	if err := s.twirp(ctx, token, "livekit.Egress/StopEgress", map[string]any{"egress_id": egressID}, &info); err != nil {
 		return EgressInfo{}, err
 	}
 	return info, nil
@@ -107,7 +111,9 @@ func (s *Service) httpURL() string {
 	}
 }
 
-func (s *Service) egressCall(ctx context.Context, token, method string, body any, out any) error {
+// twirp posts one JSON request to a LiveKit server API method, named as
+// "<service>/<method>", and decodes its answer into out when out is not nil.
+func (s *Service) twirp(ctx context.Context, token, method string, body any, out any) error {
 	payload, err := json.Marshal(body)
 	if err != nil {
 		return err
@@ -116,7 +122,7 @@ func (s *Service) egressCall(ctx context.Context, token, method string, body any
 	if url == "" {
 		return errors.New("LIVEKIT_URL must be set")
 	}
-	url = strings.TrimSuffix(url, "/") + "/twirp/livekit.Egress/" + method
+	url = strings.TrimSuffix(url, "/") + "/twirp/" + method
 	reqCtx, cancel := context.WithTimeout(ctx, egressRequestTimeout)
 	defer cancel()
 	req, err := http.NewRequestWithContext(reqCtx, http.MethodPost, url, bytes.NewReader(payload))
@@ -130,12 +136,21 @@ func (s *Service) egressCall(ctx context.Context, token, method string, body any
 		return err
 	}
 	defer resp.Body.Close()
+	return decodeTwirp(resp, method, out)
+}
+
+// decodeTwirp reads at most 1 MiB of a LiveKit answer into out, and turns a
+// failure status into an error that carries no response text.
+func decodeTwirp(resp *http.Response, method string, out any) error {
 	data, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
 		return err
 	}
+	if resp.StatusCode == http.StatusNotFound {
+		return ErrNotFound
+	}
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("livekit egress %s failed (status %d)", method, resp.StatusCode)
+		return fmt.Errorf("livekit %s failed (status %d)", method, resp.StatusCode)
 	}
 	if out == nil {
 		return nil
