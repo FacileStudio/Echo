@@ -46,6 +46,9 @@ services:
       RECORDINGS_DIR: /recordings
       ECHO_INTEGRATION_KEYS: ${ECHO_INTEGRATION_KEYS:-}
       ECHO_EMBED_ORIGINS: ${ECHO_EMBED_ORIGINS:-}
+      # Hops whose X-Forwarded-For is believed: Traefik's private network and
+      # Cloudflare's edge, so rate limits key on the visitor, not the edge.
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-private,cloudflare}
     volumes:
     - echo-recordings:/recordings:ro
     healthcheck:

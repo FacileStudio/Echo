@@ -4,10 +4,12 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 	"time"
 
 	"github.com/FacileStudio/porte"
+	"golang.org/x/time/rate"
 )
 
 func hit(handler http.Handler, addr string, ctx context.Context) int {
@@ -54,5 +56,32 @@ func TestIdleBucketsAreSwept(t *testing.T) {
 	limiter.allow("ip:b", 1)
 	if _, kept := limiter.buckets["ip:a"]; kept || len(limiter.buckets) != 1 {
 		t.Fatalf("buckets after a sweep = %d, want only the fresh one", len(limiter.buckets))
+	}
+}
+
+func TestOneIPv6SubscriberSharesABucketAcrossTheir64(t *testing.T) {
+	if addressKey("2001:db8:1:2::1") != addressKey("2001:db8:1:2:ffff::9") {
+		t.Fatal("two addresses of one /64 got separate buckets")
+	}
+	if addressKey("2001:db8:1:2::1") == addressKey("2001:db8:1:3::1") {
+		t.Fatal("two /64s shared a bucket")
+	}
+	if addressKey("::ffff:203.0.113.7") != addressKey("203.0.113.7") {
+		t.Fatal("an IPv4-mapped address escaped its IPv4 bucket")
+	}
+}
+
+func TestAFullBucketMapSharesOneOverflowBucket(t *testing.T) {
+	limiter := NewRateLimiter(2, 2)
+	for i := range maxBuckets {
+		limiter.buckets["ip:filler-"+strconv.Itoa(i)] = &bucket{limiter: rate.NewLimiter(1, 1), seen: limiter.now()}
+	}
+	for range 2 {
+		if !limiter.allow("ip:fresh-a", 2) {
+			t.Fatal("overflow bucket refused within budget")
+		}
+	}
+	if limiter.allow("ip:fresh-b", 2) || len(limiter.buckets) != maxBuckets+1 {
+		t.Fatalf("fresh callers past the cap were not throttled together (%d buckets)", len(limiter.buckets))
 	}
 }

@@ -2,6 +2,8 @@ package env
 
 import (
 	"fmt"
+	"net/netip"
+	"os"
 	"strings"
 
 	"github.com/FacileStudio/porte"
@@ -30,6 +32,29 @@ type Config struct {
 
 	// EmbedOrigins are the origins allowed to frame /embed/{room}.
 	EmbedOrigins []string
+
+	// TrustedProxies are the hops whose X-Forwarded-For tronc's RealIP
+	// believes, from TRUSTED_PROXIES.
+	TrustedProxies []netip.Prefix
+}
+
+// defaultTrustedProxies is what an unset TRUSTED_PROXIES means here.
+// echo.facile.studio is served through Cloudflare and then Traefik, so the
+// forwarded chain is [visitor, cloudflare edge] and both sets must be
+// trusted for RemoteAddr to name the visitor rather than the edge.
+const defaultTrustedProxies = "private,cloudflare"
+
+// trustedProxies reads TRUSTED_PROXIES with tronc's grammar: CIDR blocks,
+// addresses, the names private and cloudflare, or none.
+func trustedProxies() ([]netip.Prefix, error) {
+	if strings.TrimSpace(os.Getenv("TRUSTED_PROXIES")) != "" {
+		return troncenv.TrustedProxies()
+	}
+	var prefixes []netip.Prefix
+	for _, name := range strings.Split(defaultTrustedProxies, ",") {
+		prefixes = append(prefixes, troncenv.TrustedProxySets[name]...)
+	}
+	return prefixes, nil
 }
 
 // minTranscriberToken is the shortest token the API will boot with. The
@@ -93,8 +118,8 @@ func Load() (Config, error) {
 }
 
 // loadServiceSecrets reads what other services present to Echo: the
-// transcriber's token, the integrated apps' secrets and the origins allowed
-// to frame the embed route.
+// transcriber's token, the integrated apps' secrets, the origins allowed to
+// frame the embed route, and the proxies whose forwarding headers count.
 func (cfg *Config) loadServiceSecrets() error {
 	cfg.TranscriberToken = troncenv.String("TRANSCRIBER_TOKEN", "")
 	if err := checkTranscriberToken(cfg.TranscriberToken); err != nil {
@@ -109,5 +134,6 @@ func (cfg *Config) loadServiceSecrets() error {
 		return err
 	}
 	cfg.IntegrationKeys, cfg.EmbedOrigins = keys, origins
-	return nil
+	cfg.TrustedProxies, err = trustedProxies()
+	return err
 }
