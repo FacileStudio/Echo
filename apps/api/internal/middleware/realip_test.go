@@ -26,10 +26,18 @@ func behindCloudflare(t *testing.T) http.Handler {
 }
 
 func viaTraefik(handler http.Handler, peer, forwarded string) int {
+	return viaChain(handler, peer, forwarded, "192.0.2.250")
+}
+
+func viaChain(handler http.Handler, peer, forwarded, connecting string) int {
 	request := httptest.NewRequest(http.MethodPost, "/token", nil)
 	request.RemoteAddr = peer
-	request.Header.Set("X-Forwarded-For", forwarded)
-	request.Header.Set("Cf-Connecting-Ip", "192.0.2.250")
+	if forwarded != "" {
+		request.Header.Set("X-Forwarded-For", forwarded)
+	}
+	if connecting != "" {
+		request.Header.Set("Cf-Connecting-Ip", connecting)
+	}
 	recorder := httptest.NewRecorder()
 	handler.ServeHTTP(recorder, request)
 	return recorder.Code
@@ -61,5 +69,35 @@ func TestAForgedChainCannotBuyAFreshBucket(t *testing.T) {
 	}
 	if code := viaTraefik(handler, attacker+":5555", "1.1.1.1"); code != http.StatusTooManyRequests {
 		t.Fatalf("a direct request with a forged header bought a fresh bucket: %d", code)
+	}
+}
+
+func TestTheProductionChainKeysOnTheVisitor(t *testing.T) {
+	handler := behindCloudflare(t)
+	const traefik, edge = "172.18.0.5:43210", "162.158.1.2"
+	for _, visitor := range []string{"203.0.113.9", "198.51.100.4", "2001:db8:5::1"} {
+		if code := viaChain(handler, traefik, edge, visitor); code != http.StatusNoContent {
+			t.Fatalf("visitor %s behind Traefik and one edge answered %d: visitors share a bucket", visitor, code)
+		}
+	}
+	if code := viaChain(handler, traefik, "172.70.108.91", "203.0.113.9"); code != http.StatusTooManyRequests {
+		t.Fatalf("a visitor seen through a second edge got a fresh bucket: %d", code)
+	}
+}
+
+func TestAForgedConnectingIPOutsideTheCloudflareChainIsIgnored(t *testing.T) {
+	handler := behindCloudflare(t)
+	const traefik, attacker = "172.18.0.5:43210", "198.51.100.66"
+	if code := viaChain(handler, traefik, attacker, "192.0.2.1"); code != http.StatusNoContent {
+		t.Fatalf("first request answered %d", code)
+	}
+	if code := viaChain(handler, traefik, attacker, "192.0.2.2"); code != http.StatusTooManyRequests {
+		t.Fatalf("a request Traefik received from a non-Cloudflare peer bought a bucket with its own header: %d", code)
+	}
+	if code := viaChain(handler, attacker+":5555", "162.158.1.2", "192.0.2.3"); code != http.StatusTooManyRequests {
+		t.Fatalf("a direct request with a forged Cloudflare chain bought a fresh bucket: %d", code)
+	}
+	if code := viaChain(handler, traefik, "162.158.1.2", "not-an-ip"); code != http.StatusNoContent {
+		t.Fatalf("an unparsable Cf-Connecting-Ip did not fall back to the peer: %d", code)
 	}
 }
