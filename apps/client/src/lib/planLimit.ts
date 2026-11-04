@@ -59,7 +59,7 @@ export function planLimitText(error: PlanLimitError): string {
 		return `This call is full. The host's plan allows ${error.limit} people per call.`;
 	if (error.key === 'echo.recording') return "Recording is not included in the host's plan.";
 	if (error.key === 'echo.max_call_minutes' && error.limit !== null)
-		return `The last call in this room reached its ${error.limit}-minute limit. Calls on the host's plan last up to ${error.limit} minutes each, and a new one can start 2 minutes after the last one ends.`;
+		return `The last call in this room reached its ${error.limit}-minute limit. On the host's plan each meeting lasts up to ${error.limit} minutes, and a new one can start 2 minutes after the last one ends.`;
 	if (error.key === 'echo.max_call_minutes') return "The host's plan limits how long a call can last.";
 	return error.message;
 }

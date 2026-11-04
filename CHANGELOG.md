@@ -4,11 +4,12 @@
 
 ### Added
 - Plan limits from Registre (porte/forfait), read for the room owner's Registre subject: `echo.max_participants` (free: 4), `echo.max_call_minutes` (free: 40) and `echo.recording` (free: off). A room with no owner, or whose owner never signed in through Registre, gets the free limits. Integration rooms are unlimited.
-- A full call refuses a new participant with HTTP 402 (`payment_required`, with `key`, `limit` and `upgrade_url`), and the join page offers the upgrade link. The count is LiveKit's participant list, falling back to call rows, plus tokens admitted in the last 10 minutes that have not connected yet.
+- A full call refuses a new participant with HTTP 402 (`payment_required`, with `key`, `limit` and `upgrade_url`), and the join page offers the upgrade link. The count is LiveKit's participant list, falling back to call rows, plus tokens admitted in the last 60 seconds that have not connected yet. That count never refuses the signed-in owner; a limit of 0 refuses everyone with 402.
+- `POST /api/rooms` and `POST /api/rooms/{slug}/token` are rate limited: 10 a minute per address for guests, 30 per account for signed-in users (429 above that).
 - A call on a limited plan ends at `started_at` plus the limit. The token response carries `call_deadline`; the call shows a countdown and warns five minutes before the end. The server closes the LiveKit room itself and re-arms every deadline from the database at boot.
 - Starting a recording answers 402 unless the owner's plan includes recording.
-- Free calls last 40 minutes per call. A room cut at its deadline cannot start a new call for 2 minutes. See `docs/plans.md`.
-- Echo creates every LiveKit room itself with the plan's ceiling, and LiveKit's `room.auto_create` is off (`deploy/compose/livekit.yaml`; the production `LIVEKIT_CONFIG` needs the same block). Integration tokens create their room too.
+- Free calls last 40 minutes per meeting. A room cut at its deadline cannot start a new call for 2 minutes. See `docs/plans.md`.
+- Echo creates every LiveKit room itself with the plan's ceiling, and answers 503 without minting a token when it cannot, and LiveKit's `room.auto_create` is off (`deploy/compose/livekit.yaml`; the production `LIVEKIT_CONFIG` needs the same block). Integration tokens create their room too.
 - Every 5 minutes Echo compares open calls with LiveKit's rooms. It closes call rows LiveKit no longer runs and enforces deadlines for sessions no webhook reported.
 - Echo pulls Registre's directory snapshot with its OIDC client credentials (every 5 minutes, and on `POST /api/registre/sync`) and keeps the last entitlements in the `forfait_state` table, so a restart does not fail open again. Without `OIDC_ISSUER`, or before Registre ever pushed entitlements, every limit is open. If the stored row cannot be read, Echo enforces the free plan until the next snapshot.
 

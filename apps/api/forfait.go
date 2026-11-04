@@ -61,6 +61,13 @@ func (k *planKit) Mount(router chi.Router) {
 	}
 }
 
+// The join and room-creation budgets per minute: per client address for
+// guests, per account for signed-in users.
+const (
+	guestJoinsPerMinute  = 10
+	memberJoinsPerMinute = 30
+)
+
 // reconcileEvery is how often open calls are compared with LiveKit's rooms.
 const reconcileEvery = 5 * time.Minute
 

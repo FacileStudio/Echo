@@ -114,10 +114,13 @@ func TestABurstOfTokensCannotOutrunTheCap(t *testing.T) {
 	if err := guestJoin(s, "burst"); !refusedOn(err, "echo.max_participants") {
 		t.Fatalf("third token while two are still unused = %v, want a refusal", err)
 	}
-	later := time.Now().Add(11 * time.Minute)
+	later := time.Now().Add(61 * time.Second)
 	s.ledger.now = func() time.Time { return later }
 	if err := guestJoin(s, "burst"); err != nil {
-		t.Fatalf("a seat held by an expired token stayed taken: %v", err)
+		t.Fatalf("a seat held by an unused token for over a minute stayed taken: %v", err)
+	}
+	if err := ownerJoin(s, "burst", owner); err != nil {
+		t.Fatalf("the owner was locked out of a room full of pending guests: %v", err)
 	}
 }
 
@@ -132,19 +135,48 @@ func TestCallRowsCountWhenLiveKitCannotBeAsked(t *testing.T) {
 	}
 }
 
-func TestALimitedRoomIsNotJoinedWithoutItsCeiling(t *testing.T) {
+func ownerJoin(s *Service, slug string, owner int64) error {
+	_, err := s.Token(context.Background(), slug, &owner, "owner@example.test", "")
+	return err
+}
+
+func TestNoTokenIsMintedForARoomLiveKitDidNotCreate(t *testing.T) {
 	s := newTestService(t)
 	s.live = &fakeLive{ensureErr: stderrors.New("livekit down")}
 	owner := addOwner(t, s, "sub-down")
 	if _, err := s.Create(context.Background(), "down", "down", &owner); err != nil {
 		t.Fatalf("create: %v", err)
 	}
-	if err := guestJoin(s, "down"); err != nil {
-		t.Fatalf("an unlimited room refused a join when provisioning failed: %v", err)
+	if err := guestJoin(s, "down"); !troncCode(err, "unavailable") {
+		t.Fatalf("an unlimited room without a LiveKit room = %v, want 503 unavailable", err)
 	}
-	pushPlan(t, s, "sub-down", capAt(`4`))
+	pushPlan(t, s, "sub-down", capAt(`1`))
 	if err := guestJoin(s, "down"); !troncCode(err, "unavailable") {
 		t.Fatalf("a capped room without its ceiling = %v, want 503 unavailable", err)
+	}
+	s.live = &fakeLive{}
+	if err := guestJoin(s, "down"); err != nil {
+		t.Fatalf("a failed join kept its pending seat: %v", err)
+	}
+}
+
+func TestAZeroLimitRefusesEveryoneWithA402(t *testing.T) {
+	s := newTestService(t)
+	live := &fakeLive{}
+	s.live = live
+	owner := addOwner(t, s, "sub-zero")
+	pushPlan(t, s, "sub-zero", capAt(`0`))
+	if _, err := s.Create(context.Background(), "zero", "zero", &owner); err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	if err := guestJoin(s, "zero"); !refusedOn(err, "echo.max_participants") {
+		t.Fatalf("guest under a 0 limit = %v, want a 402 refusal", err)
+	}
+	if err := ownerJoin(s, "zero", owner); !refusedOn(err, "echo.max_participants") {
+		t.Fatalf("owner under a 0 limit = %v, want a 402 refusal", err)
+	}
+	if len(live.ceilings) != 0 {
+		t.Fatal("a refused join created a LiveKit room, which a 0 ceiling would leave unlimited")
 	}
 }
 
