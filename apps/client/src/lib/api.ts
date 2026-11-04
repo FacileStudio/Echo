@@ -37,6 +37,7 @@ export async function requestToken(
 		body: JSON.stringify(displayName ? { display_name: displayName } : {})
 	});
 	if (res.status === 402) throw await planLimitFrom(res);
+	if (res.status === 429) throw new Error('Too many join attempts. Wait a minute and try again.');
 	if (!res.ok) throw new Error(`token request failed (${res.status})`);
 	return (await res.json()) as TokenGrant;
 }

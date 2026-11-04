@@ -25,12 +25,14 @@ type Admission struct {
 // admit enforces the owner's plan before a token is minted and returns the
 // session deadline the client counts down to.
 //
-// It refuses a room still cooling down after a cut, creates the LiveKit room
-// with the plan's ceiling (LiveKit never creates one by itself in Echo's
-// deployment), and counts who is in the call plus every token admitted in
-// the last token lifetime that has not connected yet, so a burst of tokens
-// cannot outrun the count.
-func (s *Service) admit(ctx context.Context, room *schemas.Room, identity string) (*time.Time, error) {
+// It refuses a room still cooling down after a cut, then counts who is in
+// the call plus the tokens admitted in the last minute that have not
+// connected yet, so a burst of tokens cannot outrun the count. The signed-in
+// owner skips that count, so anonymous requests can never lock them out of
+// their own room; LiveKit's max_participants still holds for everyone. Only
+// an admitted join creates the LiveKit room (LiveKit never creates one by
+// itself in Echo's deployment), with the plan's ceiling.
+func (s *Service) admit(ctx context.Context, room *schemas.Room, identity string, owner bool) (*time.Time, error) {
 	policy, err := s.plans.ForRoom(ctx, *room)
 	if err != nil {
 		return nil, err
@@ -42,34 +44,42 @@ func (s *Service) admit(ctx context.Context, room *schemas.Room, identity string
 	if err := s.coolingDown(policy, room.Slug, call); err != nil {
 		return nil, err
 	}
+	seated := s.plans.Check(policy, plans.KeyMaxParticipants, 0, 1)
+	if !owner {
+		seated = s.seat(ctx, policy, room.Slug, identity, call)
+	}
+	if seated != nil {
+		return nil, seated
+	}
 	live, err := s.provisionRoom(ctx, room.Slug, s.plans.Limit(policy, plans.KeyMaxParticipants))
 	if err != nil {
-		return nil, err
-	}
-	present := s.present(ctx, room.Slug, call)
-	err = s.ledger.admit(room.Slug, identity, present, func(count int64) error {
-		return s.plans.Check(policy, plans.KeyMaxParticipants, count, 1)
-	})
-	if err != nil {
+		s.ledger.release(room.Slug, identity)
 		return nil, err
 	}
 	return s.sessionDeadline(policy, room.Slug, call, live), nil
 }
 
-// provisionRoom creates the LiveKit room with its ceiling and timeouts. When
-// the plan caps participants, a failure refuses the join: a room LiveKit did
-// not create with the ceiling must not be joined at all. An unlimited room
-// logs the failure and lets LiveKit answer the join itself.
+// seat counts the people present with the pending admissions, checks the
+// participant ceiling, and takes a pending seat for identity. The owner skips
+// it and is checked against an empty room, so only a plan allowing nobody at
+// all refuses them.
+func (s *Service) seat(ctx context.Context, policy plans.Policy, slug, identity string, call *schemas.Call) error {
+	return s.ledger.admit(slug, identity, s.present(ctx, slug, call), func(count int64) error {
+		return s.plans.Check(policy, plans.KeyMaxParticipants, count, 1)
+	})
+}
+
+// provisionRoom creates the LiveKit room with its ceiling and timeouts. A
+// failure refuses the join: with auto_create off, a token for a room LiveKit
+// did not create would only meet a 404, and a capped room must never be
+// joined without its ceiling.
 func (s *Service) provisionRoom(ctx context.Context, slug string, ceiling int64) (media.LiveRoom, error) {
 	live, err := s.live.EnsureRoom(ctx, slug, media.RoomSettings{MaxParticipants: ceiling})
-	if err == nil {
-		return live, nil
-	}
-	slog.Warn("livekit room provisioning failed", slog.String("room", slug), slog.Any("error", err))
-	if ceiling != -1 {
+	if err != nil {
+		slog.Warn("livekit room provisioning failed", slog.String("room", slug), slog.Any("error", err))
 		return media.LiveRoom{}, troncerrors.Unavailable("the call service is unavailable, try again shortly")
 	}
-	return media.LiveRoom{}, nil
+	return live, nil
 }
 
 // coolingDown refuses a room whose last session was cut at its plan deadline

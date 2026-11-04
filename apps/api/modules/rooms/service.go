@@ -57,7 +57,7 @@ type Deadlines interface {
 func NewService(orm *gorm.DB, mediaService *media.Service, planSet *plans.Plans, deadlines Deadlines) *Service {
 	return &Service{
 		orm: orm, media: mediaService, plans: planSet, live: mediaService, deadlines: deadlines,
-		ledger: newLedger(media.TokenTTL, time.Now), now: time.Now,
+		ledger: newLedger(pendingTTL, time.Now), now: time.Now,
 	}
 }
 
@@ -201,7 +201,7 @@ func (s *Service) Token(ctx context.Context, slug string, userID *int64, email, 
 	} else if displayName == "" {
 		return Admission{}, troncerrors.Invalid("display_name is required for guests")
 	}
-	deadline, err := s.admit(ctx, room, identity)
+	deadline, err := s.admit(ctx, room, identity, userID != nil && room.OwnerID != nil && *room.OwnerID == *userID)
 	if err != nil {
 		return Admission{}, err
 	}
