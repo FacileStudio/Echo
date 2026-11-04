@@ -47,7 +47,8 @@ services:
       ECHO_INTEGRATION_KEYS: ${ECHO_INTEGRATION_KEYS:-}
       ECHO_EMBED_ORIGINS: ${ECHO_EMBED_ORIGINS:-}
       # Hops whose X-Forwarded-For is believed: Traefik's private network and
-      # Cloudflare's edge, so rate limits key on the visitor, not the edge.
+      # Cloudflare's edge. The join rate limit additionally reads
+      # Cf-Connecting-Ip when Traefik forwarded a request from a Cloudflare edge.
       TRUSTED_PROXIES: ${TRUSTED_PROXIES:-private,cloudflare}
     volumes:
     - echo-recordings:/recordings:ro

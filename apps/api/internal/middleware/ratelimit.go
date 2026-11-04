@@ -1,10 +1,10 @@
 package middleware
 
 import (
-	"net"
+	"container/list"
 	"net/http"
-	"net/netip"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -14,48 +14,41 @@ import (
 	"golang.org/x/time/rate"
 )
 
-// idleBucket is how long an unused bucket is kept before a sweep drops it.
-const idleBucket = 10 * time.Minute
-
-// maxBuckets caps the bucket map. Past it, every caller without a bucket of
-// its own shares one overflow bucket at the guest budget, so a flood of
-// fresh addresses costs a bounded amount of memory and still gets throttled.
+// maxBuckets caps how many buckets the limiter keeps. Past it the least
+// recently used bucket is dropped, so a flood of fresh addresses costs a
+// bounded amount of memory and never pools anyone with anyone else.
 const maxBuckets = 50000
 
-// overflowKey is the bucket shared once the map is full.
-const overflowKey = "overflow"
+// networkFactor is how many /64 budgets one IPv6 /48 may spend in total.
+const networkFactor = 4
 
-// RateLimiter caps requests per minute: per signed-in user at Member, and per
-// client address at Guest for everyone else. The address is RemoteAddr,
-// which tronc's router has already rewritten from X-Forwarded-For only when
-// the peer is a trusted proxy (TRUSTED_PROXIES), so a client cannot hand
-// itself a fresh bucket. An IPv6 caller is keyed by its /64, which one
-// subscriber usually holds whole and could otherwise rotate through.
+// RateLimiter caps requests per minute: per signed-in account at Member, and
+// per client address (ClientAddr) at Guest for everyone else. An IPv6 caller
+// spends from its /64 at Guest and from its /48 at networkFactor times that.
 type RateLimiter struct {
 	Guest  int
 	Member int
 
-	mu        sync.Mutex
-	buckets   map[string]*bucket
-	lastSweep time.Time
-	now       func() time.Time
+	mu      sync.Mutex
+	buckets map[string]*list.Element
+	order   *list.List
+	now     func() time.Time
 }
 
 type bucket struct {
+	key     string
 	limiter *rate.Limiter
-	seen    time.Time
 }
 
 // NewRateLimiter builds a RateLimiter with the given per-minute budgets.
 func NewRateLimiter(guest, member int) *RateLimiter {
-	return &RateLimiter{Guest: guest, Member: member, buckets: map[string]*bucket{}, now: time.Now}
+	return &RateLimiter{Guest: guest, Member: member, buckets: map[string]*list.Element{}, order: list.New(), now: time.Now}
 }
 
 // Middleware refuses a request over its caller's budget with 429.
 func (l *RateLimiter) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		key, perMinute := l.keyOf(r)
-		if !l.allow(key, perMinute) {
+		if !l.allowRequest(r) {
 			w.Header().Set("Retry-After", "60")
 			httpjson.WriteError(w, errors.RateLimited("too many requests, try again in a minute"))
 			return
@@ -64,54 +57,42 @@ func (l *RateLimiter) Middleware(next http.Handler) http.Handler {
 	})
 }
 
-func (l *RateLimiter) keyOf(r *http.Request) (string, int) {
+// allowRequest spends one request from every bucket the caller belongs to,
+// widest first, and stops at the first that is empty.
+func (l *RateLimiter) allowRequest(r *http.Request) bool {
 	if identity, ok := porte.From(r.Context()); ok {
-		return "user:" + strconv.FormatInt(identity.UserID, 10), l.Member
+		return l.allow("user:"+strconv.FormatInt(identity.UserID, 10), l.Member)
 	}
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		host = r.RemoteAddr
+	keys := addressKeys(ClientAddr(r))
+	for i := len(keys) - 1; i >= 0; i-- {
+		perMinute := l.Guest
+		if strings.HasPrefix(keys[i], "net:") {
+			perMinute *= networkFactor
+		}
+		if !l.allow(keys[i], perMinute) {
+			return false
+		}
 	}
-	return addressKey(host), l.Guest
+	return true
 }
 
-// addressKey is the bucket of one address: itself for IPv4, its /64 for IPv6.
-func addressKey(host string) string {
-	addr, err := netip.ParseAddr(host)
-	if err != nil {
-		return "ip:" + host
-	}
-	addr = addr.Unmap()
-	if addr.Is6() {
-		prefix, _ := addr.Prefix(64)
-		return "ip:" + prefix.String()
-	}
-	return "ip:" + addr.String()
-}
-
-// allow spends one request from key's bucket, and drops idle buckets at most
-// once a minute so the map cannot grow without bound.
+// allow spends one request from key's bucket, creating it on first use and
+// dropping the least recently used bucket when the limiter is full.
 func (l *RateLimiter) allow(key string, perMinute int) bool {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	now := l.now()
-	if now.Sub(l.lastSweep) > time.Minute {
-		for k, b := range l.buckets {
-			if now.Sub(b.seen) > idleBucket {
-				delete(l.buckets, k)
-			}
+	element, ok := l.buckets[key]
+	if ok {
+		l.order.MoveToFront(element)
+	} else {
+		if l.order.Len() >= maxBuckets {
+			oldest := l.order.Back()
+			delete(l.buckets, oldest.Value.(*bucket).key)
+			l.order.Remove(oldest)
 		}
-		l.lastSweep = now
+		limiter := rate.NewLimiter(rate.Limit(float64(perMinute)/60), perMinute)
+		element = l.order.PushFront(&bucket{key: key, limiter: limiter})
+		l.buckets[key] = element
 	}
-	b, ok := l.buckets[key]
-	if !ok && len(l.buckets) >= maxBuckets {
-		key, perMinute = overflowKey, l.Guest
-		b, ok = l.buckets[key]
-	}
-	if !ok {
-		b = &bucket{limiter: rate.NewLimiter(rate.Limit(float64(perMinute)/60), perMinute)}
-		l.buckets[key] = b
-	}
-	b.seen = now
-	return b.limiter.AllowN(now, 1)
+	return element.Value.(*bucket).limiter.AllowN(l.now(), 1)
 }

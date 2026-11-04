@@ -4,12 +4,11 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"net/netip"
 	"strconv"
 	"testing"
-	"time"
 
 	"github.com/FacileStudio/porte"
-	"golang.org/x/time/rate"
 )
 
 func hit(handler http.Handler, addr string, ctx context.Context) int {
@@ -47,41 +46,54 @@ func TestGuestsAreLimitedPerAddressAndMembersPerAccount(t *testing.T) {
 	}
 }
 
-func TestIdleBucketsAreSwept(t *testing.T) {
-	limiter := NewRateLimiter(1, 1)
-	clock := time.Now()
-	limiter.now = func() time.Time { return clock }
-	limiter.allow("ip:a", 1)
-	clock = clock.Add(idleBucket + 2*time.Minute)
-	limiter.allow("ip:b", 1)
-	if _, kept := limiter.buckets["ip:a"]; kept || len(limiter.buckets) != 1 {
-		t.Fatalf("buckets after a sweep = %d, want only the fresh one", len(limiter.buckets))
-	}
-}
+func keysOf(raw string) []string { return addressKeys(netip.MustParseAddr(raw)) }
 
-func TestOneIPv6SubscriberSharesABucketAcrossTheir64(t *testing.T) {
-	if addressKey("2001:db8:1:2::1") != addressKey("2001:db8:1:2:ffff::9") {
+func TestIPv6IsLimitedPer64AndPer48(t *testing.T) {
+	if keysOf("2001:db8:1:2::1")[0] != keysOf("2001:db8:1:2:ffff::9")[0] {
 		t.Fatal("two addresses of one /64 got separate buckets")
 	}
-	if addressKey("2001:db8:1:2::1") == addressKey("2001:db8:1:3::1") {
+	if keysOf("2001:db8:1:2::1")[0] == keysOf("2001:db8:1:3::1")[0] {
 		t.Fatal("two /64s shared a bucket")
 	}
-	if addressKey("::ffff:203.0.113.7") != addressKey("203.0.113.7") {
+	if keysOf("2001:db8:1:2::1")[1] != keysOf("2001:db8:1:3::1")[1] {
+		t.Fatal("two /64s of one /48 do not share the network bucket")
+	}
+	if keysOf("::ffff:203.0.113.7")[0] != keysOf("203.0.113.7")[0] {
 		t.Fatal("an IPv4-mapped address escaped its IPv4 bucket")
+	}
+	limiter := NewRateLimiter(1, 1)
+	handler := limiter.Middleware(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	refused := 0
+	for i := range 2 * networkFactor {
+		if hit(handler, "[2001:db8:7:"+strconv.Itoa(i)+"::1]:443", context.Background()) == http.StatusTooManyRequests {
+			refused++
+		}
+	}
+	if refused != networkFactor {
+		t.Fatalf("%d of %d fresh /64s in one /48 refused, want %d", refused, 2*networkFactor, networkFactor)
 	}
 }
 
-func TestAFullBucketMapSharesOneOverflowBucket(t *testing.T) {
-	limiter := NewRateLimiter(2, 2)
-	for i := range maxBuckets {
-		limiter.buckets["ip:filler-"+strconv.Itoa(i)] = &bucket{limiter: rate.NewLimiter(1, 1), seen: limiter.now()}
+func TestAFullLimiterEvictsTheLeastRecentlyUsedBucket(t *testing.T) {
+	limiter := NewRateLimiter(1, 1)
+	if !limiter.allow("user:1", 1) {
+		t.Fatal("first member request refused")
 	}
-	for range 2 {
-		if !limiter.allow("ip:fresh-a", 2) {
-			t.Fatal("overflow bucket refused within budget")
-		}
+	for i := range maxBuckets - 1 {
+		limiter.allow("ip:filler-"+strconv.Itoa(i), 1)
 	}
-	if limiter.allow("ip:fresh-b", 2) || len(limiter.buckets) != maxBuckets+1 {
-		t.Fatalf("fresh callers past the cap were not throttled together (%d buckets)", len(limiter.buckets))
+	if limiter.allow("user:1", 1) {
+		t.Fatal("a member over budget was let through")
+	}
+	if !limiter.allow("ip:newcomer", 1) {
+		t.Fatal("a newcomer to a full limiter was pooled or refused instead of getting its own bucket")
+	}
+	if _, kept := limiter.buckets["user:1"]; !kept || limiter.order.Len() != maxBuckets {
+		t.Fatal("eviction dropped the recently used member instead of the oldest bucket")
+	}
+	if _, kept := limiter.buckets["ip:filler-0"]; kept {
+		t.Fatal("the least recently used bucket survived a full limiter")
 	}
 }
