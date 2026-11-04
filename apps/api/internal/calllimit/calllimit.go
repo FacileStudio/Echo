@@ -1,15 +1,17 @@
 // Package calllimit ends a call when the room owner's plan says its time is
 // up.
 //
-// The deadline is the call's started_at plus echo.max_call_minutes, both read
-// from server-held state, so a client can neither hide nor extend it. Timers
-// live in memory and are re-armed from the open calls at boot, so a restart
-// never hands a running call unlimited time.
+// A session's deadline is its start plus echo.max_call_minutes, read from
+// server-held state only: the call row's started_at, or LiveKit's own room
+// creation time when no webhook recorded the call. A client can neither hide
+// nor extend it. Timers live in memory; they are re-armed from the open calls
+// at boot, and a periodic reconcile against LiveKit's room list arms the
+// sessions no webhook told Echo about and closes call rows LiveKit has
+// forgotten.
 package calllimit
 
 import (
 	"context"
-	"errors"
 	"log/slog"
 	"sync"
 	"time"
@@ -25,22 +27,25 @@ import (
 // retryDelay is how long a failed attempt to end a call waits before the next.
 const retryDelay = time.Minute
 
-// RoomEnder closes a LiveKit room and disconnects everyone in it.
-type RoomEnder interface {
+// LiveKit is the part of the LiveKit room service the limiter drives.
+type LiveKit interface {
 	EndRoom(ctx context.Context, roomName string) error
+	Rooms(ctx context.Context, names ...string) ([]media.LiveRoom, error)
 }
 
-// Limiter holds one timer per open call whose plan limits its length.
+// Limiter holds one timer per limited session: per call row, or per room
+// when the session has no call row yet.
 type Limiter struct {
 	orm    *gorm.DB
 	plans  *plans.Plans
-	ender  RoomEnder
+	live   LiveKit
 	base   context.Context
 	logger *slog.Logger
 	now    func() time.Time
 
 	mu    sync.Mutex
-	armed map[uuid.UUID]armed
+	armed map[string]armed
+	cuts  map[string]time.Time
 }
 
 type armed struct {
@@ -48,21 +53,20 @@ type armed struct {
 	deadline time.Time
 }
 
-// New builds a Limiter. base is the context timers run under; cancelling it
-// stops nothing already armed, so pass the process's shutdown context and let
-// the process exit.
-func New(base context.Context, orm *gorm.DB, plans *plans.Plans, ender RoomEnder, logger *slog.Logger) *Limiter {
+// New builds a Limiter. base is the context timers run under, normally the
+// process's shutdown context.
+func New(base context.Context, orm *gorm.DB, plans *plans.Plans, live LiveKit, logger *slog.Logger) *Limiter {
 	if logger == nil {
 		logger = slog.Default()
 	}
 	return &Limiter{
-		orm: orm, plans: plans, ender: ender, base: base, logger: logger,
-		now: time.Now, armed: map[uuid.UUID]armed{},
+		orm: orm, plans: plans, live: live, base: base, logger: logger,
+		now: time.Now, armed: map[string]armed{}, cuts: map[string]time.Time{},
 	}
 }
 
 // Rearm arms a timer for every call still open, from its stored started_at.
-// Run it once at boot.
+// Run it at boot and after every applied snapshot.
 func (l *Limiter) Rearm(ctx context.Context) error {
 	var ids []uuid.UUID
 	if err := l.orm.WithContext(ctx).Model(&schemas.Call{}).Where("ended_at IS NULL").Pluck("id", &ids).Error; err != nil {
@@ -98,57 +102,39 @@ func (l *Limiter) Notify(ctx context.Context, event *livekit.WebhookEvent) {
 
 // Deadline is the armed deadline of a call, if it has one.
 func (l *Limiter) Deadline(callID uuid.UUID) (time.Time, bool) {
+	return l.deadlineOfKey(callKey(callID))
+}
+
+// CutAt is when the limiter last ended the room at its plan deadline.
+func (l *Limiter) CutAt(slug string) (time.Time, bool) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	entry, ok := l.armed[callID]
-	return entry.deadline, ok
+	at, ok := l.cuts[slug]
+	return at, ok
 }
 
 // evaluate brings one call's timer in line with the database and the plan:
 // no timer for a call that ended, was superseded or is unlimited, a timer
-// for a deadline still ahead, and the end of the room for one that passed.
-// The plan is read again every time, so an owner who upgrades mid-call is
-// not cut off at the old deadline.
+// for a deadline still ahead, and the end of the session for one that
+// passed. The plan is read again every time, so an owner who upgrades
+// mid-call is not cut off at the old deadline.
 func (l *Limiter) evaluate(ctx context.Context, callID uuid.UUID) {
+	key, retry := callKey(callID), func(ctx context.Context) { l.evaluate(ctx, callID) }
 	call, room, err := l.liveCall(ctx, callID)
 	if err != nil {
 		l.logger.Warn("call limit: call lookup failed", slog.Any("error", err))
-		l.schedule(callID, l.now().Add(retryDelay))
+		l.schedule(key, l.now().Add(retryDelay), retry)
 		return
 	}
-	deadline, limited := time.Time{}, false
-	if call != nil {
-		deadline, limited = l.deadlineOf(ctx, *call, *room)
+	if call == nil {
+		l.disarm(key)
+		return
 	}
-	switch {
-	case !limited:
-		l.disarm(callID)
-	case deadline.After(l.now()):
-		l.schedule(callID, deadline)
-	default:
-		l.end(ctx, callID, room.Slug)
-	}
-}
-
-// deadlineOf is the call's deadline under its room's current policy.
-func (l *Limiter) deadlineOf(ctx context.Context, call schemas.Call, room schemas.Room) (time.Time, bool) {
-	policy, err := l.plans.ForRoom(ctx, room)
+	policy, err := l.plans.ForRoom(ctx, *room)
 	if err != nil {
-		l.logger.Warn("call limit: plan lookup failed, retrying", slog.Any("error", err))
-		return l.now().Add(retryDelay), true
-	}
-	return l.plans.Deadline(policy, call.StartedAt)
-}
-
-// end closes the room, and tries again later when LiveKit could not be
-// reached. A room LiveKit no longer knows is already over.
-func (l *Limiter) end(ctx context.Context, callID uuid.UUID, slug string) {
-	err := l.ender.EndRoom(ctx, slug)
-	if err == nil || errors.Is(err, media.ErrNotFound) {
-		l.logger.Info("call limit: call ended at its plan deadline", slog.String("room", slug))
-		l.disarm(callID)
+		l.schedule(key, l.now().Add(retryDelay), retry)
 		return
 	}
-	l.logger.Warn("call limit: ending the room failed, retrying", slog.String("room", slug), slog.Any("error", err))
-	l.schedule(callID, l.now().Add(retryDelay))
+	deadline, limited := l.plans.Deadline(policy, call.StartedAt)
+	l.settle(ctx, key, session{slug: room.Slug, sid: call.LivekitRoomSID, deadline: deadline, limited: limited}, retry)
 }

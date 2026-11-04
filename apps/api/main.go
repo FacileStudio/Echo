@@ -104,7 +104,7 @@ func run() int {
 	router.Route("/api", func(r chi.Router) {
 		r.Use(extendWriteDeadline("/summary", summaryWriteBudget))
 		authKit.Mount(r, cfg.Porte.SSOOnly)
-		roomsService := rooms.NewService(db, mediaService, planning.plans)
+		roomsService := rooms.NewService(db, mediaService, planning.plans, planning.limiter)
 		rooms.RegisterRoutes(r, roomsService, authKit.service, authKit.requireAuth)
 		recording.RegisterRoutes(r, recording.NewRecording(roomsService, mediaService), authKit.requireAuth)
 		historyService := history.NewService(db, roomsService, summarize.NewFromEnv(), cfg.RecordingsDir)
@@ -114,7 +114,7 @@ func run() int {
 	})
 
 	go sweepSessions(shutdown, authKit.sessions, log)
-	go planning.Run(shutdown)
+	go planning.Run(shutdown, log)
 
 	// SPA catch-all must stay LAST — anything registered after it is unreachable.
 	clientDir := spa.DirFromEnv()

@@ -5,6 +5,7 @@ import (
 	stderrors "errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/FacileStudio/Echo/apps/api/internal/media"
 	"github.com/FacileStudio/Echo/apps/api/internal/plans"
@@ -26,18 +27,38 @@ func ValidSlug(slug string) bool {
 }
 
 // Service owns room persistence and mints join tokens through the media
-// service.
+// service, under the room owner's plan.
 type Service struct {
 	orm       *gorm.DB
 	media     *media.Service
 	plans     *plans.Plans
-	provision func(ctx context.Context, slug string, settings media.RoomSettings) error
+	live      LiveRooms
+	deadlines Deadlines
+	ledger    *ledger
+	now       func() time.Time
 }
 
-// NewService builds a Service over the given database, media service and the
-// plans that cap who may join.
-func NewService(orm *gorm.DB, media *media.Service, plans *plans.Plans) *Service {
-	return &Service{orm: orm, media: media, plans: plans, provision: media.EnsureRoom}
+// LiveRooms is the part of LiveKit a join needs: creating the room with its
+// ceiling, and listing who is connected.
+type LiveRooms interface {
+	EnsureRoom(ctx context.Context, roomName string, settings media.RoomSettings) (media.LiveRoom, error)
+	Participants(ctx context.Context, roomName string) ([]string, error)
+}
+
+// Deadlines arms a session's deadline before any webhook recorded the call,
+// and reports when a room was last cut at its deadline.
+type Deadlines interface {
+	ArmRoom(slug string, deadline time.Time)
+	CutAt(slug string) (time.Time, bool)
+}
+
+// NewService builds a Service over the database, the media service, the
+// plans that cap who may join and the deadlines that end limited calls.
+func NewService(orm *gorm.DB, mediaService *media.Service, planSet *plans.Plans, deadlines Deadlines) *Service {
+	return &Service{
+		orm: orm, media: mediaService, plans: planSet, live: mediaService, deadlines: deadlines,
+		ledger: newLedger(media.TokenTTL, time.Now), now: time.Now,
+	}
 }
 
 func (s *Service) Create(ctx context.Context, slug, name string, ownerID *int64) (*schemas.Room, error) {

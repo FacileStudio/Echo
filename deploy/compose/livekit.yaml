@@ -19,6 +19,11 @@
 # change: it needs a two-browser test from behind symmetric NAT, which is
 # exactly what those settings exist for.
 port: 7880
+# Echo's API creates every room itself, with the participant ceiling of the
+# owner's plan, before it mints a join token. With auto_create on, a token
+# minted while a room is closed would make LiveKit create it again, uncapped.
+room:
+  auto_create: false
 keys:
   APIxxxxxxxxxxxx: SECRETxxxxxxxxxxxx
 webhook:

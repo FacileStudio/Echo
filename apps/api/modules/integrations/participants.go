@@ -5,11 +5,13 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"log/slog"
 	"strings"
 	"time"
 
 	"github.com/FacileStudio/Echo/apps/api/internal/media"
 	"github.com/FacileStudio/Echo/apps/api/schemas"
+	troncerrors "github.com/FacileStudio/tronc/errors"
 )
 
 // tokenTTL bounds how long a minted token can open a connection. LiveKit
@@ -46,6 +48,10 @@ func (s *Service) Token(ctx context.Context, app, roomID string, req TokenReques
 	metadata, err := participantMetadata(req.AvatarURL)
 	if err != nil {
 		return "", err
+	}
+	if _, err := s.rooms.EnsureRoom(ctx, room.Slug, media.RoomSettings{}); err != nil {
+		slog.Warn("livekit room provisioning failed", slog.String("room", room.Slug), slog.Any("error", err))
+		return "", troncerrors.Unavailable("the call service is unavailable, try again shortly")
 	}
 	return s.media.IssueFor(room.Slug, media.Participant{
 		Identity: identity,

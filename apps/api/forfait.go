@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/FacileStudio/Echo/apps/api/internal/calllimit"
 	"github.com/FacileStudio/Echo/apps/api/internal/env"
@@ -60,9 +61,32 @@ func (k *planKit) Mount(router chi.Router) {
 	}
 }
 
-// Run pulls Registre's snapshot until ctx ends.
-func (k *planKit) Run(ctx context.Context) {
+// reconcileEvery is how often open calls are compared with LiveKit's rooms.
+const reconcileEvery = 5 * time.Minute
+
+// Run pulls Registre's snapshot and reconciles calls with LiveKit until ctx
+// ends.
+func (k *planKit) Run(ctx context.Context, log *slog.Logger) {
+	go k.reconcile(ctx, log)
 	if k.syncer != nil {
 		k.syncer.Run(ctx)
+	}
+}
+
+// reconcile runs the limiter's reconcile at boot and then periodically, so
+// sessions no webhook reported still get their deadline and call rows a lost
+// room_finished left open get closed.
+func (k *planKit) reconcile(ctx context.Context, log *slog.Logger) {
+	ticker := time.NewTicker(reconcileEvery)
+	defer ticker.Stop()
+	for {
+		if err := k.limiter.Reconcile(ctx); err != nil && ctx.Err() == nil {
+			log.Warn("call limit: reconcile with livekit failed", slog.Any("error", err))
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+		}
 	}
 }

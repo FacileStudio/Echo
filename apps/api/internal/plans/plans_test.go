@@ -92,7 +92,7 @@ func TestEntitlementsSurviveARestart(t *testing.T) {
 	}
 }
 
-func TestACorruptRowKeepsTheStoreFailingOpen(t *testing.T) {
+func TestACorruptRowFailsClosedUntilTheNextSnapshot(t *testing.T) {
 	db := testdb.Migrated(t)
 	if err := db.Create(&schemas.ForfaitState{ID: schemas.ForfaitStateID, Document: `{"version":9}`}).Error; err != nil {
 		t.Fatalf("seed: %v", err)
@@ -101,8 +101,14 @@ func TestACorruptRowKeepsTheStoreFailingOpen(t *testing.T) {
 	if err := p.Load(context.Background()); err != nil {
 		t.Fatalf("a corrupt row refused the boot: %v", err)
 	}
-	if !p.store.Enabled(forfait.Scope{}, KeyRecording) {
-		t.Fatal("a corrupt row was applied")
+	if p.store.Enabled(forfait.Scope{}, KeyRecording) || p.store.Limit(forfait.Scope{}, KeyMaxParticipants) != 4 {
+		t.Fatal("a corrupt row failed open instead of enforcing the free defaults")
+	}
+	if err := p.Apply(context.Background(), proSnapshot()); err != nil {
+		t.Fatalf("apply: %v", err)
+	}
+	if got := p.store.Limit(forfait.Scope{Subject: "sub-pro"}, KeyMaxParticipants); got != 25 {
+		t.Fatalf("a fresh snapshot after a corrupt row reads %d, want 25", got)
 	}
 }
 

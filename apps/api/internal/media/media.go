@@ -8,7 +8,11 @@ import (
 	"github.com/livekit/protocol/auth"
 )
 
-const tokenTTL = 6 * time.Hour
+// TokenTTL bounds how long a join token can open a connection. LiveKit
+// refreshes the token of a connected client by itself, so a short lifetime
+// costs nothing in a long call, and a token minted past a plan check cannot
+// be hoarded to join later.
+const TokenTTL = 10 * time.Minute
 
 // Grant is the LiveKit permission set issued with a join token.
 type Grant struct {
@@ -44,7 +48,7 @@ func NewServiceFromEnv() (*Service, error) {
 }
 
 // Participant is who a join token is for and how long it can open a
-// connection. A zero TTL means the default six hours.
+// connection. A zero TTL means TokenTTL.
 type Participant struct {
 	Identity string
 	Name     string
@@ -70,7 +74,7 @@ func (s *Service) IssueFor(room string, who Participant, grant Grant) (string, e
 
 	ttl := who.TTL
 	if ttl <= 0 {
-		ttl = tokenTTL
+		ttl = TokenTTL
 	}
 	token := auth.NewAccessToken(s.apiKey, s.apiSecret).
 		SetIdentity(who.Identity).
