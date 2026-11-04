@@ -127,7 +127,13 @@ func (p *Plans) Require(policy Policy, key string) error {
 	if policy.Unlimited || p.store.Enabled(policy.Scope, key) {
 		return nil
 	}
-	refusal := &forfait.LimitError{Key: key}
+	return p.Refusal(policy, key, 0)
+}
+
+// Refusal is the *forfait.LimitError for key at limit, with the upgrade link
+// of the policy's scope.
+func (p *Plans) Refusal(policy Policy, key string, limit int64) error {
+	refusal := &forfait.LimitError{Key: key, Limit: limit}
 	if p.issuer != "" {
 		refusal.UpgradeURL = forfait.UpgradeURL(p.issuer, policy.Scope.SpaceID)
 	}

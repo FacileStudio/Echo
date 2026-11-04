@@ -38,7 +38,7 @@ func newTestService(t *testing.T, recordingsDir string) (*Service, *gorm.DB) {
 		t.Fatalf("media service: %v", err)
 	}
 	db := testdb.Migrated(t)
-	return NewService(db, rooms.NewService(db, mediaService, plans.New(db, "", nil)), nil, recordingsDir), db
+	return NewService(db, rooms.NewService(db, mediaService, plans.New(db, "", nil), nil), nil, recordingsDir), db
 }
 
 func seedCall(t *testing.T, db *gorm.DB, ownerID *int64, recordingPath string) schemas.Call {

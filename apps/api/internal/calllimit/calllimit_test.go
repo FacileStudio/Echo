@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/FacileStudio/Echo/apps/api/internal/media"
 	"github.com/FacileStudio/Echo/apps/api/internal/plans"
 	"github.com/FacileStudio/Echo/apps/api/internal/testdb"
 	"github.com/FacileStudio/Echo/apps/api/schemas"
@@ -15,18 +16,43 @@ import (
 	"gorm.io/gorm"
 )
 
-type fakeEnder struct {
+type fakeLive struct {
 	mu    sync.Mutex
-	ended []string
-	done  chan struct{}
+	rooms []media.LiveRoom
+	ended chan string
 }
 
-func (f *fakeEnder) EndRoom(_ context.Context, room string) error {
-	f.mu.Lock()
-	f.ended = append(f.ended, room)
-	f.mu.Unlock()
-	f.done <- struct{}{}
+func newFakeLive(rooms ...media.LiveRoom) *fakeLive {
+	return &fakeLive{rooms: rooms, ended: make(chan string, 8)}
+}
+
+func (f *fakeLive) EndRoom(_ context.Context, room string) error {
+	f.ended <- room
 	return nil
+}
+
+func (f *fakeLive) Rooms(_ context.Context, names ...string) ([]media.LiveRoom, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	out := []media.LiveRoom{}
+	for _, room := range f.rooms {
+		if len(names) == 0 || names[0] == room.Name {
+			out = append(out, room)
+		}
+	}
+	return out, nil
+}
+
+func (f *fakeLive) waitEnded(t *testing.T, want string) {
+	t.Helper()
+	select {
+	case got := <-f.ended:
+		if got != want {
+			t.Fatalf("ended %q, want %q", got, want)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatalf("%s was not ended", want)
+	}
 }
 
 func freePlans(t *testing.T, db *gorm.DB) *plans.Plans {
@@ -38,12 +64,18 @@ func freePlans(t *testing.T, db *gorm.DB) *plans.Plans {
 	return p
 }
 
-func openCall(t *testing.T, db *gorm.DB, slug string, startedAt time.Time) schemas.Call {
+func addRoom(t *testing.T, db *gorm.DB, slug string) schemas.Room {
 	t.Helper()
 	room := schemas.Room{ID: uuid.New(), Slug: slug, Name: slug}
 	if err := db.Create(&room).Error; err != nil {
 		t.Fatalf("room: %v", err)
 	}
+	return room
+}
+
+func openCall(t *testing.T, db *gorm.DB, slug string, startedAt time.Time) schemas.Call {
+	t.Helper()
+	room := addRoom(t, db, slug)
 	call := schemas.Call{ID: uuid.New(), RoomID: room.ID, StartedAt: startedAt.Truncate(time.Second).UTC(),
 		LivekitRoomName: slug, LivekitRoomSID: "RM_" + slug}
 	if err := db.Create(&call).Error; err != nil {
@@ -55,7 +87,7 @@ func openCall(t *testing.T, db *gorm.DB, slug string, startedAt time.Time) schem
 func TestARestartReArmsTheDeadlineFromStartedAt(t *testing.T) {
 	db := testdb.Migrated(t)
 	call := openCall(t, db, "running", time.Now().Add(-15*time.Minute))
-	limiter := New(context.Background(), db, freePlans(t, db), &fakeEnder{done: make(chan struct{}, 1)}, nil)
+	limiter := New(context.Background(), db, freePlans(t, db), newFakeLive(), nil)
 	if err := limiter.Rearm(context.Background()); err != nil {
 		t.Fatalf("rearm: %v", err)
 	}
@@ -75,25 +107,32 @@ func TestARestartReArmsTheDeadlineFromStartedAt(t *testing.T) {
 func TestAnOverdueCallIsEnded(t *testing.T) {
 	db := testdb.Migrated(t)
 	openCall(t, db, "overdue", time.Now().Add(-time.Hour))
-	ender := &fakeEnder{done: make(chan struct{}, 1)}
-	limiter := New(context.Background(), db, freePlans(t, db), ender, nil)
+	live := newFakeLive(media.LiveRoom{Name: "overdue", SID: "RM_overdue"})
+	limiter := New(context.Background(), db, freePlans(t, db), live, nil)
 	if err := limiter.Rearm(context.Background()); err != nil {
 		t.Fatalf("rearm: %v", err)
 	}
-	select {
-	case <-ender.done:
-	case <-time.After(5 * time.Second):
-		t.Fatal("an overdue call was not ended")
+	live.waitEnded(t, "overdue")
+	if _, cut := limiter.CutAt("overdue"); !cut {
+		t.Fatal("the cut was not remembered for the cooldown")
 	}
-	if ender.ended[0] != "overdue" {
-		t.Fatalf("ended %v", ender.ended)
+}
+
+func TestAStaleCallRowNeverEndsTheNewerSession(t *testing.T) {
+	db := testdb.Migrated(t)
+	call := openCall(t, db, "reused", time.Now().Add(-time.Hour))
+	live := newFakeLive(media.LiveRoom{Name: "reused", SID: "RM_newer", CreatedAt: time.Now()})
+	limiter := New(context.Background(), db, freePlans(t, db), live, nil)
+	limiter.evaluate(context.Background(), call.ID)
+	if len(live.ended) != 0 {
+		t.Fatal("a call row LiveKit no longer runs ended the newer session of its room")
 	}
 }
 
 func TestNoTimerBeforeTheFirstSnapshotOrForASupersededCall(t *testing.T) {
 	db := testdb.Migrated(t)
 	stale := openCall(t, db, "stale", time.Now().Add(-2*time.Hour))
-	unsynced := New(context.Background(), db, plans.New(db, "", nil), &fakeEnder{}, nil)
+	unsynced := New(context.Background(), db, plans.New(db, "", nil), newFakeLive(), nil)
 	if err := unsynced.Rearm(context.Background()); err != nil {
 		t.Fatalf("rearm: %v", err)
 	}
@@ -105,10 +144,10 @@ func TestNoTimerBeforeTheFirstSnapshotOrForASupersededCall(t *testing.T) {
 	if err := db.Create(&newer).Error; err != nil {
 		t.Fatalf("newer call: %v", err)
 	}
-	ender := &fakeEnder{done: make(chan struct{}, 1)}
-	limiter := New(context.Background(), db, freePlans(t, db), ender, nil)
+	live := newFakeLive()
+	limiter := New(context.Background(), db, freePlans(t, db), live, nil)
 	limiter.Notify(context.Background(), &livekit.WebhookEvent{Event: "room_started", Room: &livekit.Room{Sid: "RM_stale"}})
-	if _, ok := limiter.Deadline(stale.ID); ok || len(ender.ended) != 0 {
+	if _, ok := limiter.Deadline(stale.ID); ok || len(live.ended) != 0 {
 		t.Fatal("a superseded call was armed or ended, which would cut the newer meeting")
 	}
 }

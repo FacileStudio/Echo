@@ -28,6 +28,7 @@ type harness struct {
 	db      *gorm.DB
 	router  chi.Router
 	service *Service
+	rooms   *fakeRooms
 }
 
 func newMedia(t *testing.T) *media.Service {
@@ -45,9 +46,11 @@ func newMedia(t *testing.T) *media.Service {
 func newHarnessOn(t *testing.T, db *gorm.DB) *harness {
 	t.Helper()
 	service := NewService(db, newMedia(t), testKeys)
+	rooms := &fakeRooms{}
+	service.rooms = rooms
 	router := chi.NewRouter()
 	RegisterRoutes(router, service)
-	return &harness{t: t, db: db, router: router, service: service}
+	return &harness{t: t, db: db, router: router, service: service, rooms: rooms}
 }
 
 func newHarness(t *testing.T) *harness {

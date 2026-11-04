@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"github.com/livekit/protocol/auth"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 const egressRequestTimeout = 10 * time.Second
@@ -151,6 +153,9 @@ func decodeTwirp(resp *http.Response, method string, out any) error {
 	}
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("livekit %s failed (status %d)", method, resp.StatusCode)
+	}
+	if message, ok := out.(proto.Message); ok {
+		return protojson.UnmarshalOptions{DiscardUnknown: true}.Unmarshal(data, message)
 	}
 	if out == nil {
 		return nil

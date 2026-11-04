@@ -20,13 +20,20 @@ import (
 type Service struct {
 	orm   *gorm.DB
 	media *media.Service
+	rooms roomCreator
 	keys  Keys
+}
+
+// roomCreator creates the LiveKit room before a token for it is minted.
+// LiveKit's room.auto_create is off in Echo's deployment.
+type roomCreator interface {
+	EnsureRoom(ctx context.Context, roomName string, settings media.RoomSettings) (media.LiveRoom, error)
 }
 
 // NewService builds a Service over the database, the media service and the
 // integrated apps' secrets.
 func NewService(orm *gorm.DB, media *media.Service, keys Keys) *Service {
-	return &Service{orm: orm, media: media, keys: keys}
+	return &Service{orm: orm, media: media, rooms: media, keys: keys}
 }
 
 // Ensure returns the app's room for externalID, creating it on first use.

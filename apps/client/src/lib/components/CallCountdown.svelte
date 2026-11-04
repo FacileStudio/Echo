@@ -32,7 +32,8 @@
 		<Badge tone={remaining <= warnBeforeMs ? 'warning' : 'neutral'}>Call ends in {label}</Badge>
 		{#if remaining <= warnBeforeMs}
 			<Alert tone="warning" title="This call ends soon">
-				The host's plan limits call length. The call closes for everyone in {label}.
+				The host's plan limits each call's length. The call closes for everyone in {label}, and a new
+				call can start in this room 2 minutes later.
 			</Alert>
 		{/if}
 	</div>

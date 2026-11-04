@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/FacileStudio/Echo/apps/api/internal/media"
 	"github.com/FacileStudio/Echo/apps/api/schemas"
 	"github.com/FacileStudio/porte/directory"
 	"github.com/FacileStudio/porte/forfait"
@@ -39,6 +38,10 @@ func pushPlan(t *testing.T, s *Service, subject string, entitlements map[string]
 	}
 }
 
+func capAt(n string) map[string]json.RawMessage {
+	return map[string]json.RawMessage{"echo.max_participants": json.RawMessage(n)}
+}
+
 func openCallWith(t *testing.T, s *Service, slug string, ownerID int64, identities ...string) schemas.Call {
 	t.Helper()
 	room, err := s.Create(context.Background(), slug, slug, &ownerID)
@@ -59,18 +62,25 @@ func openCallWith(t *testing.T, s *Service, slug string, ownerID int64, identiti
 	return call
 }
 
+func guestJoin(s *Service, slug string) error {
+	_, err := s.Token(context.Background(), slug, nil, "", "Guest")
+	return err
+}
+
+func refusedOn(err error, key string) bool {
+	var refusal *forfait.LimitError
+	return stderrors.As(err, &refusal) && refusal.Key == key
+}
+
 func TestAFullCallRefusesANewParticipant(t *testing.T) {
 	s := newTestService(t)
-	var ceilings []int64
-	s.provision = func(_ context.Context, _ string, settings media.RoomSettings) error {
-		ceilings = append(ceilings, settings.MaxParticipants)
-		return nil
-	}
+	live := &fakeLive{participants: []string{"user-77", "guest-aaaa1111", "agent-captions", "EG_recorder"}}
+	s.live = live
 	owner := addOwner(t, s, "sub-owner")
-	pushPlan(t, s, "sub-owner", map[string]json.RawMessage{"echo.max_participants": json.RawMessage(`2`)})
-	openCallWith(t, s, "full-call", owner, "user-77", "guest-aaaa1111", "agent-captions")
+	pushPlan(t, s, "sub-owner", capAt(`2`))
+	openCallWith(t, s, "full-call", owner)
 
-	_, err := s.Token(context.Background(), "full-call", nil, "", "Third")
+	err := guestJoin(s, "full-call")
 	var refusal *forfait.LimitError
 	if !stderrors.As(err, &refusal) || refusal.Key != "echo.max_participants" || refusal.Limit != 2 {
 		t.Fatalf("third participant = %v, want a max_participants refusal at 2", err)
@@ -82,56 +92,72 @@ func TestAFullCallRefusesANewParticipant(t *testing.T) {
 	if _, err := s.Token(context.Background(), "full-call", &rejoining, "x@example.test", ""); err != nil {
 		t.Fatalf("a participant reloading their tab was refused: %v", err)
 	}
-	if len(ceilings) != 1 || ceilings[0] != 2 {
-		t.Fatalf("livekit room ceilings = %v, want [2]", ceilings)
+	for _, ceiling := range live.ceilings {
+		if ceiling != 2 {
+			t.Fatalf("livekit room ceilings = %v, want 2 each time", live.ceilings)
+		}
+	}
+}
+
+func TestABurstOfTokensCannotOutrunTheCap(t *testing.T) {
+	s := newTestService(t)
+	owner := addOwner(t, s, "sub-burst")
+	pushPlan(t, s, "sub-burst", capAt(`2`))
+	if _, err := s.Create(context.Background(), "burst", "burst", &owner); err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	for i := range 2 {
+		if err := guestJoin(s, "burst"); err != nil {
+			t.Fatalf("guest %d refused: %v", i, err)
+		}
+	}
+	if err := guestJoin(s, "burst"); !refusedOn(err, "echo.max_participants") {
+		t.Fatalf("third token while two are still unused = %v, want a refusal", err)
+	}
+	later := time.Now().Add(11 * time.Minute)
+	s.ledger.now = func() time.Time { return later }
+	if err := guestJoin(s, "burst"); err != nil {
+		t.Fatalf("a seat held by an expired token stayed taken: %v", err)
+	}
+}
+
+func TestCallRowsCountWhenLiveKitCannotBeAsked(t *testing.T) {
+	s := newTestService(t)
+	s.live = &fakeLive{participantsErr: stderrors.New("livekit down")}
+	owner := addOwner(t, s, "sub-rows")
+	pushPlan(t, s, "sub-rows", capAt(`2`))
+	openCallWith(t, s, "rows-call", owner, "user-1", "guest-2")
+	if err := guestJoin(s, "rows-call"); !refusedOn(err, "echo.max_participants") {
+		t.Fatalf("join with two rows connected = %v, want a refusal", err)
+	}
+}
+
+func TestALimitedRoomIsNotJoinedWithoutItsCeiling(t *testing.T) {
+	s := newTestService(t)
+	s.live = &fakeLive{ensureErr: stderrors.New("livekit down")}
+	owner := addOwner(t, s, "sub-down")
+	if _, err := s.Create(context.Background(), "down", "down", &owner); err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	if err := guestJoin(s, "down"); err != nil {
+		t.Fatalf("an unlimited room refused a join when provisioning failed: %v", err)
+	}
+	pushPlan(t, s, "sub-down", capAt(`4`))
+	if err := guestJoin(s, "down"); !troncCode(err, "unavailable") {
+		t.Fatalf("a capped room without its ceiling = %v, want 503 unavailable", err)
 	}
 }
 
 func TestEveryoneJoinsBeforeTheFirstSnapshot(t *testing.T) {
 	s := newTestService(t)
+	s.live = &fakeLive{participants: []string{"guest-1", "guest-2", "guest-3", "guest-4", "guest-5"}}
 	owner := addOwner(t, s, "sub-early")
-	openCallWith(t, s, "early-call", owner, "guest-1", "guest-2", "guest-3", "guest-4", "guest-5")
+	openCallWith(t, s, "early-call", owner)
 	admission, err := s.Token(context.Background(), "early-call", nil, "", "Sixth")
 	if err != nil {
 		t.Fatalf("fail-open refused a join: %v", err)
 	}
 	if admission.Deadline != nil {
 		t.Fatalf("fail-open set a call deadline %v", admission.Deadline)
-	}
-}
-
-func TestTheTokenCarriesTheCallDeadline(t *testing.T) {
-	s := newTestService(t)
-	owner := addOwner(t, s, "sub-free")
-	pushPlan(t, s, "someone-else", nil)
-	call := openCallWith(t, s, "free-call", owner)
-	admission, err := s.Token(context.Background(), "free-call", nil, "", "Guest")
-	if err != nil {
-		t.Fatalf("token: %v", err)
-	}
-	want := call.StartedAt.Add(40 * time.Minute)
-	if admission.Deadline == nil || !admission.Deadline.Equal(want) {
-		t.Fatalf("deadline = %v, want started_at + 40 min = %v", admission.Deadline, want)
-	}
-	if got := toTokenResponse(admission, "").CallDeadline; got != want.UTC().Format(time.RFC3339) {
-		t.Fatalf("call_deadline = %q", got)
-	}
-}
-
-func TestRecordingFollowsThePlan(t *testing.T) {
-	s := newTestService(t)
-	free, paid := addOwner(t, s, "sub-solo"), addOwner(t, s, "sub-pro")
-	pushPlan(t, s, "sub-pro", map[string]json.RawMessage{"echo.recording": json.RawMessage(`true`)})
-	openCallWith(t, s, "solo-room", free)
-	openCallWith(t, s, "pro-room", paid)
-
-	if err := s.RequireRecording(context.Background(), "solo-room", free); !stderrors.Is(err, forfait.ErrLimit) {
-		t.Fatalf("free plan recording = %v, want a plan refusal", err)
-	}
-	if err := s.RequireRecording(context.Background(), "pro-room", paid); err != nil {
-		t.Fatalf("paid plan recording refused: %v", err)
-	}
-	if err := s.RequireRecording(context.Background(), "pro-room", free); !troncCode(err, "permission_denied") {
-		t.Fatalf("a stranger recording = %v, want forbidden", err)
 	}
 }

@@ -55,10 +55,16 @@ func (p *Plans) Apply(ctx context.Context, snapshot directory.Snapshot) error {
 	}).Create(&row).Error
 }
 
+// failClosed is an export with an entitlements revision and no scope, which
+// makes every feature read its free default. The next real snapshot, whose
+// revision is at least 1, replaces it.
+const failClosed = `{"version":1,"snapshot_version":0,"entitlements_revision":1,"spaces":{},"people":{}}`
+
 // Load restores the persisted entitlements at boot, before the first pull.
-// No row means Echo never received entitlements and keeps failing open. A
-// row forfait refuses is logged and leaves the store failing open until the
-// next snapshot, rather than refusing to boot.
+// No row means Echo never received entitlements and keeps failing open. A row
+// forfait refuses means entitlements were known once and are now unreadable,
+// so the store fails closed on the free defaults until a fresh snapshot,
+// rather than handing every owner unlimited calls or refusing to boot.
 func (p *Plans) Load(ctx context.Context) error {
 	var row schemas.ForfaitState
 	err := p.orm.WithContext(ctx).Where("id = ?", schemas.ForfaitStateID).First(&row).Error
@@ -69,7 +75,9 @@ func (p *Plans) Load(ctx context.Context) error {
 		return err
 	}
 	if err := p.store.Import([]byte(row.Document)); err != nil {
-		p.logger.Warn("forfait: persisted entitlements refused, waiting for the next snapshot", slog.Any("error", err))
+		p.logger.Warn("forfait: persisted entitlements refused, enforcing the free defaults until the next snapshot",
+			slog.Any("error", err))
+		return p.store.Import([]byte(failClosed))
 	}
 	return nil
 }

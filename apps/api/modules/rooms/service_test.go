@@ -17,14 +17,14 @@ func newTestService(t *testing.T) *Service {
 	t.Helper()
 	t.Setenv("LIVEKIT_API_KEY", "devkey")
 	t.Setenv("LIVEKIT_API_SECRET", "secret")
-	t.Setenv("LIVEKIT_URL", "ws://localhost:7880")
+	t.Setenv("LIVEKIT_URL", "ws://livekit.invalid")
 	m, err := media.NewServiceFromEnv()
 	if err != nil {
 		t.Fatalf("media service: %v", err)
 	}
 	db := testdb.Migrated(t)
-	s := NewService(db, m, plans.New(db, testIssuer, nil))
-	s.provision = func(context.Context, string, media.RoomSettings) error { return nil }
+	s := NewService(db, m, plans.New(db, testIssuer, nil), &fakeDeadlines{})
+	s.live = &fakeLive{}
 	return s
 }
 
