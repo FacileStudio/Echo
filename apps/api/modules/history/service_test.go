@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/FacileStudio/Echo/apps/api/internal/media"
+	"github.com/FacileStudio/Echo/apps/api/internal/plans"
 	"github.com/FacileStudio/Echo/apps/api/internal/testdb"
 	"github.com/FacileStudio/Echo/apps/api/modules/rooms"
 	"github.com/FacileStudio/Echo/apps/api/schemas"
@@ -37,7 +38,7 @@ func newTestService(t *testing.T, recordingsDir string) (*Service, *gorm.DB) {
 		t.Fatalf("media service: %v", err)
 	}
 	db := testdb.Migrated(t)
-	return NewService(db, rooms.NewService(db, mediaService), nil, recordingsDir), db
+	return NewService(db, rooms.NewService(db, mediaService, plans.New(db, "", nil)), nil, recordingsDir), db
 }
 
 func seedCall(t *testing.T, db *gorm.DB, ownerID *int64, recordingPath string) schemas.Call {

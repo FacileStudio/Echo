@@ -5,6 +5,7 @@ import (
 
 	"github.com/FacileStudio/Echo/apps/api/internal/authcontext"
 	"github.com/FacileStudio/Echo/apps/api/internal/media"
+	"github.com/FacileStudio/Echo/apps/api/internal/plans"
 	"github.com/FacileStudio/tronc/errors"
 	"github.com/FacileStudio/tronc/httpjson"
 	"github.com/go-chi/chi/v5"
@@ -34,7 +35,7 @@ func (h handler) start(w http.ResponseWriter, r *http.Request) {
 	}
 	info, err := h.recording.Start(r.Context(), chi.URLParam(r, "slug"), identity.UserID)
 	if err != nil {
-		httpjson.WriteError(w, err)
+		plans.WriteError(w, err)
 		return
 	}
 	httpjson.WriteJSON(w, http.StatusOK, toResponse(info))

@@ -4,6 +4,8 @@ go 1.26
 
 require (
 	github.com/FacileStudio/porte v0.5.2
+	github.com/FacileStudio/porte/directory v0.2.0
+	github.com/FacileStudio/porte/forfait v0.1.0
 	github.com/FacileStudio/tronc v0.10.1
 	github.com/go-chi/chi/v5 v5.3.1
 	github.com/google/uuid v1.6.0

@@ -1,5 +1,7 @@
 package rooms
 
+import "time"
+
 // CreateRequest is the body of POST /rooms.
 type CreateRequest struct {
 	Slug string `json:"slug"`
@@ -27,9 +29,19 @@ type RoomResponse struct {
 }
 
 // TokenResponse carries the LiveKit token, the server URL to connect to and
-// the room joined.
+// the room joined. CallDeadline is when the server ends the call under the
+// owner's plan, RFC 3339 in UTC, and absent when call length is unlimited.
 type TokenResponse struct {
-	Token string       `json:"token"`
-	URL   string       `json:"url"`
-	Room  RoomResponse `json:"room"`
+	Token        string       `json:"token"`
+	URL          string       `json:"url"`
+	Room         RoomResponse `json:"room"`
+	CallDeadline string       `json:"call_deadline,omitempty"`
+}
+
+func toTokenResponse(admission Admission, url string) TokenResponse {
+	response := TokenResponse{Token: admission.Token, URL: url}
+	if admission.Deadline != nil {
+		response.CallDeadline = admission.Deadline.UTC().Format(time.RFC3339)
+	}
+	return response
 }

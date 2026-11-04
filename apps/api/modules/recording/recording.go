@@ -28,38 +28,52 @@ func NewRecording(roomService *rooms.Service, mediaService *media.Service) *Reco
 
 var errNotRecording = troncerrors.Conflict("no recording is running for this room")
 
-// Start begins recording the room. Only the owner may record.
+// Start begins recording the room. Only the owner may record, and only when
+// the owner's plan includes recording.
 func (rec *Recording) Start(ctx context.Context, slug string, callerID int64) (media.EgressInfo, error) {
-	if err := rec.rooms.RequireOwner(ctx, slug, callerID); err != nil {
+	if err := rec.rooms.RequireRecording(ctx, slug, callerID); err != nil {
 		return media.EgressInfo{}, err
 	}
-	rec.mu.Lock()
-	if _, busy := rec.active[slug]; busy {
-		rec.mu.Unlock()
-		return media.EgressInfo{}, troncerrors.Conflict("room is already being recorded")
-	}
-	rec.active[slug] = ""
-	rec.mu.Unlock()
-
-	release := func() {
-		rec.mu.Lock()
-		delete(rec.active, slug)
-		rec.mu.Unlock()
+	if err := rec.reserve(slug); err != nil {
+		return media.EgressInfo{}, err
 	}
 	info, err := rec.media.StartRecording(ctx, slug)
 	if err != nil {
-		release()
+		rec.release(slug)
 		return media.EgressInfo{}, err
 	}
+	return rec.settle(slug, info), nil
+}
+
+// reserve marks a start in flight for the room, refusing a second one.
+func (rec *Recording) reserve(slug string) error {
 	rec.mu.Lock()
+	defer rec.mu.Unlock()
+	if _, busy := rec.active[slug]; busy {
+		return troncerrors.Conflict("room is already being recorded")
+	}
+	rec.active[slug] = ""
+	return nil
+}
+
+// release drops a reservation whose start failed.
+func (rec *Recording) release(slug string) {
+	rec.mu.Lock()
+	delete(rec.active, slug)
+	rec.mu.Unlock()
+}
+
+// settle records the started egress, unless a stop raced the start and
+// already asked for it to end.
+func (rec *Recording) settle(slug string, info media.EgressInfo) media.EgressInfo {
+	rec.mu.Lock()
+	defer rec.mu.Unlock()
 	if rec.stopped[info.EgressID] {
 		delete(rec.active, slug)
-		rec.mu.Unlock()
-		return media.EgressInfo{}, nil
+		return media.EgressInfo{}
 	}
 	rec.active[slug] = info.EgressID
-	rec.mu.Unlock()
-	return info, nil
+	return info
 }
 
 // Stop ends the room's active recording.

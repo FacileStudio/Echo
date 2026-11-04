@@ -80,6 +80,12 @@ func run() int {
 		return 1
 	}
 
+	planning, err := setupPlans(shutdown, cfg, db, mediaService, log)
+	if err != nil {
+		log.Error("plans", slog.Any("error", err))
+		return 1
+	}
+
 	router := httpx.NewRouter(httpx.Config{
 		Logger: log,
 		CORS: troncmiddleware.CORSConfig{
@@ -92,11 +98,13 @@ func run() int {
 	integrationKeys := integrations.NewKeys(cfg.IntegrationKeys)
 	webhooks.New(db, troncenv.String("LIVEKIT_API_KEY", ""), mediaService.Secret()).
 		NotifyWith(integrations.NewForwarder(db, integrationKeys, log)).
+		NotifyWith(planning.limiter).
 		RegisterRoutes(router)
+	planning.Mount(router)
 	router.Route("/api", func(r chi.Router) {
 		r.Use(extendWriteDeadline("/summary", summaryWriteBudget))
 		authKit.Mount(r, cfg.Porte.SSOOnly)
-		roomsService := rooms.NewService(db, mediaService)
+		roomsService := rooms.NewService(db, mediaService, planning.plans)
 		rooms.RegisterRoutes(r, roomsService, authKit.service, authKit.requireAuth)
 		recording.RegisterRoutes(r, recording.NewRecording(roomsService, mediaService), authKit.requireAuth)
 		historyService := history.NewService(db, roomsService, summarize.NewFromEnv(), cfg.RecordingsDir)
@@ -106,6 +114,7 @@ func run() int {
 	})
 
 	go sweepSessions(shutdown, authKit.sessions, log)
+	go planning.Run(shutdown)
 
 	// SPA catch-all must stay LAST — anything registered after it is unreachable.
 	clientDir := spa.DirFromEnv()

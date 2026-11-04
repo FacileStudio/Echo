@@ -8,6 +8,7 @@ import (
 
 	"github.com/FacileStudio/Echo/apps/api/internal/authcontext"
 	"github.com/FacileStudio/Echo/apps/api/internal/middleware"
+	"github.com/FacileStudio/Echo/apps/api/internal/plans"
 	"github.com/FacileStudio/Echo/apps/api/schemas"
 	"github.com/FacileStudio/porte"
 	"github.com/FacileStudio/tronc/errors"
@@ -142,15 +143,12 @@ func (h *Handler) token(w http.ResponseWriter, r *http.Request) {
 		email = identity.Email
 	}
 
-	token, err := h.service.Token(r.Context(), chi.URLParam(r, "slug"), userID, email, req.DisplayName)
+	admission, err := h.service.Token(r.Context(), chi.URLParam(r, "slug"), userID, email, req.DisplayName)
 	if err != nil {
-		httpjson.WriteError(w, err)
+		plans.WriteError(w, err)
 		return
 	}
-	httpjson.WriteJSON(w, http.StatusOK, TokenResponse{
-		Token: token,
-		URL:   h.service.media.URL(),
-	})
+	httpjson.WriteJSON(w, http.StatusOK, toTokenResponse(admission, h.service.media.URL()))
 }
 
 // callerID resolves the logged-in caller on a route that may be public.

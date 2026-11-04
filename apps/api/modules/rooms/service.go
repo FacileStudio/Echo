@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/FacileStudio/Echo/apps/api/internal/media"
+	"github.com/FacileStudio/Echo/apps/api/internal/plans"
 	"github.com/FacileStudio/Echo/apps/api/schemas"
 	troncerrors "github.com/FacileStudio/tronc/errors"
 	"github.com/google/uuid"
@@ -27,13 +28,16 @@ func ValidSlug(slug string) bool {
 // Service owns room persistence and mints join tokens through the media
 // service.
 type Service struct {
-	orm   *gorm.DB
-	media *media.Service
+	orm       *gorm.DB
+	media     *media.Service
+	plans     *plans.Plans
+	provision func(ctx context.Context, slug string, settings media.RoomSettings) error
 }
 
-// NewService builds a Service over the given database and media service.
-func NewService(orm *gorm.DB, media *media.Service) *Service {
-	return &Service{orm: orm, media: media}
+// NewService builds a Service over the given database, media service and the
+// plans that cap who may join.
+func NewService(orm *gorm.DB, media *media.Service, plans *plans.Plans) *Service {
+	return &Service{orm: orm, media: media, plans: plans, provision: media.EnsureRoom}
 }
 
 func (s *Service) Create(ctx context.Context, slug, name string, ownerID *int64) (*schemas.Room, error) {
@@ -160,22 +164,28 @@ var guestGrant = media.Grant{
 	RoomAdmin:      false,
 }
 
-func (s *Service) Token(ctx context.Context, slug string, userID *int64, email, displayName string) (string, error) {
+// Token admits the caller into the room's call under the owner's plan and
+// mints their LiveKit join token. A full call answers a *forfait.LimitError.
+func (s *Service) Token(ctx context.Context, slug string, userID *int64, email, displayName string) (Admission, error) {
 	room, err := s.Join(ctx, slug, userID)
 	if err != nil {
-		return "", err
+		return Admission{}, err
 	}
 	if room.IntegrationApp != "" {
-		return "", troncerrors.Forbidden("this call is joined from the app that created it")
+		return Admission{}, troncerrors.Forbidden("this call is joined from the app that created it")
 	}
+	identity, name, grant := "guest-"+uuid.NewString()[:8], displayName, guestGrant
 	if userID != nil {
-		return s.media.Issue(room.Slug, fmt.Sprintf("user-%d", *userID), displayNameOr(email, displayName), moderatorGrant)
+		identity, name, grant = fmt.Sprintf("user-%d", *userID), displayNameOr(email, displayName), moderatorGrant
+	} else if displayName == "" {
+		return Admission{}, troncerrors.Invalid("display_name is required for guests")
 	}
-	if displayName == "" {
-		return "", troncerrors.Invalid("display_name is required for guests")
+	deadline, err := s.admit(ctx, room, identity)
+	if err != nil {
+		return Admission{}, err
 	}
-	guestIdentity := "guest-" + uuid.NewString()[:8]
-	return s.media.Issue(room.Slug, guestIdentity, displayName, guestGrant)
+	token, err := s.media.Issue(room.Slug, identity, name, grant)
+	return Admission{Token: token, Deadline: deadline}, err
 }
 
 func displayNameOr(primary, fallback string) string {

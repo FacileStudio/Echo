@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/FacileStudio/Echo/apps/api/internal/media"
+	"github.com/FacileStudio/Echo/apps/api/internal/plans"
 	"github.com/FacileStudio/Echo/apps/api/internal/testdb"
 	"github.com/FacileStudio/tronc/errors"
 
@@ -21,7 +22,10 @@ func newTestService(t *testing.T) *Service {
 	if err != nil {
 		t.Fatalf("media service: %v", err)
 	}
-	return NewService(testdb.Migrated(t), m)
+	db := testdb.Migrated(t)
+	s := NewService(db, m, plans.New(db, testIssuer, nil))
+	s.provision = func(context.Context, string, media.RoomSettings) error { return nil }
+	return s
 }
 
 func TestCreateValidatesSlug(t *testing.T) {
@@ -119,20 +123,20 @@ func TestTokenGrants(t *testing.T) {
 	ctx := context.Background()
 
 	user := int64(9)
-	token, err := s.Token(ctx, "grant-check", &user, "alice@example.com", "")
+	admission, err := s.Token(ctx, "grant-check", &user, "alice@example.com", "")
 	if err != nil {
 		t.Fatalf("user token: %v", err)
 	}
-	if strings.Count(token, ".") != 2 {
-		t.Fatalf("token = %q, want a JWT", token)
+	if strings.Count(admission.Token, ".") != 2 {
+		t.Fatalf("token = %q, want a JWT", admission.Token)
 	}
 
 	guest, err := s.Token(ctx, "grant-check", nil, "", "Bob Guest")
 	if err != nil {
 		t.Fatalf("guest token: %v", err)
 	}
-	if strings.Count(guest, ".") != 2 {
-		t.Fatalf("guest token = %q, want a JWT", guest)
+	if strings.Count(guest.Token, ".") != 2 {
+		t.Fatalf("guest token = %q, want a JWT", guest.Token)
 	}
 
 	if _, err := s.Token(ctx, "grant-check", nil, "", ""); err == nil {

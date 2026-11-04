@@ -1,3 +1,5 @@
+import { planLimitFrom } from './planLimit';
+
 export const API_BASE: string = import.meta.env.VITE_API_BASE ?? 'http://localhost:8080';
 
 export interface Me {
@@ -10,6 +12,7 @@ export interface Me {
 export interface TokenGrant {
 	token: string;
 	url: string;
+	call_deadline?: string;
 }
 
 export async function fetchMe(): Promise<Me | null> {
@@ -33,6 +36,7 @@ export async function requestToken(
 		credentials: 'include',
 		body: JSON.stringify(displayName ? { display_name: displayName } : {})
 	});
+	if (res.status === 402) throw await planLimitFrom(res);
 	if (!res.ok) throw new Error(`token request failed (${res.status})`);
 	return (await res.json()) as TokenGrant;
 }

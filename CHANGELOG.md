@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- Plan limits from Registre (porte/forfait), read for the room owner's Registre subject: `echo.max_participants` (free: 4), `echo.max_call_minutes` (free: 40) and `echo.recording` (free: off). A room with no owner, or whose owner never signed in through Registre, gets the free limits. Integration rooms are unlimited.
+- A full call refuses a new participant with HTTP 402 (`payment_required`, with `key`, `limit` and `upgrade_url`), and the join page offers the upgrade link. The LiveKit room is created with the same participant ceiling.
+- A call on a limited plan ends at `started_at` plus the limit. The token response carries `call_deadline`; the call shows a countdown and warns five minutes before the end. The server closes the LiveKit room itself and re-arms every deadline from the database at boot.
+- Starting a recording answers 402 unless the owner's plan includes recording.
+- Echo pulls Registre's directory snapshot with its OIDC client credentials (every 5 minutes, and on `POST /api/registre/sync`) and keeps the last entitlements in the `forfait_state` table, so a restart does not fail open again. Without `OIDC_ISSUER`, or before Registre ever pushed entitlements, every limit is open.
+
 ## [2.2.0] - 2026-11-03
 
 ### Added
