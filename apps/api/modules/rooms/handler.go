@@ -156,7 +156,7 @@ func (h *Handler) token(w http.ResponseWriter, r *http.Request) {
 		plans.WriteError(w, err)
 		return
 	}
-	httpjson.WriteJSON(w, http.StatusOK, toTokenResponse(admission, h.service.media.URL(), h.service.DeadlineKey(slug)))
+	httpjson.WriteJSON(w, http.StatusOK, toTokenResponse(admission, h.service.media.URL(), h.service.freshDeadlineKey(slug)))
 }
 
 // callerID resolves the logged-in caller on a route that may be public.

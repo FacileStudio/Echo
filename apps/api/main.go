@@ -99,15 +99,16 @@ func run() int {
 	integrationKeys := integrations.NewKeys(cfg.IntegrationKeys)
 	forwarder := integrations.NewForwarder(db, integrationKeys, log)
 	planning.limiter.NotifyWith(forwarder)
+	roomsService := rooms.NewService(db, mediaService, planning.plans, planning.limiter)
 	webhooks.New(db, troncenv.String("LIVEKIT_API_KEY", ""), mediaService.Secret()).
 		NotifyWith(forwarder).
 		NotifyWith(planning.limiter).
+		NotifyWith(roomsService).
 		RegisterRoutes(router)
 	planning.Mount(router)
 	router.Route("/api", func(r chi.Router) {
 		r.Use(extendWriteDeadline("/summary", summaryWriteBudget))
 		authKit.Mount(r, cfg.Porte.SSOOnly)
-		roomsService := rooms.NewService(db, mediaService, planning.plans, planning.limiter)
 		rooms.RegisterRoutes(r, roomsService, authKit.service, authKit.requireAuth, middleware.NewRateLimiter())
 		recording.RegisterRoutes(r, recording.NewRecording(roomsService, mediaService), authKit.requireAuth)
 		historyService := history.NewService(db, roomsService, summarize.NewFromEnv(), cfg.RecordingsDir)

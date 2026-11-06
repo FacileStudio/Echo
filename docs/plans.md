@@ -36,7 +36,8 @@ day. This is the owner's decision.
   `call_deadline` in the token response, polls `GET /api/rooms/{slug}/deadline` every minute so an
   upgrade or a restart reaches the countdown, and warns 5 minutes before the end. The poll sends
   the `deadline_key` from the token response in `X-Echo-Deadline-Key`; without it the route
-  answers 404, so only someone admitted to the room can read its deadline.
+  answers 404, so only someone admitted to the room can read its deadline. A key is valid for 2
+  hours after the join that issued it and cannot be renewed; a new join issues a new one.
 - After a room is cut at its deadline, nobody can start a new call in it for 2 minutes.
 - The cut is recorded before the room closes, and a join that was being admitted during the cut
   is refused, so no join can slip a fresh session in between.
@@ -59,6 +60,12 @@ day. This is the owner's decision.
   already reports full, Echo disconnects the most recently joined guest (other signed-in people
   only once no guest is left) before minting the owner's token. A limit of 0 refuses everyone,
   the owner included, with a 402.
+- The owner's seat is also held while the call runs. On every `participant_joined` of a capped
+  room whose owner is absent, Echo disconnects everyone above `limit - 1`: guests first, the most
+  recently joined first, which is the newcomer in the normal case. This matters because LiveKit
+  refreshes a connected participant's token with a long lifetime, so a client could otherwise keep
+  identities and reconnect them into the owner's seat. Integration rooms, rooms without an owner
+  and unlimited plans are left alone.
 - Guest tokens live 90 seconds, so one cannot be kept to fill the room later. LiveKit refreshes
   the token of a connected client by itself. Signed-in users' tokens live 10 minutes.
 - Pending seats are keyed like the rate limiter: per address for IPv4, per /64 for IPv6.

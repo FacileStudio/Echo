@@ -7,6 +7,8 @@ import (
 	"crypto/subtle"
 	"encoding/base64"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/FacileStudio/Echo/apps/api/internal/middleware"
@@ -16,12 +18,42 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-// DeadlineKey proves its holder was admitted to the room: an HMAC of the
-// slug under the LiveKit API secret, which never leaves the server. Every
-// token response carries it, and the deadline route asks for it.
-func (s *Service) DeadlineKey(slug string) string {
+// deadlineKeyTTL is how long a deadline key lets its holder poll. It outlasts
+// any free-plan call with room to spare; a key cannot be renewed, so one
+// leaked after the call is worthless a little later.
+const deadlineKeyTTL = 2 * time.Hour
+
+// DeadlineKey proves its holder was admitted to the room until expires:
+// "<unix expiry>.<HMAC of the slug and the expiry under the LiveKit API
+// secret>", which never leaves the server. Every token response carries
+// one, and the deadline route asks for it.
+func (s *Service) DeadlineKey(slug string, expires time.Time) string {
+	exp := strconv.FormatInt(expires.Unix(), 10)
+	return exp + "." + s.deadlineMAC(slug, exp)
+}
+
+// freshDeadlineKey is a deadline key for slug valid from now for one window.
+func (s *Service) freshDeadlineKey(slug string) string {
+	return s.DeadlineKey(slug, s.now().Add(deadlineKeyTTL))
+}
+
+// validDeadlineKey reports whether key was issued for slug and is still
+// within its window. An expiry further ahead than one window is forged.
+func (s *Service) validDeadlineKey(slug, key string, now time.Time) bool {
+	exp, mac, ok := strings.Cut(key, ".")
+	if !ok {
+		return false
+	}
+	expires, err := strconv.ParseInt(exp, 10, 64)
+	if err != nil || !now.Before(time.Unix(expires, 0)) || time.Unix(expires, 0).After(now.Add(deadlineKeyTTL)) {
+		return false
+	}
+	return subtle.ConstantTimeCompare([]byte(mac), []byte(s.deadlineMAC(slug, exp))) == 1
+}
+
+func (s *Service) deadlineMAC(slug, exp string) string {
 	mac := hmac.New(sha256.New, []byte(s.media.Secret()))
-	mac.Write([]byte("echo-deadline-v1\x00" + slug))
+	mac.Write([]byte("echo-deadline-v2\x00" + slug + "\x00" + exp))
 	return base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
 }
 
@@ -34,8 +66,7 @@ func (h *Handler) deadline(w http.ResponseWriter, r *http.Request) {
 		middleware.Refuse(w)
 		return
 	}
-	key := r.Header.Get("X-Echo-Deadline-Key")
-	if subtle.ConstantTimeCompare([]byte(key), []byte(h.service.DeadlineKey(slug))) != 1 {
+	if !h.service.validDeadlineKey(slug, r.Header.Get("X-Echo-Deadline-Key"), h.service.now()) {
 		httpjson.WriteError(w, errors.NotFound("room not found"))
 		return
 	}
