@@ -156,7 +156,7 @@ func (h *Handler) token(w http.ResponseWriter, r *http.Request) {
 		plans.WriteError(w, err)
 		return
 	}
-	httpjson.WriteJSON(w, http.StatusOK, toTokenResponse(admission, h.service.media.URL()))
+	httpjson.WriteJSON(w, http.StatusOK, toTokenResponse(admission, h.service.media.URL(), h.service.DeadlineKey(slug)))
 }
 
 // callerID resolves the logged-in caller on a route that may be public.
@@ -203,11 +203,11 @@ func slugify(name string) string {
 	return strings.Trim(builder.String(), "-")
 }
 
-// clientAddress is the caller's address as the ledger keys it, empty when it
-// cannot be told.
+// clientAddress is the caller's address as the ledger keys it: the address
+// for IPv4, its /64 for IPv6, empty when it cannot be told.
 func clientAddress(r *http.Request) string {
 	if addr := middleware.ClientAddr(r); addr.IsValid() {
-		return addr.String()
+		return middleware.AddressKey(addr)
 	}
 	return ""
 }

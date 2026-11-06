@@ -29,7 +29,7 @@ func TestTheDeadlineComesFromLiveKitsSessionStart(t *testing.T) {
 	if admission.Deadline == nil || !admission.Deadline.Equal(want) {
 		t.Fatalf("deadline = %v, want creation + 40 min = %v", admission.Deadline, want)
 	}
-	if got := toTokenResponse(admission, "").CallDeadline; got != want.Format(time.RFC3339) {
+	if got := toTokenResponse(admission, "", "").CallDeadline; got != want.Format(time.RFC3339) {
 		t.Fatalf("call_deadline = %q", got)
 	}
 	if armed, ok := deadlines.armed["free-call"]; !ok || !armed.Equal(want) {

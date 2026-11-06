@@ -34,14 +34,17 @@ day. This is the owner's decision.
   `started_at`, never a time the client sends.
 - At the deadline the server closes the room for everyone. The client counts down from
   `call_deadline` in the token response, polls `GET /api/rooms/{slug}/deadline` every minute so an
-  upgrade or a restart reaches the countdown, and warns 5 minutes before the end.
+  upgrade or a restart reaches the countdown, and warns 5 minutes before the end. The poll sends
+  the `deadline_key` from the token response in `X-Echo-Deadline-Key`; without it the route
+  answers 404, so only someone admitted to the room can read its deadline.
 - After a room is cut at its deadline, nobody can start a new call in it for 2 minutes.
 - The cut is recorded before the room closes, and a join that was being admitted during the cut
   is refused, so no join can slip a fresh session in between.
 - Timers are re-armed from open calls at boot. Every 5 minutes Echo also compares its open calls
   with LiveKit's room list. That arms sessions no webhook reported, and closes call rows LiveKit
-  no longer runs. Each closed row is forwarded to an integrating app as a `room_finished`, as if
-  LiveKit had sent it.
+  no longer runs. A closed row is forwarded to an integrating app as a `room_finished`, as if
+  LiveKit had sent it, but only when LiveKit runs no session of that room at all. The event names
+  only the room, so reporting it while a newer session is live would end that running call.
 
 ## Participants
 
@@ -52,8 +55,13 @@ day. This is the owner's decision.
   a new token from it replaces its previous one. A token used after the window still meets
   LiveKit's `max_participants`.
 - While the owner is not in the call, one seat stays theirs: guests can fill at most `limit - 1`
-  seats. Echo's count never refuses the signed-in owner, and LiveKit's ceiling still applies to
-  them. A limit of 0 refuses everyone, the owner included, with a 402.
+  seats. Echo's count never refuses the signed-in owner. When the owner arrives at a room LiveKit
+  already reports full, Echo disconnects the most recently joined guest (other signed-in people
+  only once no guest is left) before minting the owner's token. A limit of 0 refuses everyone,
+  the owner included, with a 402.
+- Guest tokens live 90 seconds, so one cannot be kept to fill the room later. LiveKit refreshes
+  the token of a connected client by itself. Signed-in users' tokens live 10 minutes.
+- Pending seats are keyed like the rate limiter: per address for IPv4, per /64 for IPv6.
 - Echo creates every LiveKit room itself, with the plan's `max_participants`, only for a join it
   admitted. If that fails, the join answers 503 and no token is minted. An unlimited plan sends an
   explicit ceiling of 10,000 rather than 0, so an owner who upgrades mid-call raises the ceiling
@@ -68,7 +76,8 @@ the budget per /48) and per account for signed-in users. Above it the route answ
 |---|---|---|---|
 | Creating a room: `POST /api/rooms`, or a token for a slug that does not exist | 10 | 30 | address |
 | Joining an existing room: `POST /api/rooms/{slug}/token` | 60 | 120 | address and room |
-| Reading the call deadline: `GET /api/rooms/{slug}/deadline` | 120 | 240 | address and room |
+| Joining any rooms at all, on top of the per-room budget | 120 | 240 | address |
+| Reading call deadlines: `GET /api/rooms/{slug}/deadline` | 120 | 240 | address |
 
 Creation is strict, so junk slugs cannot create unlimited room rows, LiveKit rooms and timers.
 Joining is generous, so a whole office behind one NAT can join one call.

@@ -2,6 +2,7 @@ package rooms
 
 import (
 	"context"
+	"slices"
 	"time"
 
 	"github.com/FacileStudio/Echo/apps/api/internal/media"
@@ -14,6 +15,8 @@ type fakeLive struct {
 	participantsErr error
 	ceilings        []int64
 	onEnsure        func()
+	joined          map[string]time.Time
+	removed         []string
 }
 
 func (f *fakeLive) EnsureRoom(_ context.Context, name string, settings media.RoomSettings) (media.LiveRoom, error) {
@@ -29,8 +32,19 @@ func (f *fakeLive) EnsureRoom(_ context.Context, name string, settings media.Roo
 	return room, nil
 }
 
-func (f *fakeLive) Participants(context.Context, string) ([]string, error) {
-	return f.participants, f.participantsErr
+func (f *fakeLive) Participants(context.Context, string) ([]media.Connected, error) {
+	connected := []media.Connected{}
+	for _, identity := range f.participants {
+		if !slices.Contains(f.removed, identity) {
+			connected = append(connected, media.Connected{Identity: identity, JoinedAt: f.joined[identity]})
+		}
+	}
+	return connected, f.participantsErr
+}
+
+func (f *fakeLive) RemoveParticipant(_ context.Context, _, identity string) error {
+	f.removed = append(f.removed, identity)
+	return nil
 }
 
 func (f *fakeLive) Rooms(context.Context, ...string) ([]media.LiveRoom, error) {

@@ -13,6 +13,7 @@ export interface TokenGrant {
 	token: string;
 	url: string;
 	call_deadline?: string;
+	deadline_key?: string;
 }
 
 export async function fetchMe(): Promise<Me | null> {
