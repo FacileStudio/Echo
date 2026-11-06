@@ -68,31 +68,41 @@ func identitiesOf(connected []media.Connected) []string {
 
 // makeRoomForOwner disconnects the most recently joined guests when the
 // owner arrives at a room already at its ceiling, so LiveKit does not refuse
-// the owner's connection. Tokens minted earlier stay valid for a short while
-// after their pending seat lapses, so guests can fill a room past Echo's own
-// count; the owner's seat is taken back here. Signed-in people other than
-// the owner are disconnected only once no guest is left.
+// the owner's connection. Signed-in people other than the owner are
+// disconnected only once no guest is left.
 func (s *Service) makeRoomForOwner(ctx context.Context, slug string, ceiling int64, owner string, call *schemas.Call) {
 	if ceiling < 0 {
 		return
 	}
 	others := slices.DeleteFunc(s.present(ctx, slug, call), func(who media.Connected) bool { return who.Identity == owner })
-	slices.SortStableFunc(others, func(a, b media.Connected) int {
-		if guestA, guestB := strings.HasPrefix(a.Identity, "guest-"), strings.HasPrefix(b.Identity, "guest-"); guestA != guestB {
-			if guestA {
-				return -1
-			}
-			return 1
-		}
-		return b.JoinedAt.Compare(a.JoinedAt)
-	})
-	for excess := int64(len(others)) - ceiling + 1; excess > 0 && len(others) > 0; excess-- {
-		if err := s.live.RemoveParticipant(ctx, slug, others[0].Identity); err != nil {
-			slog.Warn("making room for the owner failed", slog.String("room", slug), slog.Any("error", err))
+	s.trim(ctx, slug, others, ceiling-1)
+}
+
+// trim disconnects people until at most keep remain: guests before signed-in
+// people, and the most recently joined first.
+func (s *Service) trim(ctx context.Context, slug string, people []media.Connected, keep int64) {
+	slices.SortStableFunc(people, evictionOrder)
+	for excess := int64(len(people)) - max(keep, 0); excess > 0 && len(people) > 0; excess-- {
+		if err := s.live.RemoveParticipant(ctx, slug, people[0].Identity); err != nil {
+			slog.Warn("freeing the owner's seat failed", slog.String("room", slug), slog.Any("error", err))
 			return
 		}
-		others = others[1:]
+		slog.Info("disconnected a participant to keep the owner's seat", slog.String("room", slug))
+		people = people[1:]
 	}
+}
+
+// evictionOrder puts guests before signed-in people, and within each the
+// most recently joined first.
+func evictionOrder(a, b media.Connected) int {
+	guestA, guestB := strings.HasPrefix(a.Identity, "guest-"), strings.HasPrefix(b.Identity, "guest-")
+	switch {
+	case guestA && !guestB:
+		return -1
+	case guestB && !guestA:
+		return 1
+	}
+	return b.JoinedAt.Compare(a.JoinedAt)
 }
 
 func isPerson(identity string) bool {

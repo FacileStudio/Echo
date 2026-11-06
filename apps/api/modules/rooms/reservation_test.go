@@ -106,7 +106,14 @@ func TestOnlyACallerAdmittedToTheRoomReadsItsDeadline(t *testing.T) {
 	s := newTestService(t)
 	pollRoom(t, s)
 	poll, limits := deadlineRouter(t, s)
-	for _, key := range []string{"", s.DeadlineKey("other-room")} {
+	keys := []string{
+		"",
+		s.DeadlineKey("other-room", time.Now().Add(time.Hour)),
+		s.DeadlineKey("poll", time.Now().Add(-time.Second)),
+		s.DeadlineKey("poll", time.Now().Add(deadlineKeyTTL+time.Hour)),
+		"not-a-key",
+	}
+	for _, key := range keys {
 		if got := poll(key); got.Code != http.StatusNotFound {
 			t.Fatalf("a caller with key %q read this room's deadline: %d", key, got.Code)
 		}
@@ -122,13 +129,13 @@ func TestTheDeadlineRouteFollowsTheRunningSession(t *testing.T) {
 	created := time.Now().Add(-time.Minute).Truncate(time.Second).UTC()
 	s.live = &fakeLive{room: dummyLive("RM_poll", created)}
 	poll, _ := deadlineRouter(t, s)
-	recorder := poll(s.DeadlineKey("poll"))
+	recorder := poll(s.DeadlineKey("poll", time.Now().Add(time.Hour)))
 	want := created.Add(40 * time.Minute).Format(time.RFC3339)
 	if recorder.Code != http.StatusOK || !strings.Contains(recorder.Body.String(), want) {
 		t.Fatalf("deadline route = %d %s, want %s", recorder.Code, recorder.Body.String(), want)
 	}
 	pushPlan(t, s, "sub-poll", map[string]json.RawMessage{"echo.max_call_minutes": json.RawMessage(`-1`)})
-	if body := poll(s.DeadlineKey("poll")).Body.String(); strings.Contains(body, "call_deadline") {
+	if body := poll(s.DeadlineKey("poll", time.Now().Add(time.Hour))).Body.String(); strings.Contains(body, "call_deadline") {
 		t.Fatalf("an upgraded owner's call still reports a deadline: %s", body)
 	}
 }
