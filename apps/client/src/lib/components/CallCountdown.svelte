@@ -1,22 +1,37 @@
 <script lang="ts">
 	import { Alert, Badge } from '@facile/muse';
+	import { fetchCallDeadline } from '$lib/deadline';
 
 	interface Props {
 		deadline: string;
+		slug: string;
 	}
 
-	let { deadline }: Props = $props();
+	let { deadline, slug }: Props = $props();
 
 	const warnBeforeMs = 5 * 60 * 1000;
+	const refreshMs = 60 * 1000;
 
 	let now = $state(Date.now());
-	const endsAt = $derived(Date.parse(deadline));
+	let fetched = $state<string | null>(null);
+	const current = $derived(fetched ?? deadline);
+	const endsAt = $derived(current ? Date.parse(current) : NaN);
 	const remaining = $derived(Number.isFinite(endsAt) ? Math.max(0, endsAt - now) : null);
 	const label = $derived(remaining === null ? '' : clock(remaining));
 
 	$effect(() => {
 		const tick = setInterval(() => (now = Date.now()), 1000);
 		return () => clearInterval(tick);
+	});
+
+	$effect(() => {
+		if (!slug) return;
+		const room = slug;
+		const refresh = setInterval(async () => {
+			const latest = await fetchCallDeadline(room);
+			if (latest !== null) fetched = latest;
+		}, refreshMs);
+		return () => clearInterval(refresh);
 	});
 
 	function clock(ms: number): string {
@@ -32,8 +47,8 @@
 		<Badge tone={remaining <= warnBeforeMs ? 'warning' : 'neutral'}>Call ends in {label}</Badge>
 		{#if remaining <= warnBeforeMs}
 			<Alert tone="warning" title="This call ends soon">
-				The host's plan limits each call's length. The call closes for everyone in {label}, and a new
-				call can start in this room 2 minutes later.
+				On the host's plan each meeting lasts up to 40 minutes. The call closes for everyone in {label},
+				and a new one can start in this room 2 minutes later.
 			</Alert>
 		{/if}
 	</div>

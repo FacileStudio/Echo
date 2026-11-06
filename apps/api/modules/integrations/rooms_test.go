@@ -66,7 +66,7 @@ func TestThePublicGuestRouteCannotJoinAnIntegrationRoom(t *testing.T) {
 	h := newHarness(t)
 	room := h.createRoom(prismeSecret, "private")
 	public := rooms.NewService(h.db, h.service.media, plans.New(h.db, "", nil), nil)
-	if _, err := public.Token(context.Background(), room.RoomID, nil, "", "Mallory"); err == nil {
+	if _, err := public.Token(context.Background(), rooms.JoinRequest{Slug: room.RoomID, DisplayName: "Mallory"}); err == nil {
 		t.Fatal("a guest minted a token for an integration room")
 	}
 }

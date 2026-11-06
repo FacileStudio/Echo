@@ -187,8 +187,8 @@
 		<RoomHeader {slug} {historyHref} count={participants.length} />
 	{/if}
 
-	{#if callDeadline}
-		<CallCountdown deadline={callDeadline} />
+	{#if callDeadline || (slug && !embedded)}
+		<CallCountdown deadline={callDeadline} {slug} />
 	{/if}
 
 	<AudioPrompt blocked={audioBlocked} onEnable={() => void room?.startAudio()} />

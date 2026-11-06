@@ -7,6 +7,8 @@ import (
 
 	"github.com/FacileStudio/Echo/apps/api/internal/media"
 	"github.com/FacileStudio/Echo/apps/api/schemas"
+	"github.com/google/uuid"
+	"github.com/livekit/protocol/livekit"
 	"gorm.io/gorm"
 )
 
@@ -89,8 +91,10 @@ func (l *Limiter) reconcileRoom(ctx context.Context, live media.LiveRoom) {
 }
 
 // closeStale ends the open call rows whose session LiveKit no longer runs,
-// and marks everyone still shown in them as gone. "-" is never a session id;
-// it keeps the NOT IN list non-empty when LiveKit runs no room at all.
+// marks everyone still shown in them as gone, and reports each as a
+// room_finished, so an integrating app hears the end of a call whose
+// webhook never came. "-" is never a session id; it keeps the NOT IN list
+// non-empty when LiveKit runs no room at all.
 func (l *Limiter) closeStale(ctx context.Context, rooms []media.LiveRoom) error {
 	live := make([]string, 0, len(rooms)+1)
 	live = append(live, "-")
@@ -98,19 +102,44 @@ func (l *Limiter) closeStale(ctx context.Context, rooms []media.LiveRoom) error 
 		live = append(live, room.SID)
 	}
 	now := l.now().UTC()
-	var stale []string
-	err := l.orm.WithContext(ctx).Model(&schemas.Call{}).
+	var stale []schemas.Call
+	err := l.orm.WithContext(ctx).
 		Where("ended_at IS NULL AND started_at < ? AND livekit_room_sid NOT IN ?", now.Add(-staleAfter), live).
-		Pluck("id", &stale).Error
+		Find(&stale).Error
 	if err != nil || len(stale) == 0 {
 		return err
 	}
-	return l.orm.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	ids := make([]uuid.UUID, 0, len(stale))
+	for _, call := range stale {
+		ids = append(ids, call.ID)
+	}
+	err = l.orm.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		err := tx.Model(&schemas.CallParticipant{}).
-			Where("left_at IS NULL AND call_id IN ?", stale).Update("left_at", now).Error
+			Where("left_at IS NULL AND call_id IN ?", ids).Update("left_at", now).Error
 		if err != nil {
 			return err
 		}
-		return tx.Model(&schemas.Call{}).Where("id IN ? AND ended_at IS NULL", stale).Update("ended_at", now).Error
+		return tx.Model(&schemas.Call{}).Where("id IN ? AND ended_at IS NULL", ids).Update("ended_at", now).Error
 	})
+	if err == nil {
+		l.reportFinished(ctx, stale, now)
+	}
+	return err
+}
+
+// reportFinished tells every notifier that each call's room finished at.
+func (l *Limiter) reportFinished(ctx context.Context, calls []schemas.Call, at time.Time) {
+	l.mu.Lock()
+	notifiers := append([]Notifier(nil), l.notifiers...)
+	l.mu.Unlock()
+	for _, call := range calls {
+		event := &livekit.WebhookEvent{
+			Event:     "room_finished",
+			Room:      &livekit.Room{Name: call.LivekitRoomName, Sid: call.LivekitRoomSID},
+			CreatedAt: at.Unix(),
+		}
+		for _, notifier := range notifiers {
+			notifier.Notify(ctx, event)
+		}
+	}
 }

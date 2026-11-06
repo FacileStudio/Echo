@@ -13,10 +13,14 @@ type fakeLive struct {
 	participants    []string
 	participantsErr error
 	ceilings        []int64
+	onEnsure        func()
 }
 
 func (f *fakeLive) EnsureRoom(_ context.Context, name string, settings media.RoomSettings) (media.LiveRoom, error) {
 	f.ceilings = append(f.ceilings, settings.MaxParticipants)
+	if f.onEnsure != nil {
+		f.onEnsure()
+	}
 	if f.ensureErr != nil {
 		return media.LiveRoom{}, f.ensureErr
 	}
@@ -27,6 +31,13 @@ func (f *fakeLive) EnsureRoom(_ context.Context, name string, settings media.Roo
 
 func (f *fakeLive) Participants(context.Context, string) ([]string, error) {
 	return f.participants, f.participantsErr
+}
+
+func (f *fakeLive) Rooms(context.Context, ...string) ([]media.LiveRoom, error) {
+	if f.room.SID == "" {
+		return nil, nil
+	}
+	return []media.LiveRoom{f.room}, nil
 }
 
 type fakeDeadlines struct {

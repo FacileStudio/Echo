@@ -8,6 +8,7 @@ import (
 	"github.com/FacileStudio/Echo/apps/api/internal/media"
 	"github.com/FacileStudio/Echo/apps/api/internal/testdb"
 	"github.com/FacileStudio/Echo/apps/api/schemas"
+	"github.com/livekit/protocol/livekit"
 )
 
 func TestARoomTimerEndsASessionNoWebhookReported(t *testing.T) {
@@ -59,4 +60,40 @@ func TestReconcileClosesRowsLiveKitForgotAndEndsOverdueSessions(t *testing.T) {
 		t.Fatal("a call row younger than the race window was closed")
 	}
 	live.waitEnded(t, "unrecorded")
+}
+
+func TestReconcileReportsTheCallsItClosesToIntegrations(t *testing.T) {
+	db := testdb.Migrated(t)
+	ghost := openCall(t, db, "ghost", time.Now().Add(-time.Hour))
+	limiter := New(context.Background(), db, freePlans(t, db), newFakeLive(), nil)
+	heard := &recorder{}
+	limiter.NotifyWith(heard)
+	if err := limiter.Reconcile(context.Background()); err != nil {
+		t.Fatalf("reconcile: %v", err)
+	}
+	if len(heard.events) != 1 || heard.events[0].GetEvent() != "room_finished" ||
+		heard.events[0].GetRoom().GetName() != "ghost" || heard.events[0].GetRoom().GetSid() != ghost.LivekitRoomSID {
+		t.Fatalf("integrations heard %v, want one room_finished for the forgotten call", heard.events)
+	}
+}
+
+type recorder struct{ events []*livekit.WebhookEvent }
+
+func (r *recorder) Notify(_ context.Context, event *livekit.WebhookEvent) {
+	r.events = append(r.events, event)
+}
+
+func TestOldCutsAreForgotten(t *testing.T) {
+	limiter := New(context.Background(), nil, nil, newFakeLive(), nil)
+	clock := time.Now()
+	limiter.now = func() time.Time { return clock }
+	limiter.recordCut("old")
+	clock = clock.Add(cutMemory + time.Minute)
+	limiter.recordCut("new")
+	if _, kept := limiter.CutAt("old"); kept {
+		t.Fatal("a cut older than cutMemory was kept")
+	}
+	if _, kept := limiter.CutAt("new"); !kept {
+		t.Fatal("the fresh cut was dropped")
+	}
 }

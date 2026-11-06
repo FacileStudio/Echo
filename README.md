@@ -75,6 +75,11 @@ The API reads these on top of the tronc core variables (`PORT`, `DATABASE_URL`, 
 | `ECHO_EMBED_ORIGINS` | no | empty | Origins allowed to frame `/embed/{room}`, comma-separated; empty allows none |
 | `TRUSTED_PROXIES` | no | `private,cloudflare` | Hops whose `X-Forwarded-For` is believed: CIDR blocks, addresses, the names `private` and `cloudflare` (tronc's published Cloudflare edge ranges), or `none`. echo.facile.studio sits behind Cloudflare and Traefik. Production's Traefik replaces Cloudflare's `X-Forwarded-For` with the edge address alone, so the join rate limit reads `Cf-Connecting-Ip` only when the peer is private and the rightmost `X-Forwarded-For` hop is a Cloudflare edge; otherwise it keys on the address this setting resolves |
 
+Plan limits (see [docs/plans.md](docs/plans.md)) come from Registre, and Echo syncs them only when
+`OIDC_ISSUER`, `OIDC_CLIENT_ID` and `OIDC_CLIENT_SECRET` are set. Without them, every limit stays
+open and the API logs a warning at boot. The production deployment has no `OIDC_*` variables yet,
+so it does not enforce plans.
+
 The transcriber worker is not deployed (see End-to-end encryption). When run, it reads
 `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`,
 `VOSK_MODEL_PATH`, plus `ECHO_API_URL` and `TRANSCRIBER_TOKEN`. If either of the last two is

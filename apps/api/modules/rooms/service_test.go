@@ -123,7 +123,7 @@ func TestTokenGrants(t *testing.T) {
 	ctx := context.Background()
 
 	user := int64(9)
-	admission, err := s.Token(ctx, "grant-check", &user, "alice@example.com", "")
+	admission, err := s.Token(ctx, JoinRequest{Slug: "grant-check", UserID: &user, Email: "alice@example.com"})
 	if err != nil {
 		t.Fatalf("user token: %v", err)
 	}
@@ -131,7 +131,7 @@ func TestTokenGrants(t *testing.T) {
 		t.Fatalf("token = %q, want a JWT", admission.Token)
 	}
 
-	guest, err := s.Token(ctx, "grant-check", nil, "", "Bob Guest")
+	guest, err := s.Token(ctx, JoinRequest{Slug: "grant-check", DisplayName: "Bob Guest"})
 	if err != nil {
 		t.Fatalf("guest token: %v", err)
 	}
@@ -139,7 +139,7 @@ func TestTokenGrants(t *testing.T) {
 		t.Fatalf("guest token = %q, want a JWT", guest.Token)
 	}
 
-	if _, err := s.Token(ctx, "grant-check", nil, "", ""); err == nil {
+	if _, err := s.Token(ctx, JoinRequest{Slug: "grant-check"}); err == nil {
 		t.Fatal("guest without a display name was accepted")
 	}
 }

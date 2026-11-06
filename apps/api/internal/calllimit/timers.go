@@ -71,6 +71,7 @@ func (l *Limiter) endSession(ctx context.Context, key string, s session, retry f
 		return
 	}
 	if err == nil {
+		l.recordCut(s.slug)
 		err = l.live.EndRoom(ctx, s.slug)
 	}
 	if err != nil && !errors.Is(err, media.ErrNotFound) {
@@ -79,9 +80,6 @@ func (l *Limiter) endSession(ctx context.Context, key string, s session, retry f
 		return
 	}
 	l.logger.Info("call limit: call ended at its plan deadline", slog.String("room", s.slug))
-	l.mu.Lock()
-	l.cuts[s.slug] = l.now()
-	l.mu.Unlock()
 	l.disarm(key)
 }
 

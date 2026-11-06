@@ -24,6 +24,20 @@ type RoomSettings struct {
 	MaxParticipants int64
 }
 
+// unlimitedParticipants is the ceiling an unlimited room is created with.
+// LiveKit reads 0 as "keep what the room has", so an owner who upgrades
+// mid-call would stay at the old plan's ceiling; an explicit ceiling far
+// beyond any real call raises it instead.
+const unlimitedParticipants = 10000
+
+// ceiling is the max_participants sent for settings.
+func (settings RoomSettings) ceiling() uint32 {
+	if settings.MaxParticipants <= 0 || settings.MaxParticipants > unlimitedParticipants {
+		return unlimitedParticipants
+	}
+	return uint32(settings.MaxParticipants)
+}
+
 // LiveRoom is a room LiveKit is running: its name, its per-session id and
 // when the session started.
 type LiveRoom struct {
@@ -37,8 +51,8 @@ type LiveRoom struct {
 // deployment, so this is the only way a room comes to exist.
 //
 // On a room that already exists LiveKit keeps the session and overwrites its
-// max_participants and timeouts with every value above 0. An unlimited room
-// sends 0 and therefore never lowers a ceiling a limited owner set.
+// max_participants and timeouts with every value above 0, so the ceiling
+// follows the owner's current plan, up or down.
 func (s *Service) EnsureRoom(ctx context.Context, roomName string, settings RoomSettings) (LiveRoom, error) {
 	token, err := s.roomServiceToken(roomName)
 	if err != nil {
@@ -48,7 +62,7 @@ func (s *Service) EnsureRoom(ctx context.Context, roomName string, settings Room
 		"name":              roomName,
 		"empty_timeout":     uint32(roomEmptyTimeout / time.Second),
 		"departure_timeout": uint32(roomDepartureTimeout / time.Second),
-		"max_participants":  uint32(max(0, min(settings.MaxParticipants, 1<<31))),
+		"max_participants":  settings.ceiling(),
 	}
 	room := &livekit.Room{}
 	if err := s.twirp(ctx, token, "livekit.RoomService/CreateRoom", body, room); err != nil {

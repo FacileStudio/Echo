@@ -2,6 +2,7 @@ package rooms
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -22,6 +23,14 @@ type Admission struct {
 	Deadline *time.Time
 }
 
+// joiner is who asks for a seat: their LiveKit identity, the client address
+// the request came from, and whether they own the room.
+type joiner struct {
+	identity string
+	address  string
+	owner    bool
+}
+
 // admit enforces the owner's plan before a token is minted and returns the
 // session deadline the client counts down to.
 //
@@ -32,7 +41,8 @@ type Admission struct {
 // their own room; LiveKit's max_participants still holds for everyone. Only
 // an admitted join creates the LiveKit room (LiveKit never creates one by
 // itself in Echo's deployment), with the plan's ceiling.
-func (s *Service) admit(ctx context.Context, room *schemas.Room, identity string, owner bool) (*time.Time, error) {
+func (s *Service) admit(ctx context.Context, room *schemas.Room, who joiner) (*time.Time, error) {
+	started := s.now()
 	policy, err := s.plans.ForRoom(ctx, *room)
 	if err != nil {
 		return nil, err
@@ -45,28 +55,46 @@ func (s *Service) admit(ctx context.Context, room *schemas.Room, identity string
 		return nil, err
 	}
 	seated := s.plans.Check(policy, plans.KeyMaxParticipants, 0, 1)
-	if !owner {
-		seated = s.seat(ctx, policy, room.Slug, identity, call)
+	if !who.owner {
+		seated = s.seat(ctx, policy, room, who, call)
 	}
 	if seated != nil {
 		return nil, seated
 	}
 	live, err := s.provisionRoom(ctx, room.Slug, s.plans.Limit(policy, plans.KeyMaxParticipants))
+	if err == nil {
+		err = s.cutSince(policy, room.Slug, started)
+	}
 	if err != nil {
-		s.ledger.release(room.Slug, identity)
+		s.ledger.release(room.Slug, who.identity)
 		return nil, err
 	}
 	return s.sessionDeadline(policy, room.Slug, call, live), nil
 }
 
 // seat counts the people present with the pending admissions, checks the
-// participant ceiling, and takes a pending seat for identity. The owner skips
-// it and is checked against an empty room, so only a plan allowing nobody at
-// all refuses them.
-func (s *Service) seat(ctx context.Context, policy plans.Policy, slug, identity string, call *schemas.Call) error {
-	return s.ledger.admit(slug, identity, s.present(ctx, slug, call), func(count int64) error {
+// participant ceiling, and takes a pending seat for the joiner. While the
+// owner is absent one seat stays theirs, so guests alone can fill at most
+// limit-1 seats and the owner always finds room. The owner skips this and is
+// checked against an empty room, so only a plan allowing nobody refuses them.
+func (s *Service) seat(ctx context.Context, policy plans.Policy, room *schemas.Room, who joiner, call *schemas.Call) error {
+	reserved := ""
+	if room.OwnerID != nil {
+		reserved = fmt.Sprintf("user-%d", *room.OwnerID)
+	}
+	return s.ledger.admit(room.Slug, who, s.present(ctx, room.Slug, call), reserved, func(count int64) error {
 		return s.plans.Check(policy, plans.KeyMaxParticipants, count, 1)
 	})
+}
+
+// cutSince refuses a join when the limiter cut the room at its deadline
+// while this join was being admitted. Without it a join that passed the
+// cooldown check a moment before the cut would start a fresh session.
+func (s *Service) cutSince(policy plans.Policy, slug string, since time.Time) error {
+	if cutAt, cut := s.deadlines.CutAt(slug); cut && !cutAt.Before(since) {
+		return s.plans.Refusal(policy, plans.KeyMaxCallMinutes, s.plans.Limit(policy, plans.KeyMaxCallMinutes))
+	}
+	return nil
 }
 
 // provisionRoom creates the LiveKit room with its ceiling and timeouts. A

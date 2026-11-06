@@ -20,6 +20,7 @@ import (
 type Handler struct {
 	service  *Service
 	resolver middleware.IdentityResolver
+	limits   Limits
 }
 
 func newHandler(service *Service, resolver middleware.IdentityResolver) *Handler {
@@ -130,6 +131,10 @@ func (h *Handler) token(w http.ResponseWriter, r *http.Request) {
 		httpjson.WriteError(w, err)
 		return
 	}
+	slug := chi.URLParam(r, "slug")
+	if !h.joinWithinBudget(w, r, slug) {
+		return
+	}
 
 	var userID *int64
 	email := ""
@@ -143,7 +148,10 @@ func (h *Handler) token(w http.ResponseWriter, r *http.Request) {
 		email = identity.Email
 	}
 
-	admission, err := h.service.Token(r.Context(), chi.URLParam(r, "slug"), userID, email, req.DisplayName)
+	admission, err := h.service.Token(r.Context(), JoinRequest{
+		Slug: slug, UserID: userID, Email: email, DisplayName: req.DisplayName,
+		Address: clientAddress(r),
+	})
 	if err != nil {
 		plans.WriteError(w, err)
 		return
@@ -193,4 +201,13 @@ func slugify(name string) string {
 		}
 	}
 	return strings.Trim(builder.String(), "-")
+}
+
+// clientAddress is the caller's address as the ledger keys it, empty when it
+// cannot be told.
+func clientAddress(r *http.Request) string {
+	if addr := middleware.ClientAddr(r); addr.IsValid() {
+		return addr.String()
+	}
+	return ""
 }
