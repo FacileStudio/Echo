@@ -92,6 +92,22 @@ func TestEntitlementsSurviveARestart(t *testing.T) {
 	}
 }
 
+func TestABlankedRowFailsClosed(t *testing.T) {
+	for _, document := range []string{"", "  \n"} {
+		db := testdb.Migrated(t)
+		if err := db.Create(&schemas.ForfaitState{ID: schemas.ForfaitStateID, Document: document}).Error; err != nil {
+			t.Fatalf("seed: %v", err)
+		}
+		p := New(db, issuer, nil)
+		if err := p.Load(context.Background()); err != nil {
+			t.Fatalf("a blank row refused the boot: %v", err)
+		}
+		if p.store.Enabled(forfait.Scope{}, KeyRecording) || p.store.Limit(forfait.Scope{}, KeyMaxParticipants) != 4 {
+			t.Fatalf("a blank row %q failed open: forfait imports empty input as a no-op", document)
+		}
+	}
+}
+
 func TestACorruptRowFailsClosedUntilTheNextSnapshot(t *testing.T) {
 	db := testdb.Migrated(t)
 	if err := db.Create(&schemas.ForfaitState{ID: schemas.ForfaitStateID, Document: `{"version":9}`}).Error; err != nil {

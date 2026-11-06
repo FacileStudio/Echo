@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/FacileStudio/Echo/apps/api/schemas"
@@ -55,6 +56,9 @@ func (p *Plans) Apply(ctx context.Context, snapshot directory.Snapshot) error {
 	}).Create(&row).Error
 }
 
+// errEmptyState is a forfait_state row that exists and holds nothing.
+var errEmptyState = errors.New("forfait_state row is empty")
+
 // failClosed is an export with an entitlements revision and no scope, which
 // makes every feature read its free default. The next real snapshot, whose
 // revision is at least 1, replaces it.
@@ -62,9 +66,12 @@ const failClosed = `{"version":1,"snapshot_version":0,"entitlements_revision":1,
 
 // Load restores the persisted entitlements at boot, before the first pull.
 // No row means Echo never received entitlements and keeps failing open. A row
-// forfait refuses means entitlements were known once and are now unreadable,
-// so the store fails closed on the free defaults until a fresh snapshot,
-// rather than handing every owner unlimited calls or refusing to boot.
+// that is empty, or that forfait refuses, means entitlements were known once
+// and are now unreadable, so the store fails closed on the free defaults
+// until a fresh snapshot, rather than handing every owner unlimited calls or
+// refusing to boot. forfait itself imports an empty document as a no-op that
+// keeps failing open, which is why Echo checks for one before handing it on.
+// To go back to failing open on purpose, delete the row; never blank it.
 func (p *Plans) Load(ctx context.Context) error {
 	var row schemas.ForfaitState
 	err := p.orm.WithContext(ctx).Where("id = ?", schemas.ForfaitStateID).First(&row).Error
@@ -74,7 +81,11 @@ func (p *Plans) Load(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if err := p.store.Import([]byte(row.Document)); err != nil {
+	err = errEmptyState
+	if strings.TrimSpace(row.Document) != "" {
+		err = p.store.Import([]byte(row.Document))
+	}
+	if err != nil {
 		p.logger.Warn("forfait: persisted entitlements refused, enforcing the free defaults until the next snapshot",
 			slog.Any("error", err))
 		return p.store.Import([]byte(failClosed))

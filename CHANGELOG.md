@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Changed
+- porte/directory v0.2.0 to v0.2.1, and porte/forfait v0.1.0 to v0.1.1.
 - Joining an existing room has its own rate limit, 60 a minute per address and room (120 per account), so a whole office behind one NAT can join one call. Creating a room, through `POST /api/rooms` or a token for an unknown slug, keeps the strict 10 a minute per address (30 per account).
 - While the owner is not in the call, guests can fill at most `limit - 1` seats, so the owner always finds one. One client address holds at most one pending seat per room.
 - An unlimited plan creates its LiveKit room with an explicit ceiling of 10,000 instead of 0, so upgrading mid-call raises the ceiling of the running room.
@@ -12,6 +13,7 @@
 - Without `OIDC_ISSUER` the API logs at boot that plans are never synced and every limit stays open. The README says so too.
 
 ### Fixed
+- An existing but empty `forfait_state` row now enforces the free plan, like an unreadable one. forfait v0.1.1 imports empty input as a no-op, which would have failed open. To recover from a bad row, delete it rather than blanking it; see `docs/plans.md`.
 - A call row the 5-minute reconcile closes, because LiveKit forgot its room, is now forwarded to integrating apps as a `room_finished`.
 - A join admitted while the limiter was cutting the room at its deadline is refused, instead of starting a fresh session. The cut is recorded before the room closes.
 - The limiter forgets cuts older than 10 minutes instead of keeping them forever.

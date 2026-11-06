@@ -19,8 +19,11 @@ A refusal answers HTTP 402 with `{"error":{"code":"payment_required","message","
 - Integration rooms are unlimited. See `docs/integrations.md`.
 - Echo enforces no limit without `OIDC_ISSUER`, or before Registre has pushed entitlements once.
   Without `OIDC_ISSUER` the API logs a warning at boot.
-  After that, Echo keeps the last values in the `forfait_state` row. If that row cannot be read at
-  boot, Echo enforces the free plan until the next snapshot arrives.
+  After that, Echo keeps the last values in the `forfait_state` row. If that row is empty or
+  cannot be read at boot, Echo enforces the free plan until the next snapshot arrives.
+- To recover from a bad row, delete it: `DELETE FROM forfait_state;`. Echo then fails open until
+  Registre's next snapshot. Do not blank the document: an empty row is treated as unreadable and
+  enforces the free plan.
 
 ## Call length: 40 minutes per meeting
 
