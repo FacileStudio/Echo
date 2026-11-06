@@ -2,11 +2,18 @@
 
 ## [Unreleased]
 
+## [2.3.2] - 2026-11-06
+
 ### Fixed
 - The owner's seat holds for the whole call, not only at join time. On every `participant_joined` of a capped room whose owner is absent, Echo disconnects everyone above `limit - 1`, guests first and the most recently joined first. A client can no longer keep its LiveKit-refreshed identities and reconnect them into the seat freed for the owner.
 
 ### Changed
 - `deadline_key` now carries its expiry and is valid for 2 hours after the join that issued it. A key from v2.3.1 is refused; the client gets a new one on its next join.
+
+### Notes
+
+- A downgrade while the owner is away trims the room to the new limit on the next join, like the call-length deadline ends calls on downgrade.
+- The countdown stops receiving server updates two hours after a join (deadline keys expire); the server still ends the call on time.
 
 ## [2.3.1] - 2026-11-06
 
