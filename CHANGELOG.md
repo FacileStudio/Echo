@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.3.1] - 2026-11-06
+
 ### Changed
 - porte/directory v0.2.0 to v0.2.1, and porte/forfait v0.1.0 to v0.1.1.
 - Joining an existing room has its own rate limit, 60 a minute per address and room (120 per account), so a whole office behind one NAT can join one call. Creating a room, through `POST /api/rooms` or a token for an unknown slug, keeps the strict 10 a minute per address (30 per account).
