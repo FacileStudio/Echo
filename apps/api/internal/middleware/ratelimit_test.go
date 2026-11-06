@@ -20,8 +20,8 @@ func hit(handler http.Handler, addr string, ctx context.Context) int {
 }
 
 func TestGuestsAreLimitedPerAddressAndMembersPerAccount(t *testing.T) {
-	limiter := NewRateLimiter(3, 5)
-	handler := limiter.Middleware(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	limiter := NewRateLimiter()
+	handler := limiter.Limit(Budget{Scope: "t", Guest: 3, Member: 5})(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	for range 3 {
@@ -61,8 +61,8 @@ func TestIPv6IsLimitedPer64AndPer48(t *testing.T) {
 	if keysOf("::ffff:203.0.113.7")[0] != keysOf("203.0.113.7")[0] {
 		t.Fatal("an IPv4-mapped address escaped its IPv4 bucket")
 	}
-	limiter := NewRateLimiter(1, 1)
-	handler := limiter.Middleware(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	limiter := NewRateLimiter()
+	handler := limiter.Limit(Budget{Scope: "t", Guest: 1, Member: 1})(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	refused := 0
@@ -77,7 +77,7 @@ func TestIPv6IsLimitedPer64AndPer48(t *testing.T) {
 }
 
 func TestAFullLimiterEvictsTheLeastRecentlyUsedBucket(t *testing.T) {
-	limiter := NewRateLimiter(1, 1)
+	limiter := NewRateLimiter()
 	if !limiter.allow("user:1", 1) {
 		t.Fatal("first member request refused")
 	}
@@ -95,5 +95,19 @@ func TestAFullLimiterEvictsTheLeastRecentlyUsedBucket(t *testing.T) {
 	}
 	if _, kept := limiter.buckets["ip:filler-0"]; kept {
 		t.Fatal("the least recently used bucket survived a full limiter")
+	}
+}
+
+func TestScopesKeepSeparateBuckets(t *testing.T) {
+	limiter := NewRateLimiter()
+	create := Budget{Scope: "create", Guest: 1, Member: 1}
+	join := Budget{Scope: "join:standup", Guest: 1, Member: 1}
+	request := httptest.NewRequest(http.MethodPost, "/", nil)
+	request.RemoteAddr = "203.0.113.7:1000"
+	if !limiter.Allow(request, create) || limiter.Allow(request, create) {
+		t.Fatal("the create budget is not one request")
+	}
+	if !limiter.Allow(request, join) {
+		t.Fatal("an exhausted create budget throttled joining a room")
 	}
 }

@@ -10,16 +10,19 @@ import (
 // RegisterRoutes mounts the rooms endpoints. Mutating and ownership routes
 // sit behind requireAuth; the token endpoint is public because guests join
 // without an account, so it resolves the caller itself via the resolver.
-// Both routes that can create a room, POST /rooms and the token route that
-// creates a missing room on join, sit behind limit, so nobody can mint
-// unbounded room rows, LiveKit rooms and deadline timers.
+// Creating a room, through POST /rooms or a token for an unknown slug, spends
+// the strict creation budget, so nobody can mint unbounded room rows, LiveKit
+// rooms and timers. Joining an existing room spends a far larger budget per
+// address and room, so a whole office behind one NAT can join one call.
 func RegisterRoutes(router chi.Router, service *Service, resolver middleware.IdentityResolver,
-	requireAuth, limit func(http.Handler) http.Handler) {
+	requireAuth func(http.Handler) http.Handler, limits Limits) {
 	handler := newHandler(service, resolver)
-	router.With(limit).Post("/rooms", handler.create)
+	handler.limits = limits
+	router.With(budgeted(limits, createBudget())).Post("/rooms", handler.create)
 	router.With(requireAuth).Get("/rooms", handler.list)
 	router.With(requireAuth).Patch("/rooms/{slug}", handler.rename)
 	router.With(requireAuth).Delete("/rooms/{slug}", handler.delete)
 	router.Get("/rooms/{slug}", handler.get)
-	router.With(limit).Post("/rooms/{slug}/token", handler.token)
+	router.Post("/rooms/{slug}/token", handler.token)
+	router.Get("/rooms/{slug}/deadline", handler.deadline)
 }

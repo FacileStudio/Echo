@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+### Changed
+- Joining an existing room has its own rate limit, 60 a minute per address and room (120 per account), so a whole office behind one NAT can join one call. Creating a room, through `POST /api/rooms` or a token for an unknown slug, keeps the strict 10 a minute per address (30 per account).
+- While the owner is not in the call, guests can fill at most `limit - 1` seats, so the owner always finds one. One client address holds at most one pending seat per room.
+- An unlimited plan creates its LiveKit room with an explicit ceiling of 10,000 instead of 0, so upgrading mid-call raises the ceiling of the running room.
+
+### Added
+- `GET /api/rooms/{slug}/deadline` returns the running call's deadline. The call countdown polls it every minute, so an upgrade or a restart reaches it.
+- Without `OIDC_ISSUER` the API logs at boot that plans are never synced and every limit stays open. The README says so too.
+
+### Fixed
+- A call row the 5-minute reconcile closes, because LiveKit forgot its room, is now forwarded to integrating apps as a `room_finished`.
+- A join admitted while the limiter was cutting the room at its deadline is refused, instead of starting a fresh session. The cut is recorded before the room closes.
+- The limiter forgets cuts older than 10 minutes instead of keeping them forever.
+
 ## [2.3.0] - 2026-11-04
 
 ### Added

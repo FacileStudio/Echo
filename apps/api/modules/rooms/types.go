@@ -45,3 +45,16 @@ func toTokenResponse(admission Admission, url string) TokenResponse {
 	}
 	return response
 }
+
+// DeadlineResponse is the body of GET /rooms/{slug}/deadline: when the
+// running call must end, absent when nothing limits it.
+type DeadlineResponse struct {
+	CallDeadline string `json:"call_deadline,omitempty"`
+}
+
+func toDeadlineResponse(deadline *time.Time) DeadlineResponse {
+	if deadline == nil {
+		return DeadlineResponse{}
+	}
+	return DeadlineResponse{CallDeadline: deadline.UTC().Format(time.RFC3339)}
+}

@@ -17,9 +17,11 @@ import (
 )
 
 type fakeLive struct {
-	mu    sync.Mutex
-	rooms []media.LiveRoom
-	ended chan string
+	mu       sync.Mutex
+	rooms    []media.LiveRoom
+	ended    chan string
+	limiter  *Limiter
+	cutFirst bool
 }
 
 func newFakeLive(rooms ...media.LiveRoom) *fakeLive {
@@ -27,6 +29,9 @@ func newFakeLive(rooms ...media.LiveRoom) *fakeLive {
 }
 
 func (f *fakeLive) EndRoom(_ context.Context, room string) error {
+	if f.limiter != nil {
+		_, f.cutFirst = f.limiter.CutAt(room)
+	}
 	f.ended <- room
 	return nil
 }
@@ -109,10 +114,14 @@ func TestAnOverdueCallIsEnded(t *testing.T) {
 	openCall(t, db, "overdue", time.Now().Add(-time.Hour))
 	live := newFakeLive(media.LiveRoom{Name: "overdue", SID: "RM_overdue"})
 	limiter := New(context.Background(), db, freePlans(t, db), live, nil)
+	live.limiter = limiter
 	if err := limiter.Rearm(context.Background()); err != nil {
 		t.Fatalf("rearm: %v", err)
 	}
 	live.waitEnded(t, "overdue")
+	if !live.cutFirst {
+		t.Fatal("the cut was recorded after the room closed, so a racing join could start a new call")
+	}
 	if _, cut := limiter.CutAt("overdue"); !cut {
 		t.Fatal("the cut was not remembered for the cooldown")
 	}

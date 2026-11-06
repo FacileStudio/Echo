@@ -97,17 +97,18 @@ func run() int {
 	router.Use(middleware.FrameAncestors(cfg.EmbedOrigins))
 	health.Mount(router)
 	integrationKeys := integrations.NewKeys(cfg.IntegrationKeys)
+	forwarder := integrations.NewForwarder(db, integrationKeys, log)
+	planning.limiter.NotifyWith(forwarder)
 	webhooks.New(db, troncenv.String("LIVEKIT_API_KEY", ""), mediaService.Secret()).
-		NotifyWith(integrations.NewForwarder(db, integrationKeys, log)).
+		NotifyWith(forwarder).
 		NotifyWith(planning.limiter).
 		RegisterRoutes(router)
 	planning.Mount(router)
-	joinLimit := middleware.NewRateLimiter(guestJoinsPerMinute, memberJoinsPerMinute)
 	router.Route("/api", func(r chi.Router) {
 		r.Use(extendWriteDeadline("/summary", summaryWriteBudget))
 		authKit.Mount(r, cfg.Porte.SSOOnly)
 		roomsService := rooms.NewService(db, mediaService, planning.plans, planning.limiter)
-		rooms.RegisterRoutes(r, roomsService, authKit.service, authKit.requireAuth, joinLimit.Middleware)
+		rooms.RegisterRoutes(r, roomsService, authKit.service, authKit.requireAuth, middleware.NewRateLimiter())
 		recording.RegisterRoutes(r, recording.NewRecording(roomsService, mediaService), authKit.requireAuth)
 		historyService := history.NewService(db, roomsService, summarize.NewFromEnv(), cfg.RecordingsDir)
 		history.RegisterRoutes(r, historyService, authKit.requireAuth)

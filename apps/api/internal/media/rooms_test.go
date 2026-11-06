@@ -61,3 +61,11 @@ func TestAJoinTokenLivesTenMinutes(t *testing.T) {
 		t.Fatalf("token lives until %s, longer than %s", claims.ExpiresAt.Time, TokenTTL)
 	}
 }
+
+func TestAnUnlimitedRoomSendsAnExplicitCeiling(t *testing.T) {
+	for limit, want := range map[int64]uint32{-1: unlimitedParticipants, 0: unlimitedParticipants, 4: 4, 1 << 40: unlimitedParticipants} {
+		if got := (RoomSettings{MaxParticipants: limit}).ceiling(); got != want {
+			t.Errorf("ceiling for %d = %d, want %d: 0 would keep a lower ceiling after an upgrade", limit, got, want)
+		}
+	}
+}

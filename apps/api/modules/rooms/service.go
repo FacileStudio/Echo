@@ -39,10 +39,11 @@ type Service struct {
 }
 
 // LiveRooms is the part of LiveKit a join needs: creating the room with its
-// ceiling, and listing who is connected.
+// ceiling, listing who is connected, and reading when the session started.
 type LiveRooms interface {
 	EnsureRoom(ctx context.Context, roomName string, settings media.RoomSettings) (media.LiveRoom, error)
 	Participants(ctx context.Context, roomName string) ([]string, error)
+	Rooms(ctx context.Context, names ...string) ([]media.LiveRoom, error)
 }
 
 // Deadlines arms a session's deadline before any webhook recorded the call,
@@ -185,28 +186,42 @@ var guestGrant = media.Grant{
 	RoomAdmin:      false,
 }
 
+// JoinRequest is one caller asking to join a room: the signed-in user, if
+// any, the name a guest gives, and the client address the request came from.
+type JoinRequest struct {
+	Slug        string
+	UserID      *int64
+	Email       string
+	DisplayName string
+	Address     string
+}
+
 // Token admits the caller into the room's call under the owner's plan and
 // mints their LiveKit join token. A full call answers a *forfait.LimitError.
-func (s *Service) Token(ctx context.Context, slug string, userID *int64, email, displayName string) (Admission, error) {
-	room, err := s.Join(ctx, slug, userID)
+func (s *Service) Token(ctx context.Context, req JoinRequest) (Admission, error) {
+	room, err := s.Join(ctx, req.Slug, req.UserID)
 	if err != nil {
 		return Admission{}, err
 	}
 	if room.IntegrationApp != "" {
 		return Admission{}, troncerrors.Forbidden("this call is joined from the app that created it")
 	}
-	identity, name, grant := "guest-"+uuid.NewString()[:8], displayName, guestGrant
-	if userID != nil {
-		identity, name, grant = fmt.Sprintf("user-%d", *userID), displayNameOr(email, displayName), moderatorGrant
-	} else if displayName == "" {
+	identity, name, grant := "guest-"+uuid.NewString()[:8], req.DisplayName, guestGrant
+	if req.UserID != nil {
+		identity, name, grant = fmt.Sprintf("user-%d", *req.UserID), displayNameOr(req.Email, req.DisplayName), moderatorGrant
+	} else if req.DisplayName == "" {
 		return Admission{}, troncerrors.Invalid("display_name is required for guests")
 	}
-	deadline, err := s.admit(ctx, room, identity, userID != nil && room.OwnerID != nil && *room.OwnerID == *userID)
+	deadline, err := s.admit(ctx, room, joiner{identity: identity, address: req.Address, owner: isOwner(room, req.UserID)})
 	if err != nil {
 		return Admission{}, err
 	}
 	token, err := s.media.Issue(room.Slug, identity, name, grant)
 	return Admission{Token: token, Deadline: deadline}, err
+}
+
+func isOwner(room *schemas.Room, userID *int64) bool {
+	return userID != nil && room.OwnerID != nil && *room.OwnerID == *userID
 }
 
 func displayNameOr(primary, fallback string) string {

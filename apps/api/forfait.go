@@ -38,6 +38,8 @@ func setupPlans(ctx context.Context, cfg env.Config, db *gorm.DB, mediaService *
 		return nil, err
 	}
 	if !cfg.Porte.Enabled() {
+		log.Warn("plans: OIDC_ISSUER is not set, so Echo never syncs entitlements from Registre " +
+			"and every plan limit stays open; set OIDC_ISSUER, OIDC_CLIENT_ID and OIDC_CLIENT_SECRET to enforce plans")
 		return kit, nil
 	}
 	kit.syncer = kit.plans.NewSyncer(plans.Credentials{
@@ -60,13 +62,6 @@ func (k *planKit) Mount(router chi.Router) {
 		router.Method(http.MethodPost, directory.SyncPath, k.syncer.Handler())
 	}
 }
-
-// The join and room-creation budgets per minute: per client address for
-// guests, per account for signed-in users.
-const (
-	guestJoinsPerMinute  = 10
-	memberJoinsPerMinute = 30
-)
 
 // reconcileEvery is how often open calls are compared with LiveKit's rooms.
 const reconcileEvery = 5 * time.Minute

@@ -19,7 +19,7 @@ func behindCloudflare(t *testing.T) http.Handler {
 		t.Fatalf("load: %v", err)
 	}
 	router := httpx.NewRouter(httpx.Config{TrustedProxies: cfg.TrustedProxies})
-	router.With(NewRateLimiter(1, 1).Middleware).Post("/token", func(w http.ResponseWriter, _ *http.Request) {
+	router.With(NewRateLimiter().Limit(Budget{Scope: "t", Guest: 1, Member: 1})).Post("/token", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	})
 	return router

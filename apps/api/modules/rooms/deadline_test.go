@@ -21,7 +21,7 @@ func TestTheDeadlineComesFromLiveKitsSessionStart(t *testing.T) {
 	if _, err := s.Create(context.Background(), "free-call", "free-call", &owner); err != nil {
 		t.Fatalf("create: %v", err)
 	}
-	admission, err := s.Token(context.Background(), "free-call", nil, "", "Guest")
+	admission, err := s.Token(context.Background(), JoinRequest{Slug: "free-call", DisplayName: "Guest"})
 	if err != nil {
 		t.Fatalf("token: %v", err)
 	}
@@ -43,7 +43,7 @@ func TestARecordedSessionLeavesTheTimerToItsCall(t *testing.T) {
 	pushPlan(t, s, "someone-else", nil)
 	call := openCallWith(t, s, "recorded", owner)
 	s.live = &fakeLive{room: dummyLive(call.LivekitRoomSID, call.StartedAt)}
-	admission, err := s.Token(context.Background(), "recorded", nil, "", "Guest")
+	admission, err := s.Token(context.Background(), JoinRequest{Slug: "recorded", DisplayName: "Guest"})
 	if err != nil || admission.Deadline == nil || !admission.Deadline.Equal(call.StartedAt.Add(40*time.Minute)) {
 		t.Fatalf("deadline = %v, %v", admission.Deadline, err)
 	}

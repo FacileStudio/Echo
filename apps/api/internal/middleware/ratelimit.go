@@ -22,13 +22,12 @@ const maxBuckets = 50000
 // networkFactor is how many /64 budgets one IPv6 /48 may spend in total.
 const networkFactor = 4
 
-// RateLimiter caps requests per minute: per signed-in account at Member, and
-// per client address (ClientAddr) at Guest for everyone else. An IPv6 caller
-// spends from its /64 at Guest and from its /48 at networkFactor times that.
+// RateLimiter caps requests per minute within named scopes: per signed-in
+// account, and per client address (ClientAddr) for everyone else. An IPv6
+// caller spends from its /64 and from its /48 at networkFactor times the
+// budget. A scope keeps its own buckets, so a strict budget for creating
+// rooms never throttles joining one.
 type RateLimiter struct {
-	Guest  int
-	Member int
-
 	mu      sync.Mutex
 	buckets map[string]*list.Element
 	order   *list.List
@@ -40,36 +39,51 @@ type bucket struct {
 	limiter *rate.Limiter
 }
 
-// NewRateLimiter builds a RateLimiter with the given per-minute budgets.
-func NewRateLimiter(guest, member int) *RateLimiter {
-	return &RateLimiter{Guest: guest, Member: member, buckets: map[string]*list.Element{}, order: list.New(), now: time.Now}
+// NewRateLimiter builds an empty RateLimiter.
+func NewRateLimiter() *RateLimiter {
+	return &RateLimiter{buckets: map[string]*list.Element{}, order: list.New(), now: time.Now}
 }
 
-// Middleware refuses a request over its caller's budget with 429.
-func (l *RateLimiter) Middleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !l.allowRequest(r) {
-			w.Header().Set("Retry-After", "60")
-			httpjson.WriteError(w, errors.RateLimited("too many requests, try again in a minute"))
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
+// Budget is a scope's per-minute allowance for guests and for signed-in
+// accounts.
+type Budget struct {
+	Scope  string
+	Guest  int
+	Member int
 }
 
-// allowRequest spends one request from every bucket the caller belongs to,
+// Limit is middleware refusing a request over budget with 429.
+func (l *RateLimiter) Limit(budget Budget) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if !l.Allow(r, budget) {
+				Refuse(w)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+// Refuse answers 429 with the suite error envelope.
+func Refuse(w http.ResponseWriter) {
+	w.Header().Set("Retry-After", "60")
+	httpjson.WriteError(w, errors.RateLimited("too many requests, try again in a minute"))
+}
+
+// Allow spends one request from every bucket the caller has in the scope,
 // widest first, and stops at the first that is empty.
-func (l *RateLimiter) allowRequest(r *http.Request) bool {
+func (l *RateLimiter) Allow(r *http.Request, budget Budget) bool {
 	if identity, ok := porte.From(r.Context()); ok {
-		return l.allow("user:"+strconv.FormatInt(identity.UserID, 10), l.Member)
+		return l.allow(budget.Scope+"|user:"+strconv.FormatInt(identity.UserID, 10), budget.Member)
 	}
 	keys := addressKeys(ClientAddr(r))
 	for i := len(keys) - 1; i >= 0; i-- {
-		perMinute := l.Guest
+		perMinute := budget.Guest
 		if strings.HasPrefix(keys[i], "net:") {
 			perMinute *= networkFactor
 		}
-		if !l.allow(keys[i], perMinute) {
+		if !l.allow(budget.Scope+"|"+keys[i], perMinute) {
 			return false
 		}
 	}
