@@ -59,6 +59,7 @@
 		{slug}
 		{historyHref}
 		callDeadline={grant.call_deadline ?? ''}
+		deadlineKey={grant.deadline_key ?? ''}
 	/>
 {:else}
 	<main class="flex min-h-screen items-center justify-center px-4">

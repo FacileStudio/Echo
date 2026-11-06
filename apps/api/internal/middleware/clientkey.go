@@ -74,3 +74,10 @@ func addressKeys(addr netip.Addr) []string {
 	p48, _ := addr.Prefix(48)
 	return []string{"ip:" + p64.String(), "net:" + p48.String()}
 }
+
+// AddressKey is the narrowest key an address is limited by: itself for IPv4,
+// its /64 for IPv6. Anything that holds one thing per client address keys on
+// it, so an IPv6 subscriber cannot rotate through their /64.
+func AddressKey(addr netip.Addr) string {
+	return addressKeys(addr)[0]
+}

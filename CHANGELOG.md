@@ -5,16 +5,18 @@
 ### Changed
 - porte/directory v0.2.0 to v0.2.1, and porte/forfait v0.1.0 to v0.1.1.
 - Joining an existing room has its own rate limit, 60 a minute per address and room (120 per account), so a whole office behind one NAT can join one call. Creating a room, through `POST /api/rooms` or a token for an unknown slug, keeps the strict 10 a minute per address (30 per account).
-- While the owner is not in the call, guests can fill at most `limit - 1` seats, so the owner always finds one. One client address holds at most one pending seat per room.
+- While the owner is not in the call, guests can fill at most `limit - 1` seats. When the owner arrives at a room LiveKit reports full, Echo disconnects the most recently joined guest first. One client address (an IPv6 /64) holds at most one pending seat per room.
+- Guest join tokens live 90 seconds instead of 10 minutes. LiveKit refreshes the token of a connected client.
+- One address may join at most 120 rooms' worth of tokens a minute overall (240 per account), on top of each room's own budget.
 - An unlimited plan creates its LiveKit room with an explicit ceiling of 10,000 instead of 0, so upgrading mid-call raises the ceiling of the running room.
 
 ### Added
-- `GET /api/rooms/{slug}/deadline` returns the running call's deadline. The call countdown polls it every minute, so an upgrade or a restart reaches it.
+- `GET /api/rooms/{slug}/deadline` returns the running call's deadline to a caller holding the room's `deadline_key`, which every token response carries. The budget is per address, across rooms. The call countdown polls it every minute, so an upgrade or a restart reaches it.
 - Without `OIDC_ISSUER` the API logs at boot that plans are never synced and every limit stays open. The README says so too.
 
 ### Fixed
 - An existing but empty `forfait_state` row now enforces the free plan, like an unreadable one. forfait v0.1.1 imports empty input as a no-op, which would have failed open. To recover from a bad row, delete it rather than blanking it; see `docs/plans.md`.
-- A call row the 5-minute reconcile closes, because LiveKit forgot its room, is now forwarded to integrating apps as a `room_finished`.
+- A call row the 5-minute reconcile closes, because LiveKit forgot its session, is now forwarded to integrating apps as a `room_finished`, unless LiveKit runs a newer session of the same room; that row is closed silently so Prisme does not end the running call.
 - A join admitted while the limiter was cutting the room at its deadline is refused, instead of starting a fresh session. The cut is recorded before the room closes.
 - The limiter forgets cuts older than 10 minutes instead of keeping them forever.
 

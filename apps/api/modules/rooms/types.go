@@ -31,15 +31,18 @@ type RoomResponse struct {
 // TokenResponse carries the LiveKit token, the server URL to connect to and
 // the room joined. CallDeadline is when the server ends the call under the
 // owner's plan, RFC 3339 in UTC, and absent when call length is unlimited.
+// DeadlineKey is what GET /rooms/{slug}/deadline asks for in
+// X-Echo-Deadline-Key, so only someone admitted to the room can poll it.
 type TokenResponse struct {
 	Token        string       `json:"token"`
 	URL          string       `json:"url"`
 	Room         RoomResponse `json:"room"`
 	CallDeadline string       `json:"call_deadline,omitempty"`
+	DeadlineKey  string       `json:"deadline_key"`
 }
 
-func toTokenResponse(admission Admission, url string) TokenResponse {
-	response := TokenResponse{Token: admission.Token, URL: url}
+func toTokenResponse(admission Admission, url, deadlineKey string) TokenResponse {
+	response := TokenResponse{Token: admission.Token, URL: url, DeadlineKey: deadlineKey}
 	if admission.Deadline != nil {
 		response.CallDeadline = admission.Deadline.UTC().Format(time.RFC3339)
 	}

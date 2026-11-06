@@ -81,9 +81,15 @@ func (s *Service) EndRoom(ctx context.Context, roomName string) error {
 	return s.twirp(ctx, token, "livekit.RoomService/DeleteRoom", map[string]any{"room": roomName}, nil)
 }
 
-// Participants lists the identities connected to a room, none when LiveKit
-// does not know the room.
-func (s *Service) Participants(ctx context.Context, roomName string) ([]string, error) {
+// Connected is one participant LiveKit reports in a room.
+type Connected struct {
+	Identity string
+	JoinedAt time.Time
+}
+
+// Participants lists who is connected to a room, nobody when LiveKit does
+// not know the room.
+func (s *Service) Participants(ctx context.Context, roomName string) ([]Connected, error) {
 	token, err := s.roomServiceToken(roomName)
 	if err != nil {
 		return nil, err
@@ -91,16 +97,29 @@ func (s *Service) Participants(ctx context.Context, roomName string) ([]string, 
 	response := &livekit.ListParticipantsResponse{}
 	err = s.twirp(ctx, token, "livekit.RoomService/ListParticipants", map[string]any{"room": roomName}, response)
 	if errors.Is(err, ErrNotFound) {
-		return []string{}, nil
+		return []Connected{}, nil
 	}
 	if err != nil {
 		return nil, err
 	}
-	identities := make([]string, 0, len(response.GetParticipants()))
+	connected := make([]Connected, 0, len(response.GetParticipants()))
 	for _, participant := range response.GetParticipants() {
-		identities = append(identities, participant.GetIdentity())
+		connected = append(connected, Connected{
+			Identity: participant.GetIdentity(),
+			JoinedAt: time.Unix(participant.GetJoinedAt(), 0).UTC(),
+		})
 	}
-	return identities, nil
+	return connected, nil
+}
+
+// RemoveParticipant disconnects one participant from a room.
+func (s *Service) RemoveParticipant(ctx context.Context, roomName, identity string) error {
+	token, err := s.roomServiceToken(roomName)
+	if err != nil {
+		return err
+	}
+	body := map[string]any{"room": roomName, "identity": identity}
+	return s.twirp(ctx, token, "livekit.RoomService/RemoveParticipant", body, nil)
 }
 
 // Rooms lists the rooms LiveKit is running, only those named when names are

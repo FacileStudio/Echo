@@ -3,6 +3,7 @@ package calllimit
 import (
 	"context"
 	"errors"
+	"slices"
 	"time"
 
 	"github.com/FacileStudio/Echo/apps/api/internal/media"
@@ -91,9 +92,9 @@ func (l *Limiter) reconcileRoom(ctx context.Context, live media.LiveRoom) {
 }
 
 // closeStale ends the open call rows whose session LiveKit no longer runs,
-// marks everyone still shown in them as gone, and reports each as a
-// room_finished, so an integrating app hears the end of a call whose
-// webhook never came. "-" is never a session id; it keeps the NOT IN list
+// marks everyone still shown in them as gone, and reports each whose room
+// runs no session at all as a room_finished, so an integrating app hears the
+// end of a call whose webhook never came. "-" is never a session id; it keeps the NOT IN list
 // non-empty when LiveKit runs no room at all.
 func (l *Limiter) closeStale(ctx context.Context, rooms []media.LiveRoom) error {
 	live := make([]string, 0, len(rooms)+1)
@@ -122,9 +123,22 @@ func (l *Limiter) closeStale(ctx context.Context, rooms []media.LiveRoom) error 
 		return tx.Model(&schemas.Call{}).Where("id IN ? AND ended_at IS NULL", ids).Update("ended_at", now).Error
 	})
 	if err == nil {
-		l.reportFinished(ctx, stale, now)
+		l.reportFinished(ctx, endedRooms(stale, rooms), now)
 	}
 	return err
+}
+
+// endedRooms keeps the stale calls whose room LiveKit runs no session of at
+// all. A forwarded room_finished names only the room, so reporting a stale
+// row while a newer session of the same room is live would make an
+// integrating app end the call that is still running; that row is closed
+// silently instead.
+func endedRooms(stale []schemas.Call, rooms []media.LiveRoom) []schemas.Call {
+	running := map[string]bool{}
+	for _, room := range rooms {
+		running[room.Name] = true
+	}
+	return slices.DeleteFunc(stale, func(call schemas.Call) bool { return running[call.LivekitRoomName] })
 }
 
 // reportFinished tells every notifier that each call's room finished at.

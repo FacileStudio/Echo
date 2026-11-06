@@ -48,8 +48,39 @@ func TestCreatingARoomSpendsTheStrictBudgetAndJoiningTheRoomsOwn(t *testing.T) {
 	if got, ok := s.BySlug(context.Background(), "junk-slug"); ok != nil || got != nil {
 		t.Fatal("a refused token still created the room")
 	}
-	want := []string{"room-create", "room-create", "join:office"}
+	want := []string{"room-create", "room-create", "join", "join:office"}
 	if strings.Join(limits.spent, ",") != strings.Join(want, ",") {
 		t.Fatalf("budgets spent %v, want %v", limits.spent, want)
+	}
+}
+
+func TestOneAddressCannotSpreadJoinsOverManyRooms(t *testing.T) {
+	s := newTestService(t)
+	for _, slug := range []string{"one", "two"} {
+		if _, err := s.Create(context.Background(), slug, slug, nil); err != nil {
+			t.Fatalf("create: %v", err)
+		}
+	}
+	router := chi.NewRouter()
+	RegisterRoutes(router, s, &stubResolver{}, func(next http.Handler) http.Handler { return next },
+		&fakeLimits{refuse: map[string]bool{"join": true}})
+	for _, slug := range []string{"one", "two"} {
+		if code := post(router, "/rooms/"+slug+"/token"); code != http.StatusTooManyRequests {
+			t.Errorf("join of %s with the address's overall join budget spent answered %d, want 429", slug, code)
+		}
+	}
+}
+
+func TestPendingSeatsAreKeyedLikeTheRateLimiter(t *testing.T) {
+	at := func(addr string) string {
+		request := httptest.NewRequest(http.MethodPost, "/", nil)
+		request.RemoteAddr = addr
+		return clientAddress(request)
+	}
+	if at("[2001:db8:1:2::1]:443") != at("[2001:db8:1:2:ffff::9]:443") {
+		t.Fatal("two addresses of one IPv6 /64 hold separate pending seats")
+	}
+	if at("203.0.113.7:1") == at("203.0.113.8:1") || at("garbage") != "" {
+		t.Fatal("IPv4 addresses are not keyed one by one, or an unknown address got a key")
 	}
 }

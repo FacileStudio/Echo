@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/livekit/protocol/auth"
 )
 
 func TestGuestsLeaveOneSeatForTheAbsentOwner(t *testing.T) {
@@ -78,27 +79,99 @@ func TestAJoinRacingTheCutIsRefused(t *testing.T) {
 	}
 }
 
-func TestTheDeadlineRouteFollowsTheRunningSession(t *testing.T) {
-	s := newTestService(t)
+func deadlineRouter(t *testing.T, s *Service) (func(key string) *httptest.ResponseRecorder, *fakeLimits) {
+	t.Helper()
+	router := chi.NewRouter()
+	limits := &fakeLimits{}
+	RegisterRoutes(router, s, &stubResolver{}, func(next http.Handler) http.Handler { return next }, limits)
+	return func(key string) *httptest.ResponseRecorder {
+		request := httptest.NewRequest(http.MethodGet, "/rooms/poll/deadline", nil)
+		request.Header.Set("X-Echo-Deadline-Key", key)
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, request)
+		return recorder
+	}, limits
+}
+
+func pollRoom(t *testing.T, s *Service) {
+	t.Helper()
 	owner := addOwner(t, s, "sub-poll")
 	pushPlan(t, s, "someone-else", nil)
 	if _, err := s.Create(context.Background(), "poll", "poll", &owner); err != nil {
 		t.Fatalf("create: %v", err)
 	}
+}
+
+func TestOnlyACallerAdmittedToTheRoomReadsItsDeadline(t *testing.T) {
+	s := newTestService(t)
+	pollRoom(t, s)
+	poll, limits := deadlineRouter(t, s)
+	for _, key := range []string{"", s.DeadlineKey("other-room")} {
+		if got := poll(key); got.Code != http.StatusNotFound {
+			t.Fatalf("a caller with key %q read this room's deadline: %d", key, got.Code)
+		}
+	}
+	if limits.spent[0] != "deadline" {
+		t.Fatalf("deadline polls spent %v, want the per-address deadline budget", limits.spent)
+	}
+}
+
+func TestTheDeadlineRouteFollowsTheRunningSession(t *testing.T) {
+	s := newTestService(t)
+	pollRoom(t, s)
 	created := time.Now().Add(-time.Minute).Truncate(time.Second).UTC()
 	s.live = &fakeLive{room: dummyLive("RM_poll", created)}
-	router := chi.NewRouter()
-	RegisterRoutes(router, s, &stubResolver{}, func(next http.Handler) http.Handler { return next }, &fakeLimits{})
-	recorder := httptest.NewRecorder()
-	router.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/rooms/poll/deadline", nil))
+	poll, _ := deadlineRouter(t, s)
+	recorder := poll(s.DeadlineKey("poll"))
 	want := created.Add(40 * time.Minute).Format(time.RFC3339)
 	if recorder.Code != http.StatusOK || !strings.Contains(recorder.Body.String(), want) {
 		t.Fatalf("deadline route = %d %s, want %s", recorder.Code, recorder.Body.String(), want)
 	}
 	pushPlan(t, s, "sub-poll", map[string]json.RawMessage{"echo.max_call_minutes": json.RawMessage(`-1`)})
-	recorder = httptest.NewRecorder()
-	router.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/rooms/poll/deadline", nil))
-	if strings.Contains(recorder.Body.String(), "call_deadline") {
-		t.Fatalf("an upgraded owner's call still reports a deadline: %s", recorder.Body.String())
+	if body := poll(s.DeadlineKey("poll")).Body.String(); strings.Contains(body, "call_deadline") {
+		t.Fatalf("an upgraded owner's call still reports a deadline: %s", body)
+	}
+}
+
+func TestTheOwnerGetsIntoARoomLiveKitReportsFull(t *testing.T) {
+	s := newTestService(t)
+	owner := addOwner(t, s, "sub-evict")
+	pushPlan(t, s, "sub-evict", capAt(`3`))
+	openCallWith(t, s, "evict", owner)
+	start := time.Now().Add(-time.Hour)
+	live := &fakeLive{
+		participants: []string{"user-424242", "guest-old", "guest-new"},
+		joined: map[string]time.Time{
+			"user-424242": start.Add(30 * time.Minute), "guest-old": start, "guest-new": start.Add(10 * time.Minute),
+		},
+	}
+	s.live = live
+	if err := ownerJoin(s, "evict", owner); err != nil {
+		t.Fatalf("owner refused: %v", err)
+	}
+	if len(live.removed) != 1 || live.removed[0] != "guest-new" {
+		t.Fatalf("removed %v, want only the newest guest so LiveKit admits the owner", live.removed)
+	}
+	if err := ownerJoin(s, "evict", owner); err != nil || len(live.removed) != 1 {
+		t.Fatalf("an owner rejoining a room with space disconnected someone: %v %v", live.removed, err)
+	}
+}
+
+func TestAGuestTokenCannotBeHoarded(t *testing.T) {
+	s := newTestService(t)
+	admission, err := s.Token(context.Background(), JoinRequest{Slug: "hoard", DisplayName: "Guest"})
+	if err != nil {
+		t.Fatalf("token: %v", err)
+	}
+	parsed, err := auth.ParseAPIToken(admission.Token)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	claims, _, err := parsed.Verify("secret")
+	if err != nil {
+		t.Fatalf("verify: %v", err)
+	}
+	if time.Until(claims.ExpiresAt.Time) > guestTokenTTL {
+		t.Fatalf("a guest token lives until %s, longer than %s", claims.ExpiresAt.Time, guestTokenTTL)
 	}
 }

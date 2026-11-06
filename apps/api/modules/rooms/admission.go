@@ -54,14 +54,14 @@ func (s *Service) admit(ctx context.Context, room *schemas.Room, who joiner) (*t
 	if err := s.coolingDown(policy, room.Slug, call); err != nil {
 		return nil, err
 	}
-	seated := s.plans.Check(policy, plans.KeyMaxParticipants, 0, 1)
-	if !who.owner {
-		seated = s.seat(ctx, policy, room, who, call)
+	if err := s.seat(ctx, policy, room, who, call); err != nil {
+		return nil, err
 	}
-	if seated != nil {
-		return nil, seated
+	ceiling := s.plans.Limit(policy, plans.KeyMaxParticipants)
+	live, err := s.provisionRoom(ctx, room.Slug, ceiling)
+	if err == nil && who.owner {
+		s.makeRoomForOwner(ctx, room.Slug, ceiling, who.identity, call)
 	}
-	live, err := s.provisionRoom(ctx, room.Slug, s.plans.Limit(policy, plans.KeyMaxParticipants))
 	if err == nil {
 		err = s.cutSince(policy, room.Slug, started)
 	}
@@ -78,11 +78,14 @@ func (s *Service) admit(ctx context.Context, room *schemas.Room, who joiner) (*t
 // limit-1 seats and the owner always finds room. The owner skips this and is
 // checked against an empty room, so only a plan allowing nobody refuses them.
 func (s *Service) seat(ctx context.Context, policy plans.Policy, room *schemas.Room, who joiner, call *schemas.Call) error {
+	if who.owner {
+		return s.plans.Check(policy, plans.KeyMaxParticipants, 0, 1)
+	}
 	reserved := ""
 	if room.OwnerID != nil {
 		reserved = fmt.Sprintf("user-%d", *room.OwnerID)
 	}
-	return s.ledger.admit(room.Slug, who, s.present(ctx, room.Slug, call), reserved, func(count int64) error {
+	return s.ledger.admit(room.Slug, who, identitiesOf(s.present(ctx, room.Slug, call)), reserved, func(count int64) error {
 		return s.plans.Check(policy, plans.KeyMaxParticipants, count, 1)
 	})
 }

@@ -5,9 +5,10 @@
 	interface Props {
 		deadline: string;
 		slug: string;
+		deadlineKey: string;
 	}
 
-	let { deadline, slug }: Props = $props();
+	let { deadline, slug, deadlineKey }: Props = $props();
 
 	const warnBeforeMs = 5 * 60 * 1000;
 	const refreshMs = 60 * 1000;
@@ -25,10 +26,11 @@
 	});
 
 	$effect(() => {
-		if (!slug) return;
+		if (!slug || !deadlineKey) return;
 		const room = slug;
+		const key = deadlineKey;
 		const refresh = setInterval(async () => {
-			const latest = await fetchCallDeadline(room);
+			const latest = await fetchCallDeadline(room, key);
 			if (latest !== null) fetched = latest;
 		}, refreshMs);
 		return () => clearInterval(refresh);

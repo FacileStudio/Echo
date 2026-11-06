@@ -24,6 +24,7 @@
 		historyHref?: string;
 		embedded?: boolean;
 		callDeadline?: string;
+		deadlineKey?: string;
 		onLeave?: () => void;
 	}
 
@@ -36,6 +37,7 @@
 		historyHref = '',
 		embedded = false,
 		callDeadline = '',
+		deadlineKey = '',
 		onLeave
 	}: Props = $props();
 
@@ -188,7 +190,7 @@
 	{/if}
 
 	{#if callDeadline || (slug && !embedded)}
-		<CallCountdown deadline={callDeadline} {slug} />
+		<CallCountdown deadline={callDeadline} {slug} {deadlineKey} />
 	{/if}
 
 	<AudioPrompt blocked={audioBlocked} onEnable={() => void room?.startAudio()} />

@@ -97,3 +97,22 @@ func TestOldCutsAreForgotten(t *testing.T) {
 		t.Fatal("the fresh cut was dropped")
 	}
 }
+
+func TestAStaleRowOfARoomStillRunningIsClosedSilently(t *testing.T) {
+	db := testdb.Migrated(t)
+	stale := openCall(t, db, "prisme-room", time.Now().Add(-time.Hour))
+	live := newFakeLive(media.LiveRoom{Name: "prisme-room", SID: "RM_newer_session", CreatedAt: time.Now()})
+	limiter := New(context.Background(), db, freePlans(t, db), live, nil)
+	heard := &recorder{}
+	limiter.NotifyWith(heard)
+	if err := limiter.Reconcile(context.Background()); err != nil {
+		t.Fatalf("reconcile: %v", err)
+	}
+	var closed schemas.Call
+	if err := db.First(&closed, "id = ?", stale.ID).Error; err != nil || closed.EndedAt == nil {
+		t.Fatal("the stale row of a superseded session stayed open")
+	}
+	if len(heard.events) != 0 {
+		t.Fatalf("integrations heard %v while a newer session of the room is live: Prisme would end that call", heard.events)
+	}
+}

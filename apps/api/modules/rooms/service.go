@@ -39,10 +39,12 @@ type Service struct {
 }
 
 // LiveRooms is the part of LiveKit a join needs: creating the room with its
-// ceiling, listing who is connected, and reading when the session started.
+// ceiling, listing who is connected, disconnecting a guest to seat the owner,
+// and reading when the session started.
 type LiveRooms interface {
 	EnsureRoom(ctx context.Context, roomName string, settings media.RoomSettings) (media.LiveRoom, error)
-	Participants(ctx context.Context, roomName string) ([]string, error)
+	Participants(ctx context.Context, roomName string) ([]media.Connected, error)
+	RemoveParticipant(ctx context.Context, roomName, identity string) error
 	Rooms(ctx context.Context, names ...string) ([]media.LiveRoom, error)
 }
 
@@ -186,6 +188,12 @@ var guestGrant = media.Grant{
 	RoomAdmin:      false,
 }
 
+// guestTokenTTL is how long a guest's token can open a connection. Anyone can
+// mint one, so it lives about as long as its pending seat: a token cannot be
+// hoarded to fill the room later. LiveKit refreshes the token of a client
+// once it is connected, so a long call is not affected.
+const guestTokenTTL = 90 * time.Second
+
 // JoinRequest is one caller asking to join a room: the signed-in user, if
 // any, the name a guest gives, and the client address the request came from.
 type JoinRequest struct {
@@ -206,9 +214,11 @@ func (s *Service) Token(ctx context.Context, req JoinRequest) (Admission, error)
 	if room.IntegrationApp != "" {
 		return Admission{}, troncerrors.Forbidden("this call is joined from the app that created it")
 	}
-	identity, name, grant := "guest-"+uuid.NewString()[:8], req.DisplayName, guestGrant
+	identity, ttl, grant := "guest-"+uuid.NewString()[:8], guestTokenTTL, guestGrant
+	name := req.DisplayName
 	if req.UserID != nil {
-		identity, name, grant = fmt.Sprintf("user-%d", *req.UserID), displayNameOr(req.Email, req.DisplayName), moderatorGrant
+		identity, ttl, grant = fmt.Sprintf("user-%d", *req.UserID), 0, moderatorGrant
+		name = displayNameOr(req.Email, req.DisplayName)
 	} else if req.DisplayName == "" {
 		return Admission{}, troncerrors.Invalid("display_name is required for guests")
 	}
@@ -216,7 +226,7 @@ func (s *Service) Token(ctx context.Context, req JoinRequest) (Admission, error)
 	if err != nil {
 		return Admission{}, err
 	}
-	token, err := s.media.Issue(room.Slug, identity, name, grant)
+	token, err := s.media.IssueFor(room.Slug, media.Participant{Identity: identity, Name: name, TTL: ttl}, grant)
 	return Admission{Token: token, Deadline: deadline}, err
 }
 
