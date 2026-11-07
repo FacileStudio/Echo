@@ -210,6 +210,19 @@ func TestChunksAreBounded(t *testing.T) {
 	}
 }
 
+func TestRestartingTheRecorderDoesNotResetTheCallCeiling(t *testing.T) {
+	w := newWorld(t)
+	w.open(w.pro, "user-"+strconv.FormatInt(w.pro, 10))
+	first := w.startRecording()
+	if err := w.db.Model(&schemas.Recording{}).Where("id = ?", first.ID).Update("size", maxRecordingBytes-1).Error; err != nil {
+		t.Fatal(err)
+	}
+	second := w.startRecording()
+	if rec := chunk(w, w.owner(), second.ID, 0, "ab"); rec.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("a second recording past the call ceiling = %d", rec.Code)
+	}
+}
+
 func TestChunksStopWhenRecordingIsSwitchedOff(t *testing.T) {
 	w := newWorld(t)
 	w.open(w.pro, "user-"+strconv.FormatInt(w.pro, 10))

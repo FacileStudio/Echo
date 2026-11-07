@@ -128,7 +128,13 @@ func (s *Service) PutChunk(ctx context.Context, c Chunk, body io.Reader) (Upload
 			return errRecordingOff
 		}
 		out = toUpload(rec)
-		if done, err := checkChunk(rec, c.Index, len(data)); done || err != nil {
+		var others int64
+		err = tx.Model(&schemas.Recording{}).Where("call_id = ? AND id <> ?", rec.CallID, rec.ID).
+			Select("COALESCE(SUM(size), 0)").Scan(&others).Error
+		if err != nil {
+			return err
+		}
+		if done, err := checkChunk(rec, others, c.Index, len(data)); done || err != nil {
 			return err
 		}
 		if err := s.write(rec, data); err != nil {
@@ -143,7 +149,7 @@ func (s *Service) PutChunk(ctx context.Context, c Chunk, body io.Reader) (Upload
 	return out, err
 }
 
-func checkChunk(rec schemas.Recording, index, size int) (done bool, err error) {
+func checkChunk(rec schemas.Recording, others int64, index, size int) (done bool, err error) {
 	switch {
 	case index < rec.Chunks:
 		return true, nil
@@ -151,8 +157,8 @@ func checkChunk(rec schemas.Recording, index, size int) (done bool, err error) {
 		return false, &gapError{upload: toUpload(rec)}
 	case size == 0:
 		return false, troncerrors.Invalid("a chunk is not empty")
-	case rec.Size+int64(size) > maxRecordingBytes:
-		return false, troncerrors.TooLarge("this recording reached its maximum size")
+	case rec.Size+others+int64(size) > maxRecordingBytes:
+		return false, troncerrors.TooLarge("this call's recordings reached their maximum size")
 	}
 	return false, nil
 }
