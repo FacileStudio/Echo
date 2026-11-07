@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.4.0] - 2026-11-07
+
 ### Changed
 - Libraries: porte v0.5.2 to v0.12.1, porte/directory v0.2.1 to v0.3.0, tronc v0.11.0 to v0.17.1. muse stays at the untagged commit 006adfc: Echo keeps its own design.
 - Sign-in goes through Registre only. `/api/auth/register` and `/api/auth/login` are gone, `ALLOW_REGISTRATION` and `SSO_ONLY` are no longer read, and `/auth/config` no longer reports `allow_registration`. Guests still join by link with a display name.
