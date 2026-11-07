@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+### Changed
+- Libraries: porte v0.5.2 to v0.12.1, porte/directory v0.2.1 to v0.3.0, tronc v0.11.0 to v0.17.1, muse from the untagged commit 006adfc to v0.13.0.
+- Sign-in goes through Registre only. `/api/auth/register` and `/api/auth/login` are gone, `ALLOW_REGISTRATION` and `SSO_ONLY` are no longer read, and `/auth/config` no longer reports `allow_registration`. Guests still join by link with a display name.
+- An OIDC login links to an existing account only by a verified email, and refuses when that account already holds another subject of the same issuer. An unverified claim never rewrites a stored address.
+- tronc security headers replace the local frame middleware. Camera, microphone and display-capture stay allowed; `/embed/*` can be framed only by `ECHO_EMBED_ORIGINS`; the CSP allows the LiveKit origin and the built client's inline scripts (report-only).
+- The UI is in fr, en, es and de, follows the Registre locale, then the locale cookie, then the browser. Dates use Intl in that locale. Moved to muse v0.13 tokens, no borders.
+
+### Added
+- GDPR deletion: Echo polls Registre's deletions and accepts the signed push at `POST /api/registre/deletions`. It deletes the person's account, rooms, calls, transcripts, summaries and recordings, and blanks their name on seats in other people's calls.
+- `users.locale`, `porte_login_codes.provider` and `.subject`, and `directory_deletion_state`, all added idempotently at boot.
+- `GET /version` from the `APP_VERSION` build arg.
+- CI: build, tests on Postgres, svelte-check, message catalog check, filet.
+
 ## [2.3.2] - 2026-11-06
 
 ### Fixed
