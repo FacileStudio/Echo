@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.6.0] - 2026-11-07
+
 ### Added
 - In-browser transcription and recording that keep end-to-end encryption intact. The organizer switches them on for the call (`PUT /api/rooms/{slug}/capture`, owner only; transcription needs `ai.access`, recording needs `echo.recording`, checked on the server). Every participant sees a banner and must accept for their own voice to be transcribed or recorded (`PUT .../capture/consent`); `GET .../capture` is the state they poll. Nobody is captured until they answer yes, and switching a feature off and on again asks everyone again.
 - Transcription runs on the device: each consenting browser turns its own microphone into text with Vosk compiled to WebAssembly (vosk-browser 0.0.8, `vosk-model-small-fr-0.22` and `vosk-model-small-en-us-0.15`, about 41 MB each) and posts only final lines to `POST /api/rooms/{slug}/transcript`. The model downloads after the person accepts, with progress, and is kept in the browser's Cache API. The speech language is French or English (the session language, changeable in the banner).
