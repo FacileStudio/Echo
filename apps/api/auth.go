@@ -10,7 +10,6 @@ import (
 	"github.com/FacileStudio/Echo/apps/api/internal/middleware"
 	"github.com/FacileStudio/Echo/apps/api/modules/auth"
 	"github.com/FacileStudio/porte/oidc"
-	portepg "github.com/FacileStudio/porte/pg"
 	"github.com/FacileStudio/porte/session"
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
@@ -46,7 +45,11 @@ func setupAuth(shutdown context.Context, cfg env.Config, db *gorm.DB, log *slog.
 	if err != nil {
 		return nil, err
 	}
-	identityStore := portepg.New(sqlDB)
+	identityStore, err := newPorteStore(sqlDB)
+	if err != nil {
+		return nil, err
+	}
+	resealInBackground(shutdown, identityStore, log)
 
 	sessions, err := session.New(cfg.Porte, session.Deps{
 		Sessions: identityStore.Sessions(),
