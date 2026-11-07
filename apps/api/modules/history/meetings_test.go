@@ -3,6 +3,7 @@ package history
 import (
 	"context"
 	"fmt"
+	"math"
 	"testing"
 	"time"
 
@@ -191,5 +192,15 @@ func TestAParticipantReadsTheCallButNotItsRecordingUntilShared(t *testing.T) {
 	}
 	if _, err := s.SetShared(ctx, rec.ID.String(), bob, false); !forbidden(err) {
 		t.Fatalf("SetShared by a participant = %v, want forbidden", err)
+	}
+}
+
+func TestPagingIsClampedBeforeItBecomesAnOffset(t *testing.T) {
+	page, size := clampPaging(math.MaxInt, 50)
+	if offset := (page - 1) * size; offset < 0 {
+		t.Fatalf("offset %d overflowed", offset)
+	}
+	if page, size := clampPaging(-3, 0); page != 1 || size != defaultPageSize {
+		t.Fatalf("clampPaging(-3, 0) = %d, %d", page, size)
 	}
 }

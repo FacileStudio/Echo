@@ -30,10 +30,8 @@
 			{#each participants as p (p.identity + p.joined_at)}
 				<tr>
 					<td>
-						<span class="flex items-center gap-1">
-							<Avatar src={p.avatar_url} name={label(p)} size="sm" class="rounded-full" />
-							<span class="font-medium text-fc-ink">{label(p)}</span>
-						</span>
+						<Avatar src={p.avatar_url} name={label(p)} size="sm" class="mr-1 inline-block rounded-full align-middle" />
+						<span class="font-medium text-fc-ink">{label(p)}</span>
 					</td>
 					<td class="whitespace-nowrap">{formatTime(p.joined_at)}</td>
 					<td class="whitespace-nowrap">

@@ -10,6 +10,7 @@ import (
 const (
 	defaultPageSize = 20
 	maxPageSize     = 50
+	maxPage         = 1_000_000
 )
 
 type meetingRow struct {
@@ -65,7 +66,7 @@ func clampPaging(page, size int) (int, int) {
 	if size < 1 {
 		size = defaultPageSize
 	}
-	return max(page, 1), min(size, maxPageSize)
+	return min(max(page, 1), maxPage), min(size, maxPageSize)
 }
 
 // Meetings lists the calls the caller owns or sat in, newest first. The scope
