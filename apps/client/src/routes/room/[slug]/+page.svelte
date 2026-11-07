@@ -2,7 +2,9 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { Alert, TextElevate, Button, Card, Field, Input, Spinner } from '@facile/muse';
-	import { fetchMe, requestToken, type Me, type TokenGrant } from '$lib/api';
+	import { requestToken, type Me, type TokenGrant } from '$lib/api';
+	import { t } from '$lib/i18n/index.svelte';
+	import { loadSession } from '$lib/session.svelte';
 	import LiveRoom from '$lib/components/LiveRoom.svelte';
 	import { roomKey } from '$lib/e2ee';
 	import { PlanLimitError } from '$lib/planLimit';
@@ -22,7 +24,7 @@
 
 	onMount(async () => {
 		key = roomKey(slug);
-		me = await fetchMe();
+		me = await loadSession();
 		if (me) {
 			displayName = me.name || me.email;
 			await join();
@@ -48,7 +50,7 @@
 	}
 </script>
 
-<svelte:head><title>{slug} · Echo</title></svelte:head>
+<svelte:head><title>{t('title.room', { slug })}</title></svelte:head>
 
 {#if grant}
 	<LiveRoom
@@ -66,10 +68,10 @@
 		<div class="flex w-full max-w-sm flex-col gap-1">
 			<div class="flex items-center gap-2">
 				<img src="/logo.svg" alt="" class="size-12" />
-				<h1 class="text-fc-title min-w-0 break-words text-fc-ink"><TextElevate text={slug} delay={0} /></h1>
+				<h1 class="min-w-0 break-words text-fc-2xl font-medium text-fc-fg"><TextElevate text={slug} delay={0} /></h1>
 			</div>
-			<p class="text-fc-p text-fc-muted">
-				<TextElevate text="Join the room." delay={0.15} />
+			<p class="text-fc-sm text-fc-fg-muted">
+				<TextElevate text={t('room.join')} delay={0.15} />
 			</p>
 
 			<Card class="mt-4">
@@ -78,31 +80,31 @@
 				{:else if planLimit}
 					<div class="flex flex-col gap-1">
 						<PlanLimitNotice error={planLimit} />
-						<Button size="lg" variant="outline" class="w-full" onclick={() => void join()}>Try again</Button>
+						<Button size="lg" variant="outline" class="w-full" onclick={() => void join()}>{t('room.tryAgain')}</Button>
 					</div>
 				{:else if error}
 					<div class="flex flex-col gap-1">
-						<Alert tone="danger" title="Could not join">{error}</Alert>
-						<Button href="/" size="lg" variant="outline" class="w-full">Back</Button>
+						<Alert tone="danger" title={t('room.couldNotJoin')}>{error}</Alert>
+						<Button href="/" size="lg" variant="outline" class="w-full">{t('room.back')}</Button>
 						{#if historyHref}
-							<Button href={historyHref} variant="ghost" class="w-full">History</Button>
+							<Button href={historyHref} variant="ghost" class="w-full">{t('room.history')}</Button>
 						{/if}
 					</div>
 				{:else if me}
 					<div class="flex items-center gap-1">
 						<Spinner />
-						<p class="text-fc-p text-fc-muted">Joining as {displayName}…</p>
+						<p class="text-fc-sm text-fc-fg-muted">{t('room.joiningAs', { name: displayName })}</p>
 					</div>
 				{:else}
 					<form onsubmit={joinGuest} class="flex flex-col gap-1">
-						<Field>
-							<Input bind:value={displayName} placeholder="Your name" aria-label="Your name" class="text-fc-p" autocomplete="name" required minlength={2} />
+						<Field label={t('room.yourName')}>
+							<Input bind:value={displayName} autocomplete="name" required minlength={2} />
 						</Field>
-						<Button type="submit" size="lg" class="w-full" disabled={!slug || displayName.trim().length < 2}>Join as guest</Button>
+						<Button type="submit" size="lg" class="w-full" disabled={!slug || displayName.trim().length < 2}>{t('room.joinAsGuest')}</Button>
 					</form>
 					{/if}
 				</Card>
-				<Button href="/" variant="ghost" class="w-full">Back to Echo</Button>
+				<Button href="/" variant="ghost" class="w-full">{t('room.backToEcho')}</Button>
 		</div>
 	</main>
 {/if}

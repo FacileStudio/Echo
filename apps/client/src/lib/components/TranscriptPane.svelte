@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$lib/i18n/index.svelte';
+
 	interface Props {
 		transcript?: string;
 	}
@@ -9,12 +11,10 @@
 </script>
 
 {#if !text}
-	<p class="text-fc-p text-fc-muted">
-		No transcript. Calls are end-to-end encrypted, so the server cannot transcribe them.
-	</p>
+	<p class="text-fc-sm text-fc-fg-muted">{t('transcript.none')}</p>
 {:else}
 	<div
-		class="max-h-96 overflow-y-auto rounded-fc bg-fc-surface p-4 text-fc-p whitespace-pre-wrap text-fc-ink"
+		class="max-h-96 overflow-y-auto rounded-fc-md bg-fc-surface p-4 text-fc-sm whitespace-pre-wrap text-fc-fg"
 	>
 		{text}
 	</div>

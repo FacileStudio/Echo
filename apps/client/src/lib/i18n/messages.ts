@@ -1,0 +1,323 @@
+import type { Catalogs, Message } from '@facile/muse';
+
+type Row = readonly [en: Message, fr: Message, es: Message, de: Message];
+
+const rows = {
+	'title.login': ['Sign in · Echo', 'Connexion · Echo', 'Iniciar sesión · Echo', 'Anmelden · Echo'],
+	'title.room': ['{slug} · Echo', '{slug} · Echo', '{slug} · Echo', '{slug} · Echo'],
+	'title.call': ['Call · Echo', 'Appel · Echo', 'Llamada · Echo', 'Anruf · Echo'],
+	'title.history': ['History · {slug} · Echo', 'Historique · {slug} · Echo', 'Historial · {slug} · Echo', 'Verlauf · {slug} · Echo'],
+
+	'home.tagline': ['Video rooms for the studio.', 'Des salles vidéo pour le studio.', 'Salas de vídeo para el estudio.', 'Videoräume für das Studio.'],
+	'home.roomName': ['Room name', 'Nom de la salle', 'Nombre de la sala', 'Name des Raums'],
+	'home.open': ['Open room', 'Ouvrir la salle', 'Abrir la sala', 'Raum öffnen'],
+	'home.roomRequired': [
+		'Enter a room name or paste a room link',
+		'Saisissez un nom de salle ou collez un lien de salle',
+		'Escribe un nombre de sala o pega un enlace de sala',
+		'Gib einen Raumnamen ein oder füge einen Raumlink ein'
+	],
+	'home.signedIn': ['Signed in as {name}', 'Connecté en tant que {name}', 'Sesión iniciada como {name}', 'Angemeldet als {name}'],
+	'auth.failed': ['Login failed', 'Échec de la connexion', 'Error al iniciar sesión', 'Anmeldung fehlgeschlagen'],
+
+	'room.join': ['Join the room.', 'Rejoignez la salle.', 'Únete a la sala.', 'Tritt dem Raum bei.'],
+	'room.tryAgain': ['Try again', 'Réessayer', 'Reintentar', 'Erneut versuchen'],
+	'room.couldNotJoin': ['Could not join', 'Impossible de rejoindre', 'No se pudo entrar', 'Beitritt nicht möglich'],
+	'room.back': ['Back', 'Retour', 'Volver', 'Zurück'],
+	'room.history': ['History', 'Historique', 'Historial', 'Verlauf'],
+	'room.joiningAs': ['Joining as {name}…', 'Connexion en tant que {name}…', 'Entrando como {name}…', 'Beitritt als {name}…'],
+	'room.yourName': ['Your name', 'Votre nom', 'Tu nombre', 'Dein Name'],
+	'room.joinAsGuest': ['Join as guest', 'Rejoindre en invité', 'Entrar como invitado', 'Als Gast beitreten'],
+	'room.backToEcho': ['Back to Echo', 'Retour à Echo', 'Volver a Echo', 'Zurück zu Echo'],
+	'room.tooMany': [
+		'Too many join attempts. Wait a minute and try again.',
+		'Trop de tentatives. Patientez une minute puis réessayez.',
+		'Demasiados intentos. Espera un minuto y vuelve a intentarlo.',
+		'Zu viele Beitrittsversuche. Warte eine Minute und versuche es erneut.'
+	],
+	'room.tokenFailed': [
+		'The join request failed ({status})',
+		'La demande pour rejoindre a échoué ({status})',
+		'Falló la solicitud para entrar ({status})',
+		'Die Beitrittsanfrage ist fehlgeschlagen ({status})'
+	],
+
+	'embed.left': ['You left the call.', 'Vous avez quitté l’appel.', 'Has salido de la llamada.', 'Du hast den Anruf verlassen.'],
+	'embed.cannotJoin': ['Cannot join', 'Impossible de rejoindre', 'No se puede entrar', 'Beitritt nicht möglich'],
+	'embed.noKey': [
+		'This call link has no encryption key. Echo calls are end-to-end encrypted, so the app that opened this call must pass the key. Open the call again from your app.',
+		'Ce lien d’appel n’a pas de clé de chiffrement. Les appels Echo sont chiffrés de bout en bout, donc l’application qui a ouvert cet appel doit transmettre la clé. Rouvrez l’appel depuis votre application.',
+		'Este enlace de llamada no tiene clave de cifrado. Las llamadas de Echo están cifradas de extremo a extremo, así que la aplicación que abrió esta llamada debe pasar la clave. Vuelve a abrir la llamada desde tu aplicación.',
+		'Dieser Anruflink enthält keinen Verschlüsselungsschlüssel. Echo-Anrufe sind Ende-zu-Ende-verschlüsselt, deshalb muss die App, die den Anruf geöffnet hat, den Schlüssel mitgeben. Öffne den Anruf erneut in deiner App.'
+	],
+	'embed.noToken': [
+		'This call link has no join token. Open the call again from your app.',
+		'Ce lien d’appel n’a pas de jeton d’accès. Rouvrez l’appel depuis votre application.',
+		'Este enlace de llamada no tiene token de acceso. Vuelve a abrir la llamada desde tu aplicación.',
+		'Dieser Anruflink enthält kein Zugangstoken. Öffne den Anruf erneut in deiner App.'
+	],
+
+	'live.browserTitle': ['This browser cannot join', 'Ce navigateur ne peut pas rejoindre', 'Este navegador no puede entrar', 'Dieser Browser kann nicht beitreten'],
+	'live.browserBody': [
+		'Echo calls are end-to-end encrypted, and this browser cannot encrypt media. Open the link in a recent Chrome, Edge, Firefox or Safari.',
+		'Les appels Echo sont chiffrés de bout en bout et ce navigateur ne sait pas chiffrer les médias. Ouvrez le lien dans une version récente de Chrome, Edge, Firefox ou Safari.',
+		'Las llamadas de Echo están cifradas de extremo a extremo y este navegador no puede cifrar el contenido multimedia. Abre el enlace en una versión reciente de Chrome, Edge, Firefox o Safari.',
+		'Echo-Anrufe sind Ende-zu-Ende-verschlüsselt, und dieser Browser kann Medien nicht verschlüsseln. Öffne den Link in einer aktuellen Version von Chrome, Edge, Firefox oder Safari.'
+	],
+	'live.noMedia': [
+		'Camera or microphone unavailable. You joined without publishing.',
+		'Caméra ou micro indisponible. Vous avez rejoint sans publier.',
+		'Cámara o micrófono no disponible. Has entrado sin publicar.',
+		'Kamera oder Mikrofon nicht verfügbar. Du bist ohne Übertragung beigetreten.'
+	],
+	'live.cannotDecrypt': ['Cannot decrypt', 'Déchiffrement impossible', 'No se puede descifrar', 'Entschlüsselung nicht möglich'],
+	'live.mediaProblem': ['Media problem', 'Problème de média', 'Problema de medios', 'Medienproblem'],
+	'live.screenFailed': [
+		'Screen sharing failed: {reason}',
+		'Le partage d’écran a échoué : {reason}',
+		'Falló el uso compartido de pantalla: {reason}',
+		'Die Bildschirmfreigabe ist fehlgeschlagen: {reason}'
+	],
+	'crypt.own': [
+		'Can’t decrypt this call: your link is missing the right key. Ask for the full link, including everything after #.',
+		'Impossible de déchiffrer cet appel : votre lien n’a pas la bonne clé. Demandez le lien complet, avec tout ce qui suit le #.',
+		'No se puede descifrar esta llamada: a tu enlace le falta la clave correcta. Pide el enlace completo, con todo lo que va después de #.',
+		'Dieser Anruf kann nicht entschlüsselt werden: In deinem Link fehlt der richtige Schlüssel. Frage nach dem vollständigen Link, einschließlich allem nach dem #.'
+	],
+	'crypt.others': [
+		'Can’t decrypt {names}: they joined with a different key. Send them the full link.',
+		'Impossible de déchiffrer {names} : ils ont rejoint avec une autre clé. Envoyez-leur le lien complet.',
+		'No se puede descifrar a {names}: entraron con otra clave. Envíales el enlace completo.',
+		'{names} kann nicht entschlüsselt werden: Sie sind mit einem anderen Schlüssel beigetreten. Schicke ihnen den vollständigen Link.'
+	],
+
+	'call.encryptedTip': ['End-to-end encrypted', 'Chiffré de bout en bout', 'Cifrado de extremo a extremo', 'Ende-zu-Ende-verschlüsselt'],
+	'call.encrypted': ['Encrypted', 'Chiffré', 'Cifrado', 'Verschlüsselt'],
+	'call.mute': ['Mute microphone', 'Couper le micro', 'Silenciar el micrófono', 'Mikrofon stummschalten'],
+	'call.unmute': ['Unmute microphone', 'Réactiver le micro', 'Activar el micrófono', 'Mikrofon einschalten'],
+	'call.camOff': ['Turn camera off', 'Couper la caméra', 'Apagar la cámara', 'Kamera ausschalten'],
+	'call.camOn': ['Turn camera on', 'Activer la caméra', 'Encender la cámara', 'Kamera einschalten'],
+	'call.stopShare': ['Stop sharing screen', 'Arrêter le partage d’écran', 'Dejar de compartir pantalla', 'Bildschirmfreigabe beenden'],
+	'call.share': ['Share screen', 'Partager l’écran', 'Compartir pantalla', 'Bildschirm freigeben'],
+	'call.hideChat': ['Hide chat', 'Masquer le chat', 'Ocultar el chat', 'Chat ausblenden'],
+	'call.showChat': ['Show chat', 'Afficher le chat', 'Mostrar el chat', 'Chat anzeigen'],
+	'call.leave': ['Leave', 'Quitter', 'Salir', 'Verlassen'],
+
+	'header.people': [
+		{ one: '{count} person in the call', other: '{count} people in the call' },
+		{ one: '{count} personne dans l’appel', other: '{count} personnes dans l’appel' },
+		{ one: '{count} persona en la llamada', other: '{count} personas en la llamada' },
+		{ one: '{count} Person im Anruf', other: '{count} Personen im Anruf' }
+	],
+	'header.copyLink': ['Copy link', 'Copier le lien', 'Copiar enlace', 'Link kopieren'],
+	'header.copied': ['Copied', 'Copié', 'Copiado', 'Kopiert'],
+
+	'countdown.endsIn': ['Call ends in {time}', 'L’appel se termine dans {time}', 'La llamada termina en {time}', 'Der Anruf endet in {time}'],
+	'countdown.soonTitle': ['This call ends soon', 'Cet appel se termine bientôt', 'Esta llamada termina pronto', 'Dieser Anruf endet bald'],
+	'countdown.soonBody': [
+		'Each meeting has a time limit on the host’s plan. The call closes for everyone in {time}, and a new one can start in this room 2 minutes later.',
+		'Chaque réunion a une durée limitée avec l’offre de l’hôte. L’appel se ferme pour tout le monde dans {time}, et un nouvel appel peut démarrer dans cette salle 2 minutes plus tard.',
+		'Cada reunión tiene un límite de tiempo en el plan del anfitrión. La llamada se cierra para todos en {time}, y una nueva puede empezar en esta sala 2 minutos después.',
+		'Jedes Meeting hat im Tarif des Gastgebers ein Zeitlimit. Der Anruf wird in {time} für alle beendet, und 2 Minuten später kann in diesem Raum ein neuer beginnen.'
+	],
+
+	'chat.empty': [
+		'No messages yet. Chat is visible only in this call.',
+		'Aucun message pour l’instant. Le chat n’est visible que dans cet appel.',
+		'Aún no hay mensajes. El chat solo es visible en esta llamada.',
+		'Noch keine Nachrichten. Der Chat ist nur in diesem Anruf sichtbar.'
+	],
+	'chat.placeholder': ['Message', 'Message', 'Mensaje', 'Nachricht'],
+	'chat.label': ['Chat message', 'Message du chat', 'Mensaje del chat', 'Chatnachricht'],
+	'chat.send': ['Send', 'Envoyer', 'Enviar', 'Senden'],
+	'chat.unknown': ['Unknown', 'Inconnu', 'Desconocido', 'Unbekannt'],
+
+	'tile.yourScreen': ['Your screen', 'Votre écran', 'Tu pantalla', 'Dein Bildschirm'],
+	'tile.screenOf': ['{name}’s screen', 'Écran de {name}', 'Pantalla de {name}', 'Bildschirm von {name}'],
+	'tile.you': ['{name} (you)', '{name} (vous)', '{name} (tú)', '{name} (du)'],
+	'tile.muted': ['Muted', 'Micro coupé', 'Silenciado', 'Stummgeschaltet'],
+	'tile.speaking': ['Speaking', 'Parle', 'Hablando', 'Spricht'],
+	'stage.connecting': ['Connecting…', 'Connexion…', 'Conectando…', 'Verbindung wird hergestellt…'],
+	'audio.enable': ['Enable sound', 'Activer le son', 'Activar el sonido', 'Ton aktivieren'],
+
+	'plan.title': ['Plan limit reached', 'Limite de l’offre atteinte', 'Límite del plan alcanzado', 'Tariflimit erreicht'],
+	'plan.upgrade': ['Upgrade the plan', 'Changer d’offre', 'Mejorar el plan', 'Tarif upgraden'],
+	'plan.full': [
+		'This call is full. The host’s plan allows {count} people per call.',
+		'Cet appel est complet. L’offre de l’hôte autorise {count} personnes par appel.',
+		'Esta llamada está llena. El plan del anfitrión permite {count} personas por llamada.',
+		'Dieser Anruf ist voll. Der Tarif des Gastgebers erlaubt {count} Personen pro Anruf.'
+	],
+	'plan.noRecording': [
+		'Recording is not included in the host’s plan.',
+		'L’enregistrement n’est pas inclus dans l’offre de l’hôte.',
+		'La grabación no está incluida en el plan del anfitrión.',
+		'Die Aufzeichnung ist im Tarif des Gastgebers nicht enthalten.'
+	],
+	'plan.minutes': [
+		'The last call in this room reached its {count}-minute limit. On the host’s plan each meeting lasts up to {count} minutes, and a new one can start 2 minutes after the last one ends.',
+		'Le dernier appel de cette salle a atteint sa limite de {count} minutes. Avec l’offre de l’hôte, chaque réunion dure jusqu’à {count} minutes, et une nouvelle peut démarrer 2 minutes après la fin de la précédente.',
+		'La última llamada de esta sala alcanzó su límite de {count} minutos. En el plan del anfitrión cada reunión dura hasta {count} minutos, y una nueva puede empezar 2 minutos después de que termine la anterior.',
+		'Der letzte Anruf in diesem Raum hat sein Limit von {count} Minuten erreicht. Im Tarif des Gastgebers dauert jedes Meeting bis zu {count} Minuten, und 2 Minuten nach dem Ende kann ein neues beginnen.'
+	],
+	'plan.minutesGeneric': [
+		'The host’s plan limits how long a call can last.',
+		'L’offre de l’hôte limite la durée d’un appel.',
+		'El plan del anfitrión limita la duración de una llamada.',
+		'Der Tarif des Gastgebers begrenzt die Dauer eines Anrufs.'
+	],
+	'plan.default': [
+		'Your plan does not allow this.',
+		'Votre offre ne permet pas cela.',
+		'Tu plan no permite esto.',
+		'Dein Tarif erlaubt das nicht.'
+	],
+
+	'participants.none': [
+		'No participants recorded for this call.',
+		'Aucun participant enregistré pour cet appel.',
+		'No hay participantes registrados en esta llamada.',
+		'Für diesen Anruf sind keine Teilnehmenden erfasst.'
+	],
+	'participants.participant': ['Participant', 'Participant', 'Participante', 'Teilnehmende'],
+	'participants.joined': ['Joined', 'Arrivé', 'Entró', 'Beigetreten'],
+	'participants.left': ['Left', 'Parti', 'Salió', 'Verlassen'],
+	'participants.still': ['Still connected', 'Toujours connecté', 'Sigue conectado', 'Noch verbunden'],
+	'transcript.none': [
+		'No transcript. Calls are end-to-end encrypted, so the server cannot transcribe them.',
+		'Pas de transcription. Les appels sont chiffrés de bout en bout, le serveur ne peut donc pas les transcrire.',
+		'Sin transcripción. Las llamadas están cifradas de extremo a extremo, así que el servidor no puede transcribirlas.',
+		'Kein Transkript. Anrufe sind Ende-zu-Ende-verschlüsselt, der Server kann sie daher nicht transkribieren.'
+	],
+
+	'history.started': ['Started', 'Début', 'Inicio', 'Beginn'],
+	'history.duration': ['Duration', 'Durée', 'Duración', 'Dauer'],
+	'history.recording': ['Recording', 'Enregistrement', 'Grabación', 'Aufzeichnung'],
+	'history.details': ['Details', 'Détails', 'Detalles', 'Details'],
+	'history.inProgress': ['In progress', 'En cours', 'En curso', 'Läuft'],
+	'history.available': ['Available', 'Disponible', 'Disponible', 'Verfügbar'],
+	'history.none': ['None', 'Aucun', 'Ninguna', 'Keine'],
+	'history.open': ['Open', 'Ouvrir', 'Abrir', 'Öffnen'],
+	'historyPage.title': ['History of “{slug}”', 'Historique de « {slug} »', 'Historial de «{slug}»', 'Verlauf von „{slug}“'],
+	'historyPage.description': [
+		'Past calls in this room, newest first.',
+		'Appels passés dans cette salle, les plus récents d’abord.',
+		'Llamadas pasadas en esta sala, las más recientes primero.',
+		'Frühere Anrufe in diesem Raum, die neuesten zuerst.'
+	],
+	'historyPage.back': ['Back to the room', 'Retour à la salle', 'Volver a la sala', 'Zurück zum Raum'],
+	'historyPage.ownerOnly': ['Owner only', 'Réservé au propriétaire', 'Solo el propietario', 'Nur für den Eigentümer'],
+	'historyPage.ownerOnlyBody': [
+		'Only the room owner can see this history. Sign in with the account that created “{slug}”.',
+		'Seul le propriétaire de la salle peut voir cet historique. Connectez-vous avec le compte qui a créé « {slug} ».',
+		'Solo el propietario de la sala puede ver este historial. Inicia sesión con la cuenta que creó «{slug}».',
+		'Nur der Eigentümer des Raums kann diesen Verlauf sehen. Melde dich mit dem Konto an, das „{slug}“ erstellt hat.'
+	],
+	'historyPage.loadFailed': ['Could not load history', 'Impossible de charger l’historique', 'No se pudo cargar el historial', 'Verlauf konnte nicht geladen werden'],
+	'historyPage.emptyTitle': ['No calls yet', 'Aucun appel pour l’instant', 'Aún no hay llamadas', 'Noch keine Anrufe'],
+	'historyPage.emptyBody': [
+		'Once a call has taken place in this room, it will show up here.',
+		'Dès qu’un appel aura eu lieu dans cette salle, il apparaîtra ici.',
+		'Cuando haya habido una llamada en esta sala, aparecerá aquí.',
+		'Sobald in diesem Raum ein Anruf stattgefunden hat, erscheint er hier.'
+	],
+	'historyPage.openRoom': ['Open the room', 'Ouvrir la salle', 'Abrir la sala', 'Raum öffnen'],
+
+	'callPage.title': ['Call details', 'Détails de l’appel', 'Detalles de la llamada', 'Anrufdetails'],
+	'callPage.home': ['Home', 'Accueil', 'Inicio', 'Start'],
+	'callPage.ownerOnlyBody': [
+		'Only the room owner can see this call. Sign in with the account that created the room.',
+		'Seul le propriétaire de la salle peut voir cet appel. Connectez-vous avec le compte qui a créé la salle.',
+		'Solo el propietario de la sala puede ver esta llamada. Inicia sesión con la cuenta que creó la sala.',
+		'Nur der Eigentümer des Raums kann diesen Anruf sehen. Melde dich mit dem Konto an, das den Raum erstellt hat.'
+	],
+	'callPage.loadFailed': ['Could not load call', 'Impossible de charger l’appel', 'No se pudo cargar la llamada', 'Anruf konnte nicht geladen werden'],
+	'callPage.participants': ['Participants', 'Participants', 'Participantes', 'Teilnehmende'],
+	'callPage.recording': ['Recording', 'Enregistrement', 'Grabación', 'Aufzeichnung'],
+	'callPage.downloadFailed': ['Download failed', 'Échec du téléchargement', 'Falló la descarga', 'Download fehlgeschlagen'],
+	'callPage.preparing': [
+		'Preparing the download…',
+		'Préparation du téléchargement…',
+		'Preparando la descarga…',
+		'Download wird vorbereitet…'
+	],
+	'callPage.download': [
+		'Download the video (MP4)',
+		'Télécharger la vidéo (MP4)',
+		'Descargar el vídeo (MP4)',
+		'Video herunterladen (MP4)'
+	],
+	'callPage.noRecording': [
+		'No recording. Calls are end-to-end encrypted, so the server cannot record them.',
+		'Pas d’enregistrement. Les appels sont chiffrés de bout en bout, le serveur ne peut donc pas les enregistrer.',
+		'Sin grabación. Las llamadas están cifradas de extremo a extremo, así que el servidor no puede grabarlas.',
+		'Keine Aufzeichnung. Anrufe sind Ende-zu-Ende-verschlüsselt, der Server kann sie daher nicht aufzeichnen.'
+	],
+	'callPage.summary': ['AI summary', 'Résumé IA', 'Resumen con IA', 'KI-Zusammenfassung'],
+	'callPage.transcript': ['Transcript', 'Transcription', 'Transcripción', 'Transkript'],
+
+	'summary.unavailable': ['Summary unavailable', 'Résumé indisponible', 'Resumen no disponible', 'Zusammenfassung nicht verfügbar'],
+	'summary.notConfigured': [
+		'AI summaries are not configured on this server (no Anthropic key).',
+		'Les résumés IA ne sont pas configurés sur ce serveur (pas de clé Anthropic).',
+		'Los resúmenes con IA no están configurados en este servidor (sin clave de Anthropic).',
+		'KI-Zusammenfassungen sind auf diesem Server nicht eingerichtet (kein Anthropic-Schlüssel).'
+	],
+	'summary.noTranscript': [
+		'This call has no transcript, so there is nothing to summarise.',
+		'Cet appel n’a pas de transcription, il n’y a donc rien à résumer.',
+		'Esta llamada no tiene transcripción, así que no hay nada que resumir.',
+		'Dieser Anruf hat kein Transkript, daher gibt es nichts zusammenzufassen.'
+	],
+	'summary.ownerOnly': [
+		'Only the room owner can generate a summary.',
+		'Seul le propriétaire de la salle peut générer un résumé.',
+		'Solo el propietario de la sala puede generar un resumen.',
+		'Nur der Eigentümer des Raums kann eine Zusammenfassung erstellen.'
+	],
+	'summary.generating': [
+		'Generating the summary. This can take up to two minutes.',
+		'Génération du résumé. Cela peut prendre jusqu’à deux minutes.',
+		'Generando el resumen. Puede tardar hasta dos minutos.',
+		'Die Zusammenfassung wird erstellt. Das kann bis zu zwei Minuten dauern.'
+	],
+	'summary.generatedBy': [
+		'Generated by {model} on {date}',
+		'Généré par {model} le {date}',
+		'Generado por {model} el {date}',
+		'Erstellt von {model} am {date}'
+	],
+	'summary.noneEncrypted': [
+		'No summary. Calls are end-to-end encrypted, so the server cannot transcribe or summarise them.',
+		'Pas de résumé. Les appels sont chiffrés de bout en bout, le serveur ne peut donc ni les transcrire ni les résumer.',
+		'Sin resumen. Las llamadas están cifradas de extremo a extremo, así que el servidor no puede transcribirlas ni resumirlas.',
+		'Keine Zusammenfassung. Anrufe sind Ende-zu-Ende-verschlüsselt, der Server kann sie daher weder transkribieren noch zusammenfassen.'
+	],
+	'summary.none': [
+		'No summary has been generated for this call yet.',
+		'Aucun résumé n’a encore été généré pour cet appel.',
+		'Todavía no se ha generado un resumen de esta llamada.',
+		'Für diesen Anruf wurde noch keine Zusammenfassung erstellt.'
+	],
+	'summary.regenerate': ['Regenerate summary', 'Régénérer le résumé', 'Regenerar el resumen', 'Zusammenfassung neu erstellen'],
+	'summary.generate': ['Generate summary', 'Générer le résumé', 'Generar el resumen', 'Zusammenfassung erstellen'],
+
+	'api.failed': ['request failed ({status})', 'la requête a échoué ({status})', 'la solicitud falló ({status})', 'Anfrage fehlgeschlagen ({status})'],
+	'format.inProgress': ['In progress', 'En cours', 'En curso', 'Läuft']
+} as const satisfies Record<string, Row>;
+
+export type MessageKey = keyof typeof rows;
+
+type Column = Record<MessageKey, Message>;
+
+function column(index: 0 | 1 | 2 | 3): Column {
+	const entries = Object.entries(rows) as [MessageKey, Row][];
+	return Object.fromEntries(entries.map(([key, row]) => [key, row[index]])) as Column;
+}
+
+export const catalogs: Catalogs<Column> = {
+	en: column(0),
+	fr: column(1),
+	es: column(2),
+	de: column(3)
+};

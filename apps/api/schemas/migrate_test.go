@@ -154,3 +154,20 @@ func TestTheRoomSIDIsUniqueAcrossCalls(t *testing.T) {
 		t.Fatal("a second call took the same LiveKit room sid")
 	}
 }
+
+func TestMigrationAddsPorteBindingColumnsToAnExistingDatabase(t *testing.T) {
+	db := testdb.Migrated(t)
+	if err := db.Exec(`ALTER TABLE porte_login_codes DROP COLUMN provider, DROP COLUMN subject`).Error; err != nil {
+		t.Fatalf("simulate a pre-v0.10 table: %v", err)
+	}
+	if err := schemas.Migrate(db); err != nil {
+		t.Fatalf("migrate an existing database: %v", err)
+	}
+	var columns int64
+	err := db.Raw(`SELECT count(*) FROM information_schema.columns
+		WHERE table_schema = current_schema() AND table_name = 'porte_login_codes'
+		  AND column_name IN ('provider', 'subject')`).Scan(&columns).Error
+	if err != nil || columns != 2 {
+		t.Fatalf("binding columns = %d (%v), want 2", columns, err)
+	}
+}

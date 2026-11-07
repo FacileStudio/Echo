@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Alert, Badge } from '@facile/muse';
 	import { fetchCallDeadline } from '$lib/deadline';
+	import { t } from '$lib/i18n/index.svelte';
 
 	interface Props {
 		deadline: string;
@@ -46,12 +47,9 @@
 
 {#if remaining !== null}
 	<div class="flex flex-col items-center gap-1 px-4 pb-3">
-		<Badge tone={remaining <= warnBeforeMs ? 'warning' : 'neutral'}>Call ends in {label}</Badge>
+		<Badge tone={remaining <= warnBeforeMs ? 'warning' : 'neutral'}>{t('countdown.endsIn', { time: label })}</Badge>
 		{#if remaining <= warnBeforeMs}
-			<Alert tone="warning" title="This call ends soon">
-				On the host's plan each meeting lasts up to 40 minutes. The call closes for everyone in {label},
-				and a new one can start in this room 2 minutes later.
-			</Alert>
+			<Alert tone="warning" title={t('countdown.soonTitle')}>{t('countdown.soonBody', { time: label })}</Alert>
 		{/if}
 	</div>
 {/if}

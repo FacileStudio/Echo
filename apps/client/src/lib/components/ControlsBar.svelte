@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Button, Icon, IconButton } from '@facile/muse';
+	import { t } from '$lib/i18n/index.svelte';
 	import { callIcons } from '$lib/icons';
 
 	interface Props {
@@ -31,20 +32,21 @@
 	}: Props = $props();
 
 	const off = 'bg-fc-danger/10 text-fc-danger hover:bg-fc-danger/20';
+	const on = 'bg-fc-accent text-fc-accent-fg hover:bg-fc-accent';
 </script>
 
 <div class="flex items-center gap-1">
 	{#if encrypted}
-		<span class="flex items-center gap-1 px-2 text-fc-subtext text-fc-muted" title="End-to-end encrypted">
+		<span class="flex items-center gap-1 px-2 text-fc-xs text-fc-fg-muted" title={t('call.encryptedTip')}>
 			<Icon icon={callIcons.lock} size={16} />
-			<span class="sr-only md:not-sr-only">Encrypted</span>
+			<span class="sr-only md:not-sr-only">{t('call.encrypted')}</span>
 		</span>
 	{/if}
 
 	<IconButton
 		variant="ghost"
-		class={micOn ? 'text-fc-ink' : off}
-		aria-label={micOn ? 'Mute microphone' : 'Unmute microphone'}
+		class={micOn ? 'text-fc-fg' : off}
+		aria-label={micOn ? t('call.mute') : t('call.unmute')}
 		aria-pressed={!micOn}
 		onclick={onToggleMic}
 	>
@@ -53,8 +55,8 @@
 
 	<IconButton
 		variant="ghost"
-		class={camOn ? 'text-fc-ink' : off}
-		aria-label={camOn ? 'Turn camera off' : 'Turn camera on'}
+		class={camOn ? 'text-fc-fg' : off}
+		aria-label={camOn ? t('call.camOff') : t('call.camOn')}
 		aria-pressed={!camOn}
 		onclick={onToggleCam}
 	>
@@ -64,8 +66,8 @@
 	{#if canShare}
 		<IconButton
 			variant="ghost"
-			class={screenOn ? 'fc-selected' : ''}
-			aria-label={screenOn ? 'Stop sharing screen' : 'Share screen'}
+			class={screenOn ? on : ''}
+			aria-label={screenOn ? t('call.stopShare') : t('call.share')}
 			aria-pressed={screenOn}
 			onclick={onToggleScreen}
 		>
@@ -75,13 +77,13 @@
 
 	<IconButton
 		variant="ghost"
-		class="hidden md:inline-flex {chatOpen ? 'fc-selected' : ''}"
-		aria-label={chatOpen ? 'Hide chat' : 'Show chat'}
+		class="hidden md:inline-flex {chatOpen ? on : ''}"
+		aria-label={chatOpen ? t('call.hideChat') : t('call.showChat')}
 		aria-pressed={chatOpen}
 		onclick={onToggleChat}
 	>
 		<Icon icon={callIcons.chat} />
 	</IconButton>
 
-	<Button variant="danger" size="lg" class="gap-2.5" onclick={onLeave}><Icon icon={callIcons.leave} />Leave</Button>
+	<Button variant="danger" size="lg" class="gap-2.5" onclick={onLeave}><Icon icon={callIcons.leave} />{t('call.leave')}</Button>
 </div>

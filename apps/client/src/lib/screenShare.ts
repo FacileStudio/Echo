@@ -1,3 +1,4 @@
+import { t } from './i18n/index.svelte';
 import { ScreenSharePresets, Track, type LocalParticipant, type Participant } from 'livekit-client';
 
 const preset = ScreenSharePresets.h1080fps30;
@@ -32,6 +33,6 @@ export async function setScreenShare(participant: LocalParticipant, on: boolean)
 		return '';
 	} catch (e) {
 		if (e instanceof DOMException && (e.name === 'NotAllowedError' || e.name === 'AbortError')) return '';
-		return `Screen sharing failed: ${e instanceof Error ? e.message : String(e)}`;
+		return t('live.screenFailed', { reason: e instanceof Error ? e.message : String(e) });
 	}
 }

@@ -1,10 +1,17 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { Alert, Button, Card, EmptyState, Page, PageHeader, Spinner, icons } from '@facile/muse';
-	import { ApiError, fetchRoomCalls, type CallListItem } from '$lib/api';
+	import { onMount } from 'svelte';
+	import { Alert, Button, Card, EmptyState, Page, PageHeader, SignInWithFacile, Spinner, icons } from '@facile/muse';
+	import { API_BASE, ApiError, fetchRoomCalls, type CallListItem } from '$lib/api';
 	import CallHistoryTable from '$lib/components/CallHistoryTable.svelte';
+	import { t } from '$lib/i18n/index.svelte';
+	import { loadSession } from '$lib/session.svelte';
 
 	const slug = $derived(page.params.slug ?? '');
+
+	onMount(() => {
+		void loadSession();
+	});
 
 	let calls = $state<CallListItem[]>([]);
 	let loaded = $state(false);
@@ -53,31 +60,29 @@
 	});
 </script>
 
-<svelte:head><title>History · {slug} · Echo</title></svelte:head>
+<svelte:head><title>{t('title.history', { slug })}</title></svelte:head>
 
 <Page width="lg" class="gap-1 px-4 py-10">
 	<PageHeader
-		title="History of “{slug}”"
-		description="Past calls in this room, newest first."
-		back={{ href: `/room/${slug}`, label: 'Back to the room' }}
+		title={t('historyPage.title', { slug })}
+		description={t('historyPage.description')}
+		back={{ href: `/room/${slug}`, label: t('historyPage.back') }}
 	/>
 
 	{#if !loaded}
 		<Card><div class="flex justify-center py-4"><Spinner /></div></Card>
 	{:else if denied}
-		<Alert tone="warning" title="Owner only">
-			Only the room owner can see this history. Sign in with the account that created “{slug}”.
-		</Alert>
-		<div><Button href="/login" variant="outline" size="sm">Sign in</Button></div>
+		<Alert tone="warning" title={t('historyPage.ownerOnly')}>{t('historyPage.ownerOnlyBody', { slug })}</Alert>
+		<div><SignInWithFacile href="{API_BASE}/api/auth/oidc" size="sm" /></div>
 	{:else if error}
-		<Alert tone="danger" title="Could not load history">{error}</Alert>
+		<Alert tone="danger" title={t('historyPage.loadFailed')}>{error}</Alert>
 	{:else if calls.length === 0}
 		<EmptyState
 			icon={icons.history}
-			title="No calls yet"
-			description="Once a call has taken place in this room, it will show up here."
+			title={t('historyPage.emptyTitle')}
+			description={t('historyPage.emptyBody')}
 		>
-			<Button href="/room/{slug}" size="sm">Open the room</Button>
+			<Button href="/room/{slug}" size="sm">{t('historyPage.openRoom')}</Button>
 		</EmptyState>
 	{:else}
 		<CallHistoryTable {calls} />

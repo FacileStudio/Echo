@@ -3,6 +3,7 @@
 	import { MediaQuery } from 'svelte/reactivity';
 	import gsap from 'gsap';
 	import { Alert, prefersReducedMotion } from '@facile/muse';
+	import { t } from '$lib/i18n/index.svelte';
 	import { parseChat } from '$lib/roomData';
 	import { bindRemoteAudio } from '$lib/roomAudio';
 	import { canShareScreen, setScreenShare } from '$lib/screenShare';
@@ -136,7 +137,7 @@
 	function publishMedia(r: Room) {
 		refresh();
 		Promise.all([r.localParticipant.setCameraEnabled(true), r.localParticipant.setMicrophoneEnabled(true)])
-			.catch(() => (error = 'Camera or microphone unavailable. You joined without publishing.'))
+			.catch(() => (error = t('live.noMedia')))
 			.finally(refresh);
 	}
 
@@ -178,10 +179,7 @@
 
 {#if !supported}
 	<main class="flex min-h-dvh items-center justify-center px-4">
-		<Alert tone="danger" title="This browser cannot join">
-			Echo calls are end-to-end encrypted, and this browser cannot encrypt media. Open the link in a
-			recent Chrome, Edge, Firefox or Safari.
-		</Alert>
+		<Alert tone="danger" title={t('live.browserTitle')}>{t('live.browserBody')}</Alert>
 	</main>
 {:else}
 <div class="flex h-dvh flex-col">
@@ -197,7 +195,7 @@
 
 	{#if cryptError || error || screenError}
 		<div class="px-4 pb-3">
-			<Alert tone={cryptError ? 'danger' : 'warning'} title={cryptError ? 'Cannot decrypt' : 'Media problem'}>
+			<Alert tone={cryptError ? 'danger' : 'warning'} title={cryptError ? t('live.cannotDecrypt') : t('live.mediaProblem')}>
 				{cryptError || error || screenError}
 			</Alert>
 		</div>

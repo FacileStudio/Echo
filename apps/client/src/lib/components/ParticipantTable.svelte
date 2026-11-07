@@ -2,6 +2,7 @@
 	import { Table } from '@facile/muse';
 	import type { CallParticipant } from '$lib/api';
 	import { formatTime } from '$lib/format';
+	import { t } from '$lib/i18n/index.svelte';
 
 	interface Props {
 		participants: CallParticipant[];
@@ -11,28 +12,28 @@
 </script>
 
 {#if participants.length === 0}
-	<p class="text-fc-p text-fc-muted">No participants recorded for this call.</p>
+	<p class="text-fc-sm text-fc-fg-muted">{t('participants.none')}</p>
 {:else}
 	<Table>
 		<thead>
 			<tr>
-				<th scope="col">Participant</th>
-				<th scope="col">Joined</th>
-				<th scope="col">Left</th>
+				<th scope="col">{t('participants.participant')}</th>
+				<th scope="col">{t('participants.joined')}</th>
+				<th scope="col">{t('participants.left')}</th>
 			</tr>
 		</thead>
 		<tbody>
 			{#each participants as p (p.identity + p.joined_at)}
 				<tr>
 					<td>
-						<span class="font-medium text-fc-ink">{p.name || p.identity}</span>
+						<span class="font-medium text-fc-fg">{p.name || p.identity}</span>
 					</td>
 					<td class="whitespace-nowrap">{formatTime(p.joined_at)}</td>
 					<td class="whitespace-nowrap">
 						{#if p.left_at}
 							{formatTime(p.left_at)}
 						{:else}
-							<span class="text-fc-muted">Still connected</span>
+							<span class="text-fc-fg-muted">{t('participants.still')}</span>
 						{/if}
 					</td>
 				</tr>

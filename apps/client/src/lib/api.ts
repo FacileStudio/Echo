@@ -1,3 +1,4 @@
+import { t } from './i18n/index.svelte';
 import { planLimitFrom } from './planLimit';
 
 export const API_BASE: string = import.meta.env.VITE_API_BASE ?? 'http://localhost:8080';
@@ -6,6 +7,7 @@ export interface Me {
 	id: number;
 	email: string;
 	name: string;
+	locale: string;
 	is_admin: boolean;
 }
 
@@ -38,8 +40,8 @@ export async function requestToken(
 		body: JSON.stringify(displayName ? { display_name: displayName } : {})
 	});
 	if (res.status === 402) throw await planLimitFrom(res);
-	if (res.status === 429) throw new Error('Too many join attempts. Wait a minute and try again.');
-	if (!res.ok) throw new Error(`token request failed (${res.status})`);
+	if (res.status === 429) throw new Error(t('room.tooMany'));
+	if (!res.ok) throw new Error(t('room.tokenFailed', { status: res.status }));
 	return (await res.json()) as TokenGrant;
 }
 
@@ -55,9 +57,9 @@ export class ApiError extends Error {
 async function apiErrorMessage(res: Response): Promise<string> {
 	try {
 		const body = (await res.json()) as { error?: { code?: string; message?: string } };
-		return body.error?.message ?? `request failed (${res.status})`;
+		return body.error?.message ?? t('api.failed', { status: res.status });
 	} catch {
-		return `request failed (${res.status})`;
+		return t('api.failed', { status: res.status });
 	}
 }
 
