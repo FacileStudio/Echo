@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
-	import { Alert, Button, Card, Page, PageHeader, Section, SignInWithFacile, Spinner, icons } from '@facile/muse';
-	import { API_BASE, ApiError, fetchCall, fetchCallRecording, type CallDetail } from '$lib/api';
+	import { Alert, Button, Card, Page, PageHeader, Section, Spinner, icons } from '@facile/muse';
+	import { ApiError, fetchCall, fetchCallRecording, type CallDetail } from '$lib/api';
 	import { formatDateTime, formatDuration } from '$lib/format';
 	import { t } from '$lib/i18n/index.svelte';
 	import { loadSession } from '$lib/session.svelte';
@@ -95,7 +95,6 @@
 		<Card><div class="flex justify-center py-4"><Spinner /></div></Card>
 	{:else if denied}
 		<Alert tone="warning" title={t('historyPage.ownerOnly')}>{t('callPage.ownerOnlyBody')}</Alert>
-		<div><SignInWithFacile href="{API_BASE}/api/auth/oidc" size="sm" /></div>
 	{:else if error}
 		<Alert tone="danger" title={t('callPage.loadFailed')}>{error}</Alert>
 	{:else if call}
@@ -119,7 +118,7 @@
 					{downloading ? t('callPage.preparing') : t('callPage.download')}
 				</Button>
 			{:else}
-				<p class="text-fc-sm text-fc-fg-muted">{t('callPage.noRecording')}</p>
+				<p class="text-fc-p text-fc-muted">{t('callPage.noRecording')}</p>
 			{/if}
 		</Section>
 

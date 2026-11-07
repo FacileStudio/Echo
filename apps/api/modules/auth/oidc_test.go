@@ -7,6 +7,7 @@ import (
 	"github.com/FacileStudio/Echo/apps/api/internal/testdb"
 	"github.com/FacileStudio/Echo/apps/api/schemas"
 	"github.com/FacileStudio/porte"
+	"github.com/google/uuid"
 
 	"gorm.io/gorm"
 )
@@ -85,5 +86,61 @@ func TestAnAccountHoldingAnotherSubjectOfTheIssuerRefusesTheLink(t *testing.T) {
 
 	if _, err := store.UpsertFromOIDC(context.Background(), claims("sub-second", "shared@example.com", true)); err == nil {
 		t.Fatal("a second subject of the same issuer took over the address")
+	}
+}
+
+func TestSignInTakesNameAndPictureFromTheClaimsAndRefreshesThem(t *testing.T) {
+	store := NewUserStore(testdb.Migrated(t))
+	first := claims("sub-pic", "pic@example.com", true)
+	first.Picture = "https://sso.example/avatars/1.png"
+	id := upsert(t, store, first)
+
+	renamed := claims("sub-pic", "pic@example.com", true)
+	renamed.Name = "Ada Lovelace"
+	renamed.AvatarURL = "https://sso.example/avatars/2.png"
+	if again, err := store.UpsertFromOIDC(context.Background(), renamed); err != nil || again != id {
+		t.Fatalf("second login = %d, %v, want the same account %d", again, err, id)
+	}
+	var user schemas.User
+	if err := store.orm.First(&user, id).Error; err != nil {
+		t.Fatal(err)
+	}
+	if user.Name != "Ada Lovelace" || user.Picture != "https://sso.example/avatars/2.png" {
+		t.Fatalf("user = %q %q, want the refreshed claims", user.Name, user.Picture)
+	}
+
+	unsafe := claims("sub-pic", "pic@example.com", true)
+	unsafe.Picture = "javascript:alert(1)"
+	if _, err := store.UpsertFromOIDC(context.Background(), unsafe); err != nil {
+		t.Fatal(err)
+	}
+	store.orm.First(&user, id)
+	if user.Picture != "https://sso.example/avatars/2.png" {
+		t.Fatalf("a non-http picture replaced the stored one: %q", user.Picture)
+	}
+}
+
+func TestFirstSSOLoginKeepsAnExistingLocalAccountAndItsData(t *testing.T) {
+	store := NewUserStore(testdb.Migrated(t))
+	local := schemas.User{Email: "owner@example.com", Name: "Owner"}
+	if err := store.orm.Create(&local).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := store.orm.Exec(`INSERT INTO porte_identities (user_id, provider, subject) VALUES (?, 'local', ?)`, local.ID, "owner@example.com").Error; err != nil {
+		t.Fatal(err)
+	}
+	room := schemas.Room{ID: uuid.New(), Slug: "mine", Name: "mine", OwnerID: &local.ID}
+	if err := store.orm.Create(&room).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	id := upsert(t, store, claims("sub-owner", "Owner@Example.com", true))
+	if id != local.ID {
+		t.Fatalf("sso login created account %d, want the existing %d", id, local.ID)
+	}
+	var owned int64
+	store.orm.Model(&schemas.Room{}).Where("owner_id = ?", local.ID).Count(&owned)
+	if owned != 1 {
+		t.Fatalf("rooms owned = %d, want 1", owned)
 	}
 }

@@ -51,7 +51,7 @@ services:
       # Cf-Connecting-Ip when Traefik forwarded a request from a Cloudflare edge.
       TRUSTED_PROXIES: ${TRUSTED_PROXIES:-private,cloudflare}
     volumes:
-    - echo-recordings:/recordings:ro
+    - echo-recordings:/recordings
     healthcheck:
       test: ["CMD", "/api", "healthcheck"]
       interval: 30s
@@ -63,9 +63,18 @@ services:
         parallelism: 1
       restart_policy:
         condition: any
+  recordings-perms:
+    image: busybox:1.37
+    command: ["chmod", "0777", "/output"]
+    volumes:
+    - echo-recordings:/output
+    restart: "no"
   egress:
     image: livekit/egress:v1.13.0
     restart: unless-stopped
+    depends_on:
+      recordings-perms:
+        condition: service_completed_successfully
     network_mode: host
     environment:
       EGRESS_CONFIG_FILE: /etc/egress.yaml

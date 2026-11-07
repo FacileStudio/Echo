@@ -68,9 +68,9 @@
 		<div class="flex w-full max-w-sm flex-col gap-1">
 			<div class="flex items-center gap-2">
 				<img src="/logo.svg" alt="" class="size-12" />
-				<h1 class="min-w-0 break-words text-fc-2xl font-medium text-fc-fg"><TextElevate text={slug} delay={0} /></h1>
+				<h1 class="text-fc-title min-w-0 break-words text-fc-ink"><TextElevate text={slug} delay={0} /></h1>
 			</div>
-			<p class="text-fc-sm text-fc-fg-muted">
+			<p class="text-fc-p text-fc-muted">
 				<TextElevate text={t('room.join')} delay={0.15} />
 			</p>
 
@@ -93,12 +93,12 @@
 				{:else if me}
 					<div class="flex items-center gap-1">
 						<Spinner />
-						<p class="text-fc-sm text-fc-fg-muted">{t('room.joiningAs', { name: displayName })}</p>
+						<p class="text-fc-p text-fc-muted">{t('room.joiningAs', { name: displayName })}</p>
 					</div>
 				{:else}
 					<form onsubmit={joinGuest} class="flex flex-col gap-1">
-						<Field label={t('room.yourName')}>
-							<Input bind:value={displayName} autocomplete="name" required minlength={2} />
+						<Field>
+							<Input bind:value={displayName} placeholder={t('room.yourName')} aria-label={t('room.yourName')} class="text-fc-p" autocomplete="name" required minlength={2} />
 						</Field>
 						<Button type="submit" size="lg" class="w-full" disabled={!slug || displayName.trim().length < 2}>{t('room.joinAsGuest')}</Button>
 					</form>

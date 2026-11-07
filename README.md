@@ -14,7 +14,7 @@ product decisions live; LiveKit owns the WebRTC plumbing nobody should hand-writ
 
 | Layer | Tech |
 |---|---|
-| API | Go 1.25, chi via tronc, porte (OIDC SSO + local passwords), PostgreSQL |
+| API | Go 1.25, chi via tronc, porte (OIDC SSO), PostgreSQL |
 | Client | SvelteKit 5 (runes mode), muse tokens/components, `livekit-client` |
 | Media | livekit-server, coturn (TURN), Redis (multi-node ready) |
 | Encryption | LiveKit end-to-end encryption, always on; the key stays in the link fragment |

@@ -32,12 +32,11 @@
 	}: Props = $props();
 
 	const off = 'bg-fc-danger/10 text-fc-danger hover:bg-fc-danger/20';
-	const on = 'bg-fc-accent text-fc-accent-fg hover:bg-fc-accent';
 </script>
 
 <div class="flex items-center gap-1">
 	{#if encrypted}
-		<span class="flex items-center gap-1 px-2 text-fc-xs text-fc-fg-muted" title={t('call.encryptedTip')}>
+		<span class="flex items-center gap-1 px-2 text-fc-subtext text-fc-muted" title={t('call.encryptedTip')}>
 			<Icon icon={callIcons.lock} size={16} />
 			<span class="sr-only md:not-sr-only">{t('call.encrypted')}</span>
 		</span>
@@ -45,7 +44,7 @@
 
 	<IconButton
 		variant="ghost"
-		class={micOn ? 'text-fc-fg' : off}
+		class={micOn ? 'text-fc-ink' : off}
 		aria-label={micOn ? t('call.mute') : t('call.unmute')}
 		aria-pressed={!micOn}
 		onclick={onToggleMic}
@@ -55,7 +54,7 @@
 
 	<IconButton
 		variant="ghost"
-		class={camOn ? 'text-fc-fg' : off}
+		class={camOn ? 'text-fc-ink' : off}
 		aria-label={camOn ? t('call.camOff') : t('call.camOn')}
 		aria-pressed={!camOn}
 		onclick={onToggleCam}
@@ -66,7 +65,7 @@
 	{#if canShare}
 		<IconButton
 			variant="ghost"
-			class={screenOn ? on : ''}
+			class={screenOn ? 'fc-selected' : ''}
 			aria-label={screenOn ? t('call.stopShare') : t('call.share')}
 			aria-pressed={screenOn}
 			onclick={onToggleScreen}
@@ -77,7 +76,7 @@
 
 	<IconButton
 		variant="ghost"
-		class="hidden md:inline-flex {chatOpen ? on : ''}"
+		class="hidden md:inline-flex {chatOpen ? 'fc-selected' : ''}"
 		aria-label={chatOpen ? t('call.hideChat') : t('call.showChat')}
 		aria-pressed={chatOpen}
 		onclick={onToggleChat}

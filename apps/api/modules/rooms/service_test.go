@@ -143,3 +143,15 @@ func TestTokenGrants(t *testing.T) {
 		t.Fatal("guest without a display name was accepted")
 	}
 }
+
+func TestSignedInTokenCarriesTheSessionNameAndPicture(t *testing.T) {
+	if got := avatarMetadata("https://sso.example/a.png"); got != `{"avatar_url":"https://sso.example/a.png"}` {
+		t.Fatalf("metadata = %q", got)
+	}
+	if avatarMetadata("") != "" {
+		t.Fatal("no picture must mean no metadata")
+	}
+	if got := displayNameOr(displayNameOr("Ada", "ada@example.com"), "typed"); got != "Ada" {
+		t.Fatalf("name = %q, want the account name before email and typed names", got)
+	}
+}

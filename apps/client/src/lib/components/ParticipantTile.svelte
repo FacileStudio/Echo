@@ -34,6 +34,16 @@
 		screen ? (isLocal ? t('tile.yourScreen') : t('tile.screenOf', { name })) : isLocal ? t('tile.you', { name }) : name
 	);
 
+	const avatar = $derived.by(() => {
+		void version;
+		try {
+			const url = (JSON.parse(participant.metadata || '{}') as { avatar_url?: unknown }).avatar_url;
+			return typeof url === 'string' && /^https?:\/\//.test(url) ? url : '';
+		} catch {
+			return '';
+		}
+	});
+
 	const initials = $derived(
 		name
 			.split(/\s+/)
@@ -58,8 +68,9 @@
 
 <div
 	class={cn(
-		'relative isolate overflow-hidden rounded-fc-lg bg-fc-surface',
-		screen ? 'size-full' : 'aspect-video'
+		'relative isolate overflow-hidden rounded-fc border border-transparent bg-fc-surface',
+		screen ? 'size-full' : 'aspect-video',
+		speaking && !screen && 'border-1 border-fc-brand'
 	)}
 >
 	{#if camera}
@@ -68,23 +79,24 @@
 			autoplay
 			playsinline
 			muted={isLocal}
-			class={cn('size-full rounded-fc-lg', screen ? 'object-contain' : 'object-cover', isLocal && !screen && '-scale-x-100')}
+			class={cn('size-full rounded-fc', screen ? 'object-contain' : 'object-cover', isLocal && !screen && '-scale-x-100')}
 		></video>
 	{:else}
 		<div class="flex size-full items-center justify-center">
-			<span class="flex size-20 items-center justify-center rounded-full bg-fc-accent text-fc-xl text-fc-accent-fg">
-				{initials}
-			</span>
+			{#if avatar}
+				<img src={avatar} alt="" referrerpolicy="no-referrer" class="size-20 rounded-full object-cover" />
+			{:else}
+				<span class="fc-selected flex size-20 items-center justify-center rounded-full text-fc-subtitle">
+					{initials}
+				</span>
+			{/if}
 		</div>
 	{/if}
 
-	<div class="absolute bottom-2 left-2 flex max-w-[calc(100%-1rem)] items-center gap-1 rounded-fc-md bg-fc-scrim px-2 py-1">
-		{#if speaking && !screen}
-			<span class="size-2 shrink-0 rounded-full bg-fc-success" role="img" aria-label={t('tile.speaking')}></span>
-		{/if}
+	<div class="absolute bottom-2 left-2 flex max-w-[calc(100%-1rem)] items-center gap-1 rounded-fc bg-fc-scrim px-2 py-1">
 		{#if !micOn && !screen}
 			<Icon icon={callIcons.micOff} size={14} class="shrink-0 text-fc-danger" aria-label={t('tile.muted')} />
 		{/if}
-		<span class="truncate text-fc-xs text-fc-fg">{label}</span>
+		<span class="truncate text-fc-subtext text-fc-ink">{label}</span>
 	</div>
 </div>

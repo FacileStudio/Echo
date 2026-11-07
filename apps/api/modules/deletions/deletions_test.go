@@ -74,8 +74,12 @@ func TestErasingAPersonLeavesOthersUntouchedAndReplaysAsANoOp(t *testing.T) {
 	if err := os.WriteFile(recording, []byte("x"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	f.room(t, "gone-room", &gone, "gone.mp4")
-	keptCall := f.room(t, "kept-room", &kept, "")
+	f.room(t, "gone-room", &gone, "/output/gone.mp4")
+	keptRecording := filepath.Join(f.dir, "kept.mp4")
+	if err := os.WriteFile(keptRecording, []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	keptCall := f.room(t, "kept-room", &kept, "/output/kept.mp4")
 	seat := schemas.CallParticipant{CallID: keptCall, Identity: "user-" + itoa(gone), Name: "Gone", JoinedAt: time.Now()}
 	if err := f.db.Create(&seat).Error; err != nil {
 		t.Fatal(err)
@@ -95,6 +99,9 @@ func TestErasingAPersonLeavesOthersUntouchedAndReplaysAsANoOp(t *testing.T) {
 	}
 	if _, err := os.Stat(recording); !os.IsNotExist(err) {
 		t.Fatalf("the recording survived: %v", err)
+	}
+	if _, err := os.Stat(keptRecording); err != nil {
+		t.Fatalf("another person's recording was touched: %v", err)
 	}
 	if f.count(t, "users", "id = ?", kept) != 1 || f.count(t, "rooms", "owner_id = ?", kept) != 1 {
 		t.Fatal("another person's data was touched")

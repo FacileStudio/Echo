@@ -64,24 +64,24 @@
 
 <div class="flex min-h-0 flex-1 flex-col gap-1">
 	<div class="relative flex min-h-0 flex-1">
-		<div bind:this={listEl} class="flex min-h-0 flex-1 bg-fc-surface p-4 rounded-fc-lg flex-col gap-3 overflow-y-auto">
+		<div bind:this={listEl} class="flex min-h-0 flex-1 bg-fc-surface p-4 rounded-fc flex-col gap-3 overflow-y-auto">
 			{#if messages.length === 0}
-				<p class="text-fc-sm text-fc-fg-muted">{t('chat.empty')}</p>
+				<p class="text-fc-p text-fc-muted">{t('chat.empty')}</p>
 			{/if}
 			{#each messages as m, i (m.at + '-' + i)}
 				<div class="flex flex-col ">
 					<p class="flex justify-between items-baseline">
-						<TextElevate text={m.name} visible={open} delay={0} class="text-fc-lg text-fc-fg" />
-						<span class="text-fc-xs text-fc-fg-muted">{formatTime(m.at)}</span>
+						<TextElevate text={m.name} visible={open} delay={0} class="text-fc-lead text-fc-ink" />
+						<span class="text-fc-subtext text-fc-muted">{formatTime(m.at)}</span>
 					</p>
-					<TextElevate text={m.text} visible={open} delay={0.05} class="text-fc-sm wrap-break-word text-fc-fg-muted" />
+					<TextElevate text={m.text} visible={open} delay={0.05} class="text-fc-p wrap-break-word text-fc-muted" />
 				</div>
 				{/each}
 		</div>
 	</div>
 
 	<form onsubmit={send} class="flex gap-1">
-		<Input bind:value={draft} placeholder={t('chat.placeholder')} aria-label={t('chat.label')} autocomplete="off" />
+		<Input bind:value={draft} placeholder={t('chat.placeholder')} aria-label={t('chat.label')} autocomplete="off" class="text-fc-p" />
 		<span bind:this={sendEl} class="inline-flex">
 			<Button
 				type="submit"

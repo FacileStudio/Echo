@@ -28,7 +28,7 @@
 
 {#if left}
 	<main class="flex min-h-dvh items-center justify-center px-4">
-		<p class="text-fc-sm text-fc-fg-muted">{t('embed.left')}</p>
+		<p class="text-fc-p text-fc-muted">{t('embed.left')}</p>
 	</main>
 {:else if grant && !grant.key}
 	<main class="flex min-h-dvh items-center justify-center px-4">
