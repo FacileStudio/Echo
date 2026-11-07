@@ -51,21 +51,31 @@ func (d *Deletions) Handler() http.Handler {
 }
 
 const (
-	selectRecordings = `SELECT c.recording_path FROM calls c JOIN rooms r ON r.id = c.room_id
+	selectRecordings = `SELECT x.filename FROM recordings x JOIN calls c ON c.id = x.call_id JOIN rooms r ON r.id = c.room_id
+		WHERE r.owner_id = @id
+		UNION SELECT c.recording_path FROM calls c JOIN rooms r ON r.id = c.room_id
 		WHERE r.owner_id = @id AND c.recording_path <> ''`
-	deleteOwnedRooms = `DELETE FROM rooms WHERE owner_id = @id`
-	anonymiseSeats   = `UPDATE call_participants SET name = '' WHERE identity = @identity`
-	deleteAccount    = `DELETE FROM users WHERE id = @id`
+	deleteOwnedRooms  = `DELETE FROM rooms WHERE owner_id = @id`
+	eraseSpeakerLines = `UPDATE transcript_lines l SET speaker = 'erased-' || p.id
+		FROM call_participants p WHERE p.call_id = l.call_id AND p.identity = l.speaker AND p.identity = @identity`
+	eraseSpeakerText = `UPDATE transcripts t
+		SET content = regexp_replace(t.content, '(^|\n)' || p.identity || ': ', '\1erased-' || p.id || ': ', 'g')
+		FROM call_participants p WHERE p.call_id = t.call_id AND p.identity = @identity`
+	anonymiseSeats = `UPDATE call_participants SET identity = 'erased-' || id, name = '', user_id = NULL
+		WHERE user_id = @id OR identity = @identity`
+	deleteAccount = `DELETE FROM users WHERE id = @id`
 )
 
 // ErasePerson deletes the account behind a Registre identity and what it owns:
-// its rooms with their calls, transcripts, summaries and participant rows, and
-// the recordings of those calls. A stored path is the egress container's
-// absolute /output/<name>.mp4, so only its basename is resolved inside the
-// recordings volume, through os.Root so a planted symlink cannot leave it. Calls
-// the person joined in rooms other people own stay, with the name blanked. A
-// subject that is already gone is a no-op, so a replayed notice changes
-// nothing.
+// its rooms with their calls, transcripts, transcript lines, summaries,
+// recordings and participant rows, and the recording files of those calls. A
+// stored path is the egress container's absolute /output/<name>.mp4, so only
+// its basename is resolved inside the recordings volume, through os.Root so a
+// planted symlink cannot leave it. Calls the person joined in rooms other
+// people own stay, but their seat loses the account link, the name and the
+// user-<id> identity, and the same identity is replaced in the transcript text
+// and lines, so nothing in the kept record names them. A subject that is
+// already gone is a no-op, so a replayed notice changes nothing.
 func (d *Deletions) ErasePerson(ctx context.Context, provider, subject string) error {
 	var userID int64
 	err := d.orm.WithContext(ctx).Raw(
@@ -80,7 +90,7 @@ func (d *Deletions) ErasePerson(ctx context.Context, provider, subject string) e
 		if err := tx.Raw(selectRecordings, args).Scan(&recordings).Error; err != nil {
 			return err
 		}
-		for _, statement := range []string{anonymiseSeats, deleteOwnedRooms, deleteAccount} {
+		for _, statement := range []string{deleteOwnedRooms, eraseSpeakerLines, eraseSpeakerText, anonymiseSeats, deleteAccount} {
 			if err := tx.Exec(statement, args).Error; err != nil {
 				return err
 			}

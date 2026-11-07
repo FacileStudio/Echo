@@ -106,8 +106,93 @@ func TestErasingAPersonLeavesOthersUntouchedAndReplaysAsANoOp(t *testing.T) {
 	if f.count(t, "users", "id = ?", kept) != 1 || f.count(t, "rooms", "owner_id = ?", kept) != 1 {
 		t.Fatal("another person's data was touched")
 	}
-	if f.count(t, "call_participants", "identity = ? AND name = ''", seat.Identity) != 1 {
-		t.Fatal("the name on a seat in someone else's call was not blanked")
+	if f.count(t, "call_participants", "identity = ?", seat.Identity) != 0 {
+		t.Fatal("the user-<id> identity of an erased person survived on a seat in someone else's call")
+	}
+	if f.count(t, "call_participants", "id = ? AND name = '' AND user_id IS NULL AND identity = ?", seat.ID, "erased-"+itoa(seat.ID)) != 1 {
+		t.Fatal("the seat in someone else's call kept the name or the account link")
+	}
+}
+
+func TestErasureKeepsAJoinedMeetingButNamesNoOne(t *testing.T) {
+	f := newFixture(t)
+	gone := f.person(t, "gone@example.com", "sub-gone")
+	kept := f.person(t, "kept@example.com", "sub-kept")
+	call := f.room(t, "shared-room", &kept, "")
+	identity := "user-" + itoa(gone)
+	seats := []schemas.CallParticipant{
+		{CallID: call, Identity: identity, UserID: &gone, Name: "Gone", JoinedAt: time.Now()},
+		{CallID: call, Identity: "user-" + itoa(kept), UserID: &kept, Name: "Kept", JoinedAt: time.Now()},
+	}
+	for i := range seats {
+		if err := f.db.Create(&seats[i]).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	text := identity + ": bonjour\nuser-" + itoa(kept) + ": salut\n" + identity + ": a demain\n"
+	if err := f.db.Create(&schemas.Transcript{ID: uuid.New(), CallID: call, Content: text}).Error; err != nil {
+		t.Fatal(err)
+	}
+	lines := []schemas.TranscriptLine{
+		{CallID: call, Speaker: identity, Text: "bonjour"},
+		{CallID: call, Speaker: "user-" + itoa(kept), Text: "salut"},
+	}
+	if err := f.db.Create(&lines).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	if err := f.erased.ErasePerson(context.Background(), issuer, "sub-gone"); err != nil {
+		t.Fatal(err)
+	}
+
+	var content string
+	if err := f.db.Raw(`SELECT content FROM transcripts WHERE call_id = ?`, call).Scan(&content).Error; err != nil {
+		t.Fatal(err)
+	}
+	erased := "erased-" + itoa(seats[0].ID)
+	want := erased + ": bonjour\nuser-" + itoa(kept) + ": salut\n" + erased + ": a demain\n"
+	if content != want {
+		t.Fatalf("transcript = %q, want %q", content, want)
+	}
+	if f.count(t, "transcript_lines", "speaker = ?", identity) != 0 || f.count(t, "transcript_lines", "speaker = ?", erased) != 1 {
+		t.Fatal("the erased person's transcript lines still carry their identity")
+	}
+	if f.count(t, "transcript_lines", "call_id = ?", call) != 2 {
+		t.Fatal("a joined meeting lost its transcript lines")
+	}
+	if f.count(t, "call_participants", "id = ? AND user_id = ?", seats[1].ID, kept) != 1 {
+		t.Fatal("the other participant's seat was touched")
+	}
+}
+
+func TestErasureDeletesOwnedTranscriptsLinesAndRecordings(t *testing.T) {
+	f := newFixture(t)
+	gone := f.person(t, "gone@example.com", "sub-gone")
+	call := f.room(t, "gone-room", &gone, "")
+	rows := []any{
+		&schemas.Transcript{ID: uuid.New(), CallID: call, Content: "user-1: x\n"},
+		&schemas.TranscriptLine{CallID: call, Speaker: "user-1", Text: "x"},
+		&schemas.Recording{ID: uuid.New(), CallID: call, Filename: "/output/a.mp4"},
+	}
+	for _, row := range rows {
+		if err := f.db.Create(row).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(f.dir, "a.mp4"), []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := f.erased.ErasePerson(context.Background(), issuer, "sub-gone"); err != nil {
+		t.Fatal(err)
+	}
+	for _, table := range []string{"transcripts", "transcript_lines", "recordings"} {
+		if f.count(t, table, "call_id = ?", call) != 0 {
+			t.Fatalf("%s of an erased owner survived", table)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(f.dir, "a.mp4")); !os.IsNotExist(err) {
+		t.Fatalf("the recording file survived: %v", err)
 	}
 }
 

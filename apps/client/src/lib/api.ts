@@ -7,6 +7,7 @@ export interface Me {
 	id: number;
 	email: string;
 	name: string;
+	picture?: string;
 	locale: string;
 	is_admin: boolean;
 }
@@ -54,7 +55,7 @@ export class ApiError extends Error {
 	}
 }
 
-async function apiErrorMessage(res: Response): Promise<string> {
+export async function apiErrorMessage(res: Response): Promise<string> {
 	try {
 		const body = (await res.json()) as { error?: { code?: string; message?: string } };
 		return body.error?.message ?? t('api.failed', { status: res.status });
@@ -81,17 +82,21 @@ export interface CallListItem {
 export interface CallParticipant {
 	identity: string;
 	name: string;
+	avatar_url?: string;
 	joined_at: string;
 	left_at?: string;
 }
 
 export interface CallDetail extends CallListItem {
-	transcript?: string;
+	room_slug: string;
+	room_name: string;
+	role: 'owner' | 'participant';
+	has_transcript: boolean;
 	summary?: CallSummary;
 	participants: CallParticipant[];
 }
 
-async function getJSON<T>(path: string): Promise<T> {
+export async function getJSON<T>(path: string): Promise<T> {
 	const res = await fetch(`${API_BASE}${path}`, { credentials: 'include' });
 	if (!res.ok) throw new ApiError(await apiErrorMessage(res), res.status);
 	return (await res.json()) as T;
@@ -115,35 +120,9 @@ export async function generateCallSummary(id: CallId): Promise<CallSummary> {
 		headers: { 'X-Facile-CSRF': '1' },
 		credentials: 'include'
 	});
+	if (res.status === 402) throw await planLimitFrom(res);
 	if (!res.ok) throw new ApiError(await apiErrorMessage(res), res.status);
 	return (await res.json()) as CallSummary;
-}
-
-export function callRecordingUrl(id: CallId): string {
-	return `${API_BASE}/api/calls/${encodeURIComponent(String(id))}/recording`;
-}
-
-export interface RecordingFile {
-	blob: Blob;
-	filename: string;
-}
-
-/** Fetch a call recording as a blob.
- *
- * A plain `<a href>` cannot be used here: when the file is not on this node the
- * API answers with a JSON error envelope and no `Content-Disposition`, and the
- * browser renders that envelope as a page, throwing the user out of the SPA.
- */
-export async function fetchCallRecording(id: CallId): Promise<RecordingFile> {
-	const res = await fetch(callRecordingUrl(id), { credentials: 'include' });
-	if (!res.ok) throw new ApiError(await apiErrorMessage(res), res.status);
-	return { blob: await res.blob(), filename: filenameFrom(res, id) };
-}
-
-function filenameFrom(res: Response, id: CallId): string {
-	const disposition = res.headers.get('Content-Disposition') ?? '';
-	const match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(disposition);
-	return match ? decodeURIComponent(match[1]) : `call-${id}.mp4`;
 }
 
 export function slugify(name: string): string {

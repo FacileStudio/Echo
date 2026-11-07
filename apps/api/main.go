@@ -112,12 +112,13 @@ func run() int {
 	}
 	router.Route("/api", func(r chi.Router) {
 		r.Use(extendWriteDeadline("/summary", summaryWriteBudget))
+		r.Use(extendWriteDeadline("/file", recordingWriteBudget))
 		authKit.Mount(r)
 		rooms.RegisterRoutes(r, roomsService, authKit.service, authKit.requireAuth, middleware.NewRateLimiter())
 		recording.RegisterRoutes(r, recording.NewRecording(roomsService, mediaService), authKit.requireAuth)
 		historyService := history.NewService(db, roomsService, summarize.NewFromEnv(), cfg.RecordingsDir)
 		history.RegisterRoutes(r, historyService, authKit.requireAuth)
-		transcripts.RegisterRoutes(r, transcripts.NewService(db), cfg.TranscriberToken)
+		transcripts.RegisterRoutes(r, transcripts.NewService(db, roomsService.RequireAI), cfg.TranscriberToken)
 		integrations.RegisterRoutes(r, integrations.NewService(db, mediaService, integrationKeys))
 	})
 
@@ -154,6 +155,11 @@ func openDatabase(url string, log *slog.Logger) (orm *gorm.DB, close func(), err
 // network error for the owner, after the row was committed and the model
 // billed.
 const summaryWriteBudget = 3 * time.Minute
+
+// recordingWriteBudget is what streaming one recording may take. A meeting
+// runs for an hour or more and a viewer on a slow line pulls it at their own
+// pace, so the short server deadline would cut playback and downloads mid-file.
+const recordingWriteBudget = 2 * time.Hour
 
 // extendWriteDeadline lifts the server's WriteTimeout for the routes whose
 // path ends in suffix, and leaves every other route on the short one. The

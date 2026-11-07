@@ -229,10 +229,10 @@ const rows = {
 	'callPage.title': ['Call details', 'Détails de l’appel', 'Detalles de la llamada', 'Anrufdetails'],
 	'callPage.home': ['Home', 'Accueil', 'Inicio', 'Start'],
 	'callPage.ownerOnlyBody': [
-		'Only the room owner can see this call. Sign in with the account that created the room.',
-		'Seul le propriétaire de la salle peut voir cet appel. Connectez-vous avec le compte qui a créé la salle.',
-		'Solo el propietario de la sala puede ver esta llamada. Inicia sesión con la cuenta que creó la sala.',
-		'Nur der Eigentümer des Raums kann diesen Anruf sehen. Melde dich mit dem Konto an, das den Raum erstellt hat.'
+		'Only the room owner and the people who were in this call can see it. Sign in with your Facile account.',
+		'Seuls le propriétaire de la salle et les personnes présentes à cet appel peuvent le voir. Connectez-vous avec votre compte Facile.',
+		'Solo el propietario de la sala y las personas que estuvieron en esta llamada pueden verla. Inicia sesión con tu cuenta Facile.',
+		'Nur der Eigentümer des Raums und die Personen, die an diesem Anruf teilgenommen haben, können ihn sehen. Melde dich mit deinem Facile-Konto an.'
 	],
 	'callPage.loadFailed': ['Could not load call', 'Impossible de charger l’appel', 'No se pudo cargar la llamada', 'Anruf konnte nicht geladen werden'],
 	'callPage.participants': ['Participants', 'Participants', 'Participantes', 'Teilnehmende'],
@@ -305,6 +305,68 @@ const rows = {
 	'summary.regenerate': ['Regenerate summary', 'Régénérer le résumé', 'Regenerar el resumen', 'Zusammenfassung neu erstellen'],
 	'summary.generate': ['Generate summary', 'Générer le résumé', 'Generar el resumen', 'Zusammenfassung erstellen'],
 
+	'title.meetings': ['Meetings · Echo', 'Réunions · Echo', 'Reuniones · Echo', 'Meetings · Echo'],
+	'meetings.title': ['Your meetings', 'Vos réunions', 'Tus reuniones', 'Deine Meetings'],
+	'meetings.description': [
+		'The rooms you own or joined while signed in, newest first.',
+		'Les salles que vous possédez ou que vous avez rejointes en étant connecté, les plus récentes d’abord.',
+		'Las salas que posees o a las que te uniste con sesión iniciada, las más recientes primero.',
+		'Die Räume, die dir gehören oder denen du angemeldet beigetreten bist, die neuesten zuerst.'
+	],
+	'meetings.signInTitle': ['Sign in to see your meetings', 'Connectez-vous pour voir vos réunions', 'Inicia sesión para ver tus reuniones', 'Melde dich an, um deine Meetings zu sehen'],
+	'meetings.signInBody': [
+		'Your history, recordings and transcripts follow your Facile account.',
+		'Votre historique, vos enregistrements et vos transcriptions suivent votre compte Facile.',
+		'Tu historial, tus grabaciones y tus transcripciones siguen a tu cuenta Facile.',
+		'Dein Verlauf, deine Aufzeichnungen und deine Transkripte gehören zu deinem Facile-Konto.'
+	],
+	'meetings.emptyTitle': ['No meetings yet', 'Aucune réunion pour l’instant', 'Aún no hay reuniones', 'Noch keine Meetings'],
+	'meetings.emptyBody': [
+		'Calls you join while signed in will appear here.',
+		'Les appels que vous rejoignez en étant connecté apparaîtront ici.',
+		'Las llamadas a las que te unas con sesión iniciada aparecerán aquí.',
+		'Anrufe, denen du angemeldet beitrittst, erscheinen hier.'
+	],
+	'meetings.previous': ['Previous', 'Précédent', 'Anterior', 'Zurück'],
+	'meetings.next': ['Next', 'Suivant', 'Siguiente', 'Weiter'],
+	'meetings.pageOf': ['Page {page} of {pages}', 'Page {page} sur {pages}', 'Página {page} de {pages}', 'Seite {page} von {pages}'],
+	'meetings.link': ['Your meetings', 'Vos réunions', 'Tus reuniones', 'Deine Meetings'],
+	'history.room': ['Room', 'Salle', 'Sala', 'Raum'],
+	'history.participants': ['Participants', 'Participants', 'Participantes', 'Teilnehmende'],
+	'history.transcript': ['Transcript', 'Transcription', 'Transcripción', 'Transkript'],
+	'history.owner': ['Owner', 'Propriétaire', 'Propietario', 'Eigentümer'],
+	'participants.guest': ['Guest', 'Invité', 'Invitado', 'Gast'],
+	'participants.erased': ['Erased account', 'Compte effacé', 'Cuenta borrada', 'Gelöschtes Konto'],
+	'recordings.failed': ['Recording unavailable', 'Enregistrement indisponible', 'Grabación no disponible', 'Aufzeichnung nicht verfügbar'],
+	'recordings.player': ['Call recording', 'Enregistrement de l’appel', 'Grabación de la llamada', 'Aufzeichnung des Anrufs'],
+	'recordings.shared': ['Shared with participants', 'Partagé avec les participants', 'Compartida con los participantes', 'Mit Teilnehmenden geteilt'],
+	'recordings.private': ['Only you', 'Vous seul', 'Solo tú', 'Nur du'],
+	'recordings.share': ['Share with participants', 'Partager avec les participants', 'Compartir con los participantes', 'Mit Teilnehmenden teilen'],
+	'recordings.shareHint': [
+		'Only the people who were in this call can watch it, signed in. Turn it off to take it back.',
+		'Seules les personnes présentes à cet appel peuvent la voir, une fois connectées. Désactivez pour la reprendre.',
+		'Solo las personas que estuvieron en esta llamada pueden verla, con sesión iniciada. Desactívalo para retirarla.',
+		'Nur Personen, die an diesem Anruf teilgenommen haben, können sie angemeldet ansehen. Schalte es aus, um sie zurückzuziehen.'
+	],
+	'transcript.search': ['Search the transcript', 'Rechercher dans la transcription', 'Buscar en la transcripción', 'Im Transkript suchen'],
+	'transcript.downloadTxt': ['Download .txt', 'Télécharger en .txt', 'Descargar .txt', '.txt herunterladen'],
+	'transcript.downloadVtt': ['Download .vtt', 'Télécharger en .vtt', 'Descargar .vtt', '.vtt herunterladen'],
+	'transcript.failed': ['Transcript unavailable', 'Transcription indisponible', 'Transcripción no disponible', 'Transkript nicht verfügbar'],
+	'transcript.noMatch': ['No line matches.', 'Aucune ligne ne correspond.', 'Ninguna línea coincide.', 'Keine Zeile passt.'],
+	'transcript.matches': [
+		'{count} of {total} lines',
+		'{count} lignes sur {total}',
+		'{count} de {total} líneas',
+		'{count} von {total} Zeilen'
+	],
+	'transcript.unknownSpeaker': ['Unknown speaker', 'Intervenant inconnu', 'Interlocutor desconocido', 'Unbekannte Person'],
+
+	'plan.noAi': [
+		'Transcripts and summaries are AI features, included with a paid plan.',
+		'Les transcriptions et les résumés sont des fonctions IA, incluses dans un forfait payant.',
+		'Las transcripciones y los resúmenes son funciones de IA, incluidas en un plan de pago.',
+		'Transkripte und Zusammenfassungen sind KI-Funktionen und im kostenpflichtigen Tarif enthalten.'
+	],
 	'api.failed': ['request failed ({status})', 'la requête a échoué ({status})', 'la solicitud falló ({status})', 'Anfrage fehlgeschlagen ({status})'],
 	'format.inProgress': ['In progress', 'En cours', 'En curso', 'Läuft']
 } as const satisfies Record<string, Row>;

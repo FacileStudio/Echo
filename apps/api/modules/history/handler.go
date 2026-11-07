@@ -2,8 +2,10 @@ package history
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/FacileStudio/Echo/apps/api/internal/authcontext"
+	"github.com/FacileStudio/Echo/apps/api/internal/plans"
 	troncerrors "github.com/FacileStudio/tronc/errors"
 	"github.com/FacileStudio/tronc/httpjson"
 	"github.com/go-chi/chi/v5"
@@ -54,32 +56,23 @@ func (h handler) summarize(w http.ResponseWriter, r *http.Request) {
 	}
 	summary, err := h.service.Summarize(r.Context(), chi.URLParam(r, "id"), identity.UserID)
 	if err != nil {
-		httpjson.WriteError(w, err)
+		plans.WriteError(w, err)
 		return
 	}
 	httpjson.WriteJSON(w, http.StatusOK, summary)
 }
 
-// recording streams the call's MP4. ServeContent handles range requests, so
-// a browser can seek without pulling the whole file.
-func (h handler) recording(w http.ResponseWriter, r *http.Request) {
+func (h handler) meetings(w http.ResponseWriter, r *http.Request) {
 	identity, ok := caller(w, r)
 	if !ok {
 		return
 	}
-	file, name, err := h.service.RecordingFile(r.Context(), chi.URLParam(r, "id"), identity.UserID)
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	size, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
+	meetings, err := h.service.Meetings(r.Context(), identity.UserID, page, size)
 	if err != nil {
 		httpjson.WriteError(w, err)
 		return
 	}
-	defer file.Close()
-
-	info, err := file.Stat()
-	if err != nil {
-		httpjson.WriteError(w, errNoRecording)
-		return
-	}
-	w.Header().Set("Content-Type", "video/mp4")
-	w.Header().Set("Content-Disposition", `attachment; filename="`+name+`"`)
-	http.ServeContent(w, r, name, info.ModTime(), file)
+	httpjson.WriteJSON(w, http.StatusOK, meetings)
 }

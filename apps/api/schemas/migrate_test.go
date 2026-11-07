@@ -1,6 +1,7 @@
 package schemas_test
 
 import (
+	"strconv"
 	"testing"
 
 	"github.com/FacileStudio/Echo/apps/api/internal/testdb"
@@ -169,5 +170,44 @@ func TestMigrationAddsPorteBindingColumnsToAnExistingDatabase(t *testing.T) {
 		  AND column_name IN ('provider', 'subject')`).Scan(&columns).Error
 	if err != nil || columns != 2 {
 		t.Fatalf("binding columns = %d (%v), want 2", columns, err)
+	}
+}
+
+func TestMigrationBackfillsSeatsAndRecordingsOnceAndSkipsErasedAccounts(t *testing.T) {
+	db := testdb.Migrated(t)
+	user := schemas.User{Email: "a@example.test"}
+	if err := db.Create(&user).Error; err != nil {
+		t.Fatal(err)
+	}
+	room := schemas.Room{ID: uuid.New(), Slug: "old", Name: "Old"}
+	call := schemas.Call{ID: uuid.New(), RoomID: room.ID, LivekitRoomName: "old", RecordingPath: "/output/old.mp4", EgressID: "EG_9"}
+	seats := []schemas.CallParticipant{
+		{CallID: call.ID, Identity: "user-" + strconv.FormatInt(user.ID, 10)},
+		{CallID: call.ID, Identity: "user-99999"},
+		{CallID: call.ID, Identity: "guest-1"},
+	}
+	for _, row := range []any{&room, &call, &seats} {
+		if err := db.Create(row).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	for range 2 {
+		if err := schemas.Migrate(db); err != nil {
+			t.Fatalf("migrate: %v", err)
+		}
+	}
+
+	var linked int64
+	if err := db.Model(&schemas.CallParticipant{}).Where("user_id = ?", user.ID).Count(&linked).Error; err != nil || linked != 1 {
+		t.Fatalf("linked seats = %d, %v, want the existing account's seat only", linked, err)
+	}
+	var unlinked int64
+	if err := db.Model(&schemas.CallParticipant{}).Where("user_id IS NULL").Count(&unlinked).Error; err != nil || unlinked != 2 {
+		t.Fatalf("unlinked seats = %d, %v, want the erased account and the guest", unlinked, err)
+	}
+	var recorded []schemas.Recording
+	if err := db.Find(&recorded).Error; err != nil || len(recorded) != 1 || recorded[0].Filename != "/output/old.mp4" || recorded[0].Shared {
+		t.Fatalf("recordings = %+v, %v, want one private row backfilled once", recorded, err)
 	}
 }

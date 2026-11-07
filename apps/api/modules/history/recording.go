@@ -1,7 +1,6 @@
 package history
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 
@@ -46,20 +45,6 @@ func openRecording(root, stored string) (*os.File, error) {
 		return nil, errNoRecording
 	}
 	return file, nil
-}
-
-// RecordingFile opens the MP4 of an owned call for streaming. The returned
-// file is the caller's to close.
-func (s *Service) RecordingFile(ctx context.Context, callID string, callerID int64) (*os.File, string, error) {
-	call, err := s.ownedCall(ctx, callID, callerID)
-	if err != nil {
-		return nil, "", err
-	}
-	file, err := openRecording(s.recordingsDir, call.RecordingPath)
-	if err != nil {
-		return nil, "", err
-	}
-	return file, downloadName(call.ID.String()), nil
 }
 
 // downloadName is the Content-Disposition filename: the call id keeps it

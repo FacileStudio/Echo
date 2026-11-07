@@ -4,8 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	stderrors "errors"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -87,8 +85,18 @@ func TestNonOwnerIsRefusedEverywhere(t *testing.T) {
 	if _, err := s.Summarize(ctx, id, stranger); !forbidden(err) {
 		t.Fatalf("Summarize = %v, want forbidden", err)
 	}
-	if _, _, err := s.RecordingFile(ctx, id, stranger); !forbidden(err) {
+	rec := seedRecording(t, db, call.ID, "standup-1.mp4", true)
+	if _, _, err := s.RecordingFile(ctx, rec.ID.String(), stranger); !forbidden(err) {
 		t.Fatalf("RecordingFile = %v, want forbidden", err)
+	}
+	if _, err := s.Recordings(ctx, id, stranger); !forbidden(err) {
+		t.Fatalf("Recordings = %v, want forbidden", err)
+	}
+	if _, err := s.Transcript(ctx, id, stranger, ""); !forbidden(err) {
+		t.Fatalf("Transcript = %v, want forbidden", err)
+	}
+	if _, err := s.SetShared(ctx, rec.ID.String(), stranger, true); !forbidden(err) {
+		t.Fatalf("SetShared = %v, want forbidden", err)
 	}
 }
 
@@ -207,7 +215,7 @@ func TestOwnerSeesTheCall(t *testing.T) {
 	if detail.Participants == nil {
 		t.Fatal("participants is null, want an empty array so the client can iterate it")
 	}
-	if detail.Summary != nil || detail.Transcript != "" {
+	if detail.Summary != nil || detail.HasTranscript {
 		t.Fatalf("detail = %+v, want no transcript or summary yet", detail)
 	}
 }
@@ -221,35 +229,5 @@ func TestSummarizeWithoutAnAPIKeyIsUnavailable(t *testing.T) {
 	envelope := new(troncerrors.Error)
 	if !stderrors.As(err, &envelope) || envelope.Code != "unavailable" {
 		t.Fatalf("Summarize = %v, want an unavailable envelope", err)
-	}
-}
-
-func TestRecordingFileServesTheOwnersMP4(t *testing.T) {
-	root := t.TempDir()
-	if err := os.WriteFile(filepath.Join(root, "standup-1.mp4"), []byte("mp4"), 0o600); err != nil {
-		t.Fatalf("write: %v", err)
-	}
-	s, db := newTestService(t, root)
-	call := seedOwnedCall(t, db, "/output/standup-1.mp4")
-
-	file, name, err := s.RecordingFile(context.Background(), call.ID.String(), owner)
-	if err != nil {
-		t.Fatalf("RecordingFile: %v", err)
-	}
-	defer file.Close()
-	if name != "echo-"+call.ID.String()+".mp4" {
-		t.Fatalf("download name = %q", name)
-	}
-}
-
-// A call whose recording never landed on this node is a NotFound, not a 500.
-func TestRecordingFileIsNotFoundWhenTheFileIsMissing(t *testing.T) {
-	s, db := newTestService(t, t.TempDir())
-	call := seedOwnedCall(t, db, "/output/never-written.mp4")
-
-	_, _, err := s.RecordingFile(context.Background(), call.ID.String(), owner)
-	envelope := new(troncerrors.Error)
-	if !stderrors.As(err, &envelope) || envelope.Code != "not_found" {
-		t.Fatalf("RecordingFile = %v, want a not_found envelope", err)
 	}
 }

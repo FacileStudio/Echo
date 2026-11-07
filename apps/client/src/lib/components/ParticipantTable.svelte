@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Table } from '@facile/muse';
+	import { Avatar, Table } from '@facile/muse';
 	import type { CallParticipant } from '$lib/api';
 	import { formatTime } from '$lib/format';
 	import { t } from '$lib/i18n/index.svelte';
@@ -9,6 +9,10 @@
 	}
 
 	let { participants }: Props = $props();
+
+	function label(p: CallParticipant): string {
+		return p.name || (p.identity.startsWith('erased-') ? t('participants.erased') : t('participants.guest'));
+	}
 </script>
 
 {#if participants.length === 0}
@@ -26,7 +30,10 @@
 			{#each participants as p (p.identity + p.joined_at)}
 				<tr>
 					<td>
-						<span class="font-medium text-fc-ink">{p.name || p.identity}</span>
+						<span class="flex items-center gap-1">
+							<Avatar src={p.avatar_url} name={label(p)} size="sm" class="rounded-full" />
+							<span class="font-medium text-fc-ink">{label(p)}</span>
+						</span>
 					</td>
 					<td class="whitespace-nowrap">{formatTime(p.joined_at)}</td>
 					<td class="whitespace-nowrap">

@@ -104,6 +104,20 @@ These routes are called by infrastructure or other apps rather than by a browser
 | `POST /api/rooms/{slug}/transcript` | transcriber worker | `Authorization: Bearer $TRANSCRIBER_TOKEN` |
 | `/api/integrations/rooms...` | suite apps (Prisme) | `Authorization: Bearer <app secret>` from `ECHO_INTEGRATION_KEYS` |
 
+## Meetings API
+
+Browser routes behind the session cookie. Each checks the caller's own account, never an id from the request.
+
+| Route | Who |
+|---|---|
+| `GET /api/meetings?page=` | the calls the caller owns or joined, newest first |
+| `GET /api/calls/{id}` | the room owner, or someone who sat in the call |
+| `GET /api/calls/{id}/recordings` | owner: all; participant: only the shared ones |
+| `GET /api/recordings/{id}/file[?download=1]` | same rule, `Range` supported |
+| `PATCH /api/recordings/{id}` `{"shared": bool}` | owner only; `true` needs `echo.recording` |
+| `GET /api/calls/{id}/transcript[?q=\|format=txt\|vtt]` | owner or participant; the owner's plan needs `ai.access` (else 402) |
+| `POST /api/calls/{id}/summary` | owner only; needs `ai.access` |
+
 The integration API, the `/embed/{room}` route and the signed call events it forwards are
 documented in [docs/integrations.md](docs/integrations.md).
 

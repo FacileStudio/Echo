@@ -27,7 +27,8 @@ remove borders (the speaking tile keeps its border). Changes here are functional
 
 - Rooms are persistent and named (slug); calls are recorded per session
 - Recordings land on local disk; Nuage upload is an opt-in per room
-- Transcripts and AI summaries belong to a call and are visible to logged-in users only
+- Transcripts and AI summaries belong to a call and are visible to its room owner and to the signed-in people who sat in it (`call_participants.user_id`); a recording is the owner's until they share it per recording
+- History is scoped by the caller's account in the query (`modules/history`); never accept a user id from the request
 - The transcriber persists only FINAL utterances, over `POST /api/rooms/{slug}/transcript` with
   `Authorization: Bearer $TRANSCRIBER_TOKEN`; a failure there never interrupts live captions
 - livekit-server posts room and egress events to `POST /livekit/webhook`, which sits outside

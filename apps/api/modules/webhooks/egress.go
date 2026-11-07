@@ -2,6 +2,7 @@ package webhooks
 
 import (
 	"github.com/FacileStudio/Echo/apps/api/schemas"
+	"github.com/google/uuid"
 	"github.com/livekit/protocol/livekit"
 	"gorm.io/gorm"
 )
@@ -32,18 +33,26 @@ func egressEnded(db *gorm.DB, egress *livekit.EgressInfo, room *livekit.Room) er
 	if name := egress.GetRoomName(); name != "" && name != call.LivekitRoomName {
 		return nil
 	}
-	return db.Model(&schemas.Call{}).Where("id = ?", call.ID).
-		Updates(map[string]any{"recording_path": path, "egress_id": egress.GetEgressId()}).Error
+	return db.Transaction(func(tx *gorm.DB) error {
+		err := tx.Model(&schemas.Call{}).Where("id = ?", call.ID).
+			Updates(map[string]any{"recording_path": path, "egress_id": egress.GetEgressId()}).Error
+		if err != nil {
+			return err
+		}
+		return tx.Create(&schemas.Recording{
+			ID: uuid.New(), CallID: call.ID, EgressID: egress.GetEgressId(), Filename: path,
+		}).Error
+	})
 }
 
-// alreadyStamped reports whether some call already carries this egress id,
+// alreadyStamped reports whether some recording already carries this egress id,
 // which is the whole of the idempotency check.
 func alreadyStamped(db *gorm.DB, egressID string) (bool, error) {
 	if egressID == "" {
 		return false, nil
 	}
 	var count int64
-	err := db.Model(&schemas.Call{}).Where("egress_id = ?", egressID).Count(&count).Error
+	err := db.Model(&schemas.Recording{}).Where("egress_id = ?", egressID).Count(&count).Error
 	return count > 0, err
 }
 
