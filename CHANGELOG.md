@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.5.0] - 2026-11-07
+
 ### Added
 - Your meetings: `/history` lists the calls a signed-in person owns or joined, newest first, 20 per page, with date, duration and participants (names and Registre photos). `GET /api/meetings` scopes by the caller's account in the query.
 - Seats in `call_participants` carry the account (`user_id`), backfilled at boot for `user-<id>` identities whose account still exists.
