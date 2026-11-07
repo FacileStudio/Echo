@@ -1,63 +1,63 @@
 package transcripts
 
 import (
-	"crypto/subtle"
-	"github.com/FacileStudio/Echo/apps/api/internal/plans"
 	"net/http"
-	"strings"
 
+	"github.com/FacileStudio/Echo/apps/api/internal/middleware"
+	"github.com/FacileStudio/Echo/apps/api/internal/plans"
+	"github.com/FacileStudio/Echo/apps/api/internal/seat"
 	troncerrors "github.com/FacileStudio/tronc/errors"
 	"github.com/FacileStudio/tronc/httpjson"
 	"github.com/go-chi/chi/v5"
 )
 
-const bearerPrefix = "Bearer "
+const (
+	maxBodyBytes     = 16 << 10
+	linesPerMinute   = 90
+	lineLimiterScope = "transcript-line"
+)
 
 type appendRequest struct {
-	Speaker string `json:"speaker"`
 	Text    string `json:"text"`
+	StartMS int64  `json:"start_ms"`
+	EndMS   int64  `json:"end_ms"`
 }
 
 type handler struct {
 	service *Service
-	token   string
+	keys    *seat.Keys
+	limiter *middleware.RateLimiter
 }
 
-// RegisterRoutes mounts the transcriber ingestion endpoint behind a static
-// bearer token — the transcriber is infrastructure, not a user, so it carries
-// no session and no CSRF header.
-func RegisterRoutes(router chi.Router, service *Service, token string) {
-	router.Post("/rooms/{slug}/transcript", handler{service: service, token: token}.append)
-}
-
-// authorized compares the bearer token in constant time.
-func (h handler) authorized(r *http.Request) bool {
-	given := ""
-	if auth := r.Header.Get("Authorization"); strings.HasPrefix(auth, bearerPrefix) {
-		given = auth[len(bearerPrefix):]
-	}
-	return subtle.ConstantTimeCompare([]byte(given), []byte(h.token)) == 1
+// RegisterRoutes mounts the transcript ingestion endpoint. The caller is a
+// browser transcribing its own microphone: a session identifies a signed-in
+// person, a seat key identifies a guest, and either way the speaker is the
+// identity the server proved, never a field of the body.
+func RegisterRoutes(router chi.Router, service *Service, keys *seat.Keys, limiter *middleware.RateLimiter) {
+	router.Post("/rooms/{slug}/transcript", handler{service: service, keys: keys, limiter: limiter}.append)
 }
 
 func (h handler) append(w http.ResponseWriter, r *http.Request) {
-	if !h.authorized(r) {
-		httpjson.WriteError(w, troncerrors.Unauthorized("invalid transcriber token"))
-		return
-	}
-	var req appendRequest
-	if err := httpjson.DecodeJSON(w, r, &req); err != nil {
+	slug := chi.URLParam(r, "slug")
+	identity, err := h.keys.Identity(r, slug)
+	if err != nil {
 		httpjson.WriteError(w, err)
 		return
 	}
-	if req.Text == "" {
-		httpjson.WriteError(w, troncerrors.Invalid("text is required"))
+	if !h.limiter.AllowKey(lineLimiterScope, slug+"|"+identity, linesPerMinute) {
+		middleware.Refuse(w)
 		return
 	}
-	speaker := req.Speaker
-	if speaker == "" {
-		speaker = "unknown"
+	r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
+	var req appendRequest
+	if err := httpjson.DecodeJSON(w, r, &req); err != nil {
+		httpjson.WriteError(w, troncerrors.Invalid("the body must be a small JSON object"))
+		return
 	}
-	if err := h.service.Append(r.Context(), chi.URLParam(r, "slug"), speaker, req.Text); err != nil {
+	err = h.service.Append(r.Context(), Utterance{
+		Slug: slug, Identity: identity, Text: req.Text, StartMS: req.StartMS, EndMS: req.EndMS,
+	})
+	if err != nil {
 		plans.WriteError(w, err)
 		return
 	}

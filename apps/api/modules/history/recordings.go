@@ -32,7 +32,7 @@ func (s *Service) Recordings(ctx context.Context, callID string, callerID int64)
 		return nil, err
 	}
 	var rows []schemas.Recording
-	err = s.orm.WithContext(ctx).Where("call_id = ?", got.call.ID).Order("created_at DESC, id").Find(&rows).Error
+	err = s.orm.WithContext(ctx).Where("call_id = ? AND status = ?", got.call.ID, schemas.RecordingComplete).Order("created_at DESC, id").Find(&rows).Error
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func toRecording(rec schemas.Recording, canShare bool) recordingOut {
 }
 
 func (s *Service) hasVisibleRecording(ctx context.Context, got *access) (bool, error) {
-	query := s.orm.WithContext(ctx).Model(&schemas.Recording{}).Where("call_id = ?", got.call.ID)
+	query := s.orm.WithContext(ctx).Model(&schemas.Recording{}).Where("call_id = ? AND status = ?", got.call.ID, schemas.RecordingComplete)
 	if !got.owner() {
 		query = query.Where("shared")
 	}
@@ -73,7 +73,7 @@ func (s *Service) recordingFor(ctx context.Context, recordingID string, callerID
 		return nil, nil, troncerrors.NotFound("recording not found")
 	}
 	var rec schemas.Recording
-	if err := s.orm.WithContext(ctx).First(&rec, "id = ?", id).Error; err != nil {
+	if err := s.orm.WithContext(ctx).First(&rec, "id = ? AND status = ?", id, schemas.RecordingComplete).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil, troncerrors.NotFound("recording not found")
 		}
@@ -91,16 +91,24 @@ func (s *Service) recordingFor(ctx context.Context, recordingID string, callerID
 
 // RecordingFile opens a recording the caller may watch for streaming. The
 // returned file is the caller's to close.
-func (s *Service) RecordingFile(ctx context.Context, recordingID string, callerID int64) (*os.File, string, error) {
+func (s *Service) RecordingFile(ctx context.Context, recordingID string, callerID int64) (*RecordingFile, error) {
 	rec, _, err := s.recordingFor(ctx, recordingID, callerID)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 	file, err := openRecording(s.recordingsDir, rec.Filename)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
-	return file, downloadName(rec.ID.String()), nil
+	return &RecordingFile{File: file, Download: downloadName(rec.ID.String(), rec.ContentType), Type: rec.ContentType}, nil
+}
+
+// RecordingFile is an opened recording with the name and content type it is
+// served under.
+type RecordingFile struct {
+	*os.File
+	Download string
+	Type     string
 }
 
 // SetShared lets the owner share a recording with the call's participants, or

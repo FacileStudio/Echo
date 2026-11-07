@@ -34,7 +34,7 @@ func (h handler) recordingFile(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	file, name, err := h.service.RecordingFile(r.Context(), chi.URLParam(r, "id"), identity.UserID)
+	file, err := h.service.RecordingFile(r.Context(), chi.URLParam(r, "id"), identity.UserID)
 	if err != nil {
 		httpjson.WriteError(w, err)
 		return
@@ -50,11 +50,11 @@ func (h handler) recordingFile(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Query().Get("download") == "1" {
 		disposition = "attachment"
 	}
-	w.Header().Set("Content-Type", "video/mp4")
-	w.Header().Set("Content-Disposition", disposition+`; filename="`+name+`"`)
+	w.Header().Set("Content-Type", servedType(file.Type))
+	w.Header().Set("Content-Disposition", disposition+`; filename="`+file.Download+`"`)
 	w.Header().Set("Cache-Control", "private, no-store")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
-	http.ServeContent(w, r, name, info.ModTime(), file)
+	http.ServeContent(w, r, file.Download, info.ModTime(), file)
 }
 
 func (h handler) share(w http.ResponseWriter, r *http.Request) {

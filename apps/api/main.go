@@ -16,7 +16,9 @@ import (
 	"github.com/FacileStudio/Echo/apps/api/internal/env"
 	"github.com/FacileStudio/Echo/apps/api/internal/media"
 	"github.com/FacileStudio/Echo/apps/api/internal/middleware"
+	"github.com/FacileStudio/Echo/apps/api/internal/seat"
 	"github.com/FacileStudio/Echo/apps/api/internal/summarize"
+	"github.com/FacileStudio/Echo/apps/api/modules/capture"
 	"github.com/FacileStudio/Echo/apps/api/modules/deletions"
 	"github.com/FacileStudio/Echo/apps/api/modules/history"
 	"github.com/FacileStudio/Echo/apps/api/modules/integrations"
@@ -99,10 +101,14 @@ func run() int {
 	forwarder := integrations.NewForwarder(db, integrationKeys, log)
 	planning.limiter.NotifyWith(forwarder)
 	roomsService := rooms.NewService(db, mediaService, planning.plans, planning.limiter)
+	seats := seat.NewKeys(mediaService.Secret())
+	captureLimiter := middleware.NewRateLimiter()
+	capturing := capture.NewService(db, roomsService, seats, captureLimiter, cfg.RecordingsDir)
 	webhooks.New(db, troncenv.String("LIVEKIT_API_KEY", ""), mediaService.Secret()).
 		NotifyWith(forwarder).
 		NotifyWith(planning.limiter).
 		NotifyWith(roomsService).
+		NotifyWith(capturing).
 		RegisterRoutes(router)
 	planning.Mount(router)
 	erasure := setupDeletions(cfg, db, log)
@@ -118,12 +124,14 @@ func run() int {
 		recording.RegisterRoutes(r, recording.NewRecording(roomsService, mediaService), authKit.requireAuth)
 		historyService := history.NewService(db, roomsService, summarize.NewFromEnv(), cfg.RecordingsDir)
 		history.RegisterRoutes(r, historyService, authKit.requireAuth)
-		transcripts.RegisterRoutes(r, transcripts.NewService(db, roomsService.RequireAI), cfg.TranscriberToken)
+		transcripts.RegisterRoutes(r, transcripts.NewService(db, roomsService.RequireAI), seats, captureLimiter)
+		capture.RegisterRoutes(r, capturing, authKit.requireAuth)
 		integrations.RegisterRoutes(r, integrations.NewService(db, mediaService, integrationKeys))
 	})
 
 	go sweepSessions(shutdown, authKit.sessions, log)
 	go planning.Run(shutdown, log)
+	go capturing.Run(shutdown)
 
 	mountClient(router, clientDir, cfg.EmbedOrigins, log)
 

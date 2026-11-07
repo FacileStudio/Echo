@@ -2,6 +2,8 @@
 	import { Button, Icon, IconButton } from '@facile/muse';
 	import { t } from '$lib/i18n/index.svelte';
 	import { callIcons } from '$lib/icons';
+	import type { CaptureSession } from '$lib/captureSession.svelte';
+	import { recorderFormat } from '$lib/recorder';
 
 	interface Props {
 		micOn: boolean;
@@ -10,6 +12,7 @@
 		chatOpen: boolean;
 		encrypted: boolean;
 		canShare: boolean;
+		capture?: CaptureSession | null;
 		onToggleMic: () => void;
 		onToggleCam: () => void;
 		onToggleScreen: () => void;
@@ -24,6 +27,7 @@
 		chatOpen,
 		encrypted,
 		canShare,
+		capture = null,
 		onToggleMic,
 		onToggleCam,
 		onToggleScreen,
@@ -31,6 +35,10 @@
 		onLeave
 	}: Props = $props();
 
+	const organizer = $derived(!!capture?.state?.owner);
+	const transcribeOn = $derived(!!capture?.state?.transcription);
+	const recordOn = $derived(!!capture?.state?.recording);
+	const canRecord = recorderFormat() !== null;
 	const off = 'bg-fc-danger/10 text-fc-danger hover:bg-fc-danger/20';
 </script>
 
@@ -72,6 +80,30 @@
 		>
 			<Icon icon={callIcons.screen} />
 		</IconButton>
+	{/if}
+
+	{#if organizer}
+		<IconButton
+			variant="ghost"
+			class={transcribeOn ? 'fc-selected' : ''}
+			aria-label={transcribeOn ? t('capture.stopTranscription') : t('capture.startTranscription')}
+			aria-pressed={transcribeOn}
+			onclick={() => void capture?.toggle('transcription')}
+		>
+			<Icon icon={callIcons.captions} />
+		</IconButton>
+
+		{#if canRecord}
+			<IconButton
+				variant="ghost"
+				class={recordOn ? 'fc-selected text-fc-danger' : ''}
+				aria-label={recordOn ? t('capture.stopRecording') : t('capture.startRecording')}
+				aria-pressed={recordOn}
+				onclick={() => void capture?.toggle('recording')}
+			>
+				<Icon icon={callIcons.record} />
+			</IconButton>
+		{/if}
 	{/if}
 
 	<IconButton

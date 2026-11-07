@@ -2,14 +2,12 @@ package env
 
 import (
 	"net/netip"
-	"strings"
 	"testing"
 )
 
 func baseEnv(t *testing.T) {
 	t.Helper()
 	t.Setenv("DATABASE_URL", "postgres://localhost/test")
-	t.Setenv("TRANSCRIBER_TOKEN", strings.Repeat("t", minTranscriberToken))
 }
 
 func TestDisabledOIDCIsValid(t *testing.T) {
@@ -25,30 +23,6 @@ func TestDisabledOIDCIsValid(t *testing.T) {
 	}
 	if cfg.RecordingsDir != "/recordings" {
 		t.Fatalf("RECORDINGS_DIR = %q, want the /recordings default", cfg.RecordingsDir)
-	}
-}
-
-func TestMissingTranscriberTokenRefusesToLoad(t *testing.T) {
-	t.Setenv("DATABASE_URL", "postgres://localhost/test")
-	t.Setenv("TRANSCRIBER_TOKEN", "")
-	t.Setenv("OIDC_ISSUER", "")
-
-	if _, err := Load(); err == nil {
-		t.Fatal("expected an error when TRANSCRIBER_TOKEN is unset: ingestion would be unauthenticated")
-	}
-}
-
-func TestShortTranscriberTokenRefusesToLoad(t *testing.T) {
-	baseEnv(t)
-	t.Setenv("OIDC_ISSUER", "")
-	t.Setenv("TRANSCRIBER_TOKEN", strings.Repeat("x", minTranscriberToken-1))
-
-	_, err := Load()
-	if err == nil {
-		t.Fatal("expected an error: a guessable token makes the constant-time compare pointless")
-	}
-	if !strings.Contains(err.Error(), "openssl rand") {
-		t.Fatalf("error = %q, want it to say how to generate a token", err)
 	}
 }
 

@@ -18,8 +18,8 @@ product decisions live; LiveKit owns the WebRTC plumbing nobody should hand-writ
 | Client | SvelteKit 5 (runes mode), muse tokens/components, `livekit-client` |
 | Media | livekit-server, coturn (TURN), Redis (multi-node ready) |
 | Encryption | LiveKit end-to-end encryption, always on; the key stays in the link fragment |
-| Recording | livekit/egress; off, because the server cannot decode encrypted calls |
-| Transcription | Vosk transcriber in `services/transcriber`; not deployed, for the same reason |
+| Recording | In the organizer's browser (MediaRecorder), audio of consenting people only, uploaded in chunks |
+| Transcription | On each person's device: Vosk (vosk-browser, WebAssembly), only text is sent |
 | Quality gate | `mise run check` (gofmt/vet/test + svelte-check) and filet |
 
 ## End-to-end encryption
@@ -36,14 +36,31 @@ neither Echo nor LiveKit sees it.
 - A browser that cannot encrypt media is told so and does not join.
 - Integration rooms take the key from the app that opens them; see `docs/integrations.md`.
 
-The server cannot read encrypted media, so these are off:
+The server cannot read encrypted media, so transcription and recording happen in browsers, and only
+for people who agree.
 
-- Live captions: the transcriber service is no longer in `deploy/compose/app.yml`, so it joins no
-  room. Its code stays in `services/transcriber`.
-- Recording: the Record button is gone from the call. The egress container and the record routes
-  stay, unused.
-- Transcripts and AI summaries: new calls have none. The call page says why, and older calls keep
-  what they already have.
+### Transcription and recording
+
+- The organizer (the signed-in room owner) turns transcription and/or recording on from the call
+  controls. The API refuses without the owner's plan: `ai.access` for transcription,
+  `echo.recording` for recording. Guest-created rooms and integration rooms have no organizer, so
+  they have neither.
+- Everyone in the call sees a persistent banner. A person is transcribed or recorded only after
+  they press Accept; unanswered counts as no. Declining, or pressing Stop for me later, stops it at
+  once. Switching a feature off and on again asks everyone again.
+- Transcription: each accepting browser runs Vosk (WebAssembly) on its own microphone, on the
+  device, and posts only final text lines. The model (about 41 MB) downloads after Accept, with a
+  progress line, and stays in the browser cache. The server sets the speaker from the session or
+  seat key, never from the body.
+- Recording policy: the recording is audio only and mixes only the voices of people who accepted.
+  Someone who declines, has not answered or just joined is never connected to the mix, so they are
+  excluded rather than blocking the recording; the organizer sees how many are left out. Video is
+  never recorded, because compositing video per person in a browser tab is heavy, throttled in
+  background tabs, and would need a consent check per frame.
+- Withdrawal reaches the organizer's recorder within one poll (3 seconds).
+- Uploads are chunked and resumable; the file is finalized at the end of the call or after 15
+  minutes without a chunk. A webm written by MediaRecorder has no duration header: it plays, but
+  seeking is coarse.
 
 ## Development
 
@@ -67,10 +84,9 @@ The API reads these on top of the tronc core variables (`PORT`, `DATABASE_URL`, 
 | `LIVEKIT_URL` | yes | n/a | LiveKit signalling URL the API mints tokens against |
 | `LIVEKIT_API_KEY` | yes | n/a | LiveKit API key, also the key LiveKit signs webhooks with |
 | `LIVEKIT_API_SECRET` | yes | n/a | LiveKit API secret; verifies the webhook signature |
-| `TRANSCRIBER_TOKEN` | yes | n/a | Bearer token the transcriber presents to ingest transcripts |
 | `ANTHROPIC_API_KEY` | no | empty | Enables AI summaries; without it the summary endpoint returns 503 |
 | `ANTHROPIC_MODEL` | no | `claude-sonnet-5` | Model used for summaries |
-| `RECORDINGS_DIR` | no | `/recordings` | Directory the recordings volume is mounted at, read-only |
+| `RECORDINGS_DIR` | no | `/recordings` | Directory the recordings volume is mounted at. Browser recordings are written here, so it must be writable; empty disables recording |
 | `ECHO_INTEGRATION_KEYS` | no | empty | `app:secret` pairs, comma-separated, for the integration API; empty refuses every app |
 | `ECHO_EMBED_ORIGINS` | no | empty | Origins allowed to frame `/embed/{room}`, comma-separated; empty allows none |
 | `TRUSTED_PROXIES` | no | `private,cloudflare` | Hops whose `X-Forwarded-For` is believed: CIDR blocks, addresses, the names `private` and `cloudflare` (tronc's published Cloudflare edge ranges), or `none`. echo.facile.studio sits behind Cloudflare and Traefik. Production's Traefik replaces Cloudflare's `X-Forwarded-For` with the edge address alone, so the join rate limit reads `Cf-Connecting-Ip` only when the peer is private and the rightmost `X-Forwarded-For` hop is a Cloudflare edge; otherwise it keys on the address this setting resolves |
@@ -80,20 +96,6 @@ Plan limits (see [docs/plans.md](docs/plans.md)) come from Registre, and Echo sy
 open and the API logs a warning at boot. The production deployment has no `OIDC_*` variables yet,
 so it does not enforce plans.
 
-The transcriber worker is not deployed (see End-to-end encryption). When run, it reads
-`LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`,
-`VOSK_MODEL_PATH`, plus `ECHO_API_URL` and `TRANSCRIBER_TOKEN`. If either of the last two is
-unset it logs a warning at startup and keeps broadcasting captions without persisting them.
-
-Generate a token with:
-
-```sh
-openssl rand -hex 32
-```
-
-Set the same value on the `echo` service and on the `transcriber` service. The API refuses to
-boot without it: an unauthenticated ingestion endpoint is worse than a failed start.
-
 ## Machine endpoints
 
 These routes are called by infrastructure or other apps rather than by a browser.
@@ -101,7 +103,6 @@ These routes are called by infrastructure or other apps rather than by a browser
 | Route | Caller | Auth |
 |---|---|---|
 | `POST /livekit/webhook` | livekit-server | LiveKit's signed JWT in `Authorization`, verified with the API secret |
-| `POST /api/rooms/{slug}/transcript` | transcriber worker | `Authorization: Bearer $TRANSCRIBER_TOKEN` |
 | `/api/integrations/rooms...` | suite apps (Prisme) | `Authorization: Bearer <app secret>` from `ECHO_INTEGRATION_KEYS` |
 
 ## Meetings API
@@ -124,9 +125,9 @@ documented in [docs/integrations.md](docs/integrations.md).
 The webhook sits outside `/api` on purpose: it carries no cookie and no CSRF header, only the
 signature. It upserts calls and participants and stamps the recording path when egress ends.
 
-The transcript route takes `{"speaker": "...", "text": "..."}` and answers 204. It appends one
-final utterance to the open call of that room, and answers 404 when no call is open, which the
-transcriber treats as normal.
+The transcript route takes `{"text": "...", "start_ms": 0, "end_ms": 0}` from a seated, consenting
+participant and answers 204. It appends one final utterance to the open call of that room, and
+answers 404 when no call is open.
 
 To make livekit-server call the webhook, its config needs a `webhook` block pointing at
 `https://echo.facile.studio/livekit/webhook`. See `deploy/compose/livekit.yaml`, and read the
@@ -138,7 +139,7 @@ environment variable, not by mounting the file.
 ```
 apps/api/         Go API: modules/{rooms,media,webhooks,summarize}, migrations/
 apps/client/      SvelteKit 5 client
-deploy/           compose files for livekit-server, coturn, redis, egress, vosk
+deploy/           compose files for livekit-server, coturn, redis, egress
 docs/             REBUILD_PLAN.md, integrations.md and design notes
 ```
 

@@ -3,13 +3,14 @@ package transcripts
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
+	"github.com/FacileStudio/Echo/apps/api/internal/seat"
 	"github.com/FacileStudio/Echo/apps/api/schemas"
 	troncerrors "github.com/FacileStudio/tronc/errors"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 // Gate decides whether a room's plan allows transcripts. A nil Gate allows
@@ -37,29 +38,99 @@ func (s *Service) admit(ctx context.Context, tx *gorm.DB, call schemas.Call) err
 	return s.gate(ctx, room)
 }
 
+// Utterance is one final line a browser transcribed from its own microphone.
+// StartMS and EndMS are on the sender's clock and only have to be sane: the
+// stored offset comes from the server's clock, which a client cannot move.
+type Utterance struct {
+	Slug     string
+	Identity string
+	Text     string
+	StartMS  int64
+	EndMS    int64
+}
+
+var (
+	errTranscriptionOff = troncerrors.Conflict("transcription is not on for this call")
+	errNoConsent        = troncerrors.Forbidden("you have not accepted to be transcribed")
+)
+
+func (u Utterance) check() error {
+	if strings.TrimSpace(u.Text) == "" {
+		return troncerrors.Invalid("text is required")
+	}
+	if u.StartMS < 0 || u.EndMS < u.StartMS || u.EndMS-u.StartMS > maxUtteranceMS {
+		return troncerrors.Invalid("start_ms and end_ms must be a forward span of at most two minutes")
+	}
+	return nil
+}
+
 // Append adds one final utterance to the room's open call transcript. The
-// call must still be open — after room_finished the record is history and no
-// late captions may rewrite it.
-func (s *Service) Append(ctx context.Context, slug, speaker, text string) error {
-	line, err := transcriptLine(speaker, text)
-	if err != nil {
+// call must still be open (after room_finished the record is history), the
+// owner must have switched transcription on and their plan must include AI,
+// the speaker must hold an open seat, and the speaker must have accepted. The
+// speaker is the identity the caller proved, never a name from the request.
+func (s *Service) Append(ctx context.Context, in Utterance) error {
+	if err := in.check(); err != nil {
 		return err
 	}
 	return s.orm.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		call, err := lockOpenCall(tx, slug)
+		call, err := seat.OpenCall(tx, in.Slug, true)
 		if err != nil {
 			return err
 		}
-		if err := s.admit(ctx, tx, call); err != nil {
+		if err := s.authorize(ctx, tx, call, in.Identity); err != nil {
+			return err
+		}
+		line, err := transcriptLine(labelOf(tx, call.ID, in.Identity), in.Text)
+		if err != nil {
 			return err
 		}
 		if err := appendLine(tx, call.ID, line); err != nil {
 			return err
 		}
 		return tx.Create(&schemas.TranscriptLine{
-			CallID: call.ID, Speaker: speaker, Text: text, OffsetMS: offsetSince(call.StartedAt),
+			CallID: call.ID, Speaker: in.Identity, Text: in.Text, OffsetMS: offsetSince(call.StartedAt),
 		}).Error
 	})
+}
+
+func (s *Service) authorize(ctx context.Context, tx *gorm.DB, call schemas.Call, identity string) error {
+	if err := s.admit(ctx, tx, call); err != nil {
+		return err
+	}
+	if !call.TranscribeOn {
+		return errTranscriptionOff
+	}
+	if err := seat.Seated(tx, call.ID, identity); err != nil {
+		return err
+	}
+	return consented(tx, call.ID, identity)
+}
+
+func consented(tx *gorm.DB, callID uuid.UUID, identity string) error {
+	var count int64
+	err := tx.Model(&schemas.CaptureConsent{}).
+		Where("call_id = ? AND identity = ? AND transcribe IS TRUE", callID, identity).Count(&count).Error
+	if err != nil {
+		return err
+	}
+	if count == 0 {
+		return errNoConsent
+	}
+	return nil
+}
+
+// labelOf is how the summariser's text blob names a speaker: the display name
+// when it is a clean one, else the identity.
+func labelOf(tx *gorm.DB, callID uuid.UUID, identity string) string {
+	var who schemas.CallParticipant
+	if err := tx.Where("call_id = ? AND identity = ?", callID, identity).First(&who).Error; err != nil {
+		return identity
+	}
+	if checkField("speaker", who.Name, maxSpeakerBytes) != nil || strings.TrimSpace(who.Name) == "" {
+		return identity
+	}
+	return who.Name
 }
 
 // offsetSince is how far into the call a line arrived, in milliseconds. A
@@ -67,21 +138,6 @@ func (s *Service) Append(ctx context.Context, slug, speaker, text string) error 
 // end of the cue.
 func offsetSince(startedAt time.Time) int64 {
 	return max(0, time.Since(startedAt).Milliseconds())
-}
-
-// lockOpenCall locks the call row for the duration of the transaction, which
-// serialises concurrent appends for one call and keeps a call that is being
-// closed from accepting a line on the way out.
-func lockOpenCall(tx *gorm.DB, slug string) (schemas.Call, error) {
-	var call schemas.Call
-	err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-		Where("livekit_room_name = ? AND ended_at IS NULL", slug).
-		Order("started_at DESC, id").
-		First(&call).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return call, troncerrors.NotFound("no open call for this room")
-	}
-	return call, err
 }
 
 // appendLine concatenates one line onto the call's transcript, or starts the

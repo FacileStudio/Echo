@@ -4,7 +4,7 @@ Suite app, **Go family** (forked pattern from GoSvelteBoilerplate / Journal): Go
 SvelteKit 5 client, no `packages/`. Module path: `github.com/FacileStudio/Echo/apps/api`.
 
 Media runs on a self-hosted LiveKit server deployed as infrastructure (compose containers:
-livekit-server, coturn, redis, egress, vosk). **Never patch LiveKit internals** — it is a
+livekit-server, coturn, redis, egress). **Never patch LiveKit internals** — it is a
 dependency like Postgres, not a fork. The Jitsi fork this repo used to be is tagged
 `jitsi-final`; do not resurrect its code.
 
@@ -29,8 +29,10 @@ remove borders (the speaking tile keeps its border). Changes here are functional
 - Recordings land on local disk; Nuage upload is an opt-in per room
 - Transcripts and AI summaries belong to a call and are visible to its room owner and to the signed-in people who sat in it (`call_participants.user_id`); a recording is the owner's until they share it per recording
 - History is scoped by the caller's account in the query (`modules/history`); never accept a user id from the request
-- The transcriber persists only FINAL utterances, over `POST /api/rooms/{slug}/transcript` with
-  `Authorization: Bearer $TRANSCRIBER_TOKEN`; a failure there never interrupts live captions
+- Transcription is on-device (vosk-browser in each consenting browser); only FINAL utterances are
+  persisted, over `POST /api/rooms/{slug}/transcript`, and the speaker is the identity the server
+  proved (session or seat key), never a body field. Recording is audio-only in the organizer's
+  browser, mixing only people who accepted. Nothing is captured without a visible banner and a yes
 - livekit-server posts room and egress events to `POST /livekit/webhook`, which sits outside
   `/api` because it authenticates with LiveKit's signed JWT, not a cookie
 - AI summaries degrade: no `ANTHROPIC_API_KEY` means the summary endpoint returns 503 and the

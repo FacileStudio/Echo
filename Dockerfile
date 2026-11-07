@@ -7,6 +7,11 @@ RUN bun install --frozen-lockfile
 COPY apps/client/ .
 RUN bun run build
 
+FROM alpine:3.22 AS models
+RUN apk add --no-cache curl unzip
+COPY scripts/vosk-models.sh /vosk-models.sh
+RUN sh /vosk-models.sh /models
+
 FROM golang:1.26-alpine AS api-build
 
 ARG TARGETOS=linux
@@ -27,6 +32,7 @@ FROM gcr.io/distroless/static-debian12:nonroot
 
 COPY --from=api-build /repo/apps/api/bin/api /api
 COPY --from=client-build /client/build /client
+COPY --from=models /models /client/models
 
 ENV CLIENT_DIR=/client
 ENV PORT=4020

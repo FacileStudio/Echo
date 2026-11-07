@@ -232,7 +232,7 @@ func (s *Service) Token(ctx context.Context, req JoinRequest) (Admission, error)
 		return Admission{}, err
 	}
 	token, err := s.media.IssueFor(room.Slug, media.Participant{Identity: identity, Name: name, Metadata: metadata, TTL: ttl}, grant)
-	return Admission{Token: token, Deadline: deadline}, err
+	return Admission{Token: token, Identity: identity, Deadline: deadline}, err
 }
 
 func isOwner(room *schemas.Room, userID *int64) bool {

@@ -90,6 +90,12 @@ func (l *RateLimiter) Allow(r *http.Request, budget Budget) bool {
 	return true
 }
 
+// AllowKey spends one request from a bucket of its own, for callers whose
+// identity the server already proved: a seated participant, not an address.
+func (l *RateLimiter) AllowKey(scope, key string, perMinute int) bool {
+	return l.allow(scope+"|seat:"+key, perMinute)
+}
+
 // allow spends one request from key's bucket, creating it on first use and
 // dropping the least recently used bucket when the limiter is full.
 func (l *RateLimiter) allow(key string, perMinute int) bool {

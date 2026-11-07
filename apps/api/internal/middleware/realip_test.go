@@ -12,7 +12,6 @@ import (
 func behindCloudflare(t *testing.T) http.Handler {
 	t.Helper()
 	t.Setenv("DATABASE_URL", "postgres://localhost/test")
-	t.Setenv("TRANSCRIBER_TOKEN", "0123456789abcdef0123456789abcdef")
 	t.Setenv("TRUSTED_PROXIES", "")
 	cfg, err := env.Load()
 	if err != nil {

@@ -12,6 +12,7 @@ export const callIcons = {
 	chat: 'iconoir:chat-lines',
 	leave: 'iconoir:phone-disabled',
 	record: 'iconoir:circle',
+	captions: 'iconoir:closed-captions-tag',
 	send: 'iconoir:send',
 	link: 'iconoir:link',
 	people: 'iconoir:group',

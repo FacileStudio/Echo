@@ -16,11 +16,6 @@ type Config struct {
 
 	Porte porte.Config
 
-	// TranscriberToken authenticates the transcriber worker against the
-	// transcript ingestion endpoint. It is required: an open ingestion
-	// endpoint is worse than a refused boot.
-	TranscriberToken string
-
 	// RecordingsDir is the directory the egress volume is mounted at, and
 	// the root every stored recording path is resolved against.
 	RecordingsDir string
@@ -56,25 +51,6 @@ func trustedProxies() ([]netip.Prefix, error) {
 	return prefixes, nil
 }
 
-// minTranscriberToken is the shortest token the API will boot with. The
-// ingestion endpoint is unthrottled, so a constant-time compare is worth
-// nothing unless the search space is out of reach of an online guess.
-const minTranscriberToken = 32
-
-// checkTranscriberToken refuses a token nobody would have to guess.
-func checkTranscriberToken(token string) error {
-	if strings.TrimSpace(token) == "" {
-		return fmt.Errorf("TRANSCRIBER_TOKEN must be set: it authenticates transcript ingestion")
-	}
-	if len(token) < minTranscriberToken {
-		return fmt.Errorf(
-			"TRANSCRIBER_TOKEN must be at least %d characters; generate one with: openssl rand -hex 32",
-			minTranscriberToken,
-		)
-	}
-	return nil
-}
-
 // Load reads and validates every environment variable the API needs.
 func Load() (Config, error) {
 	core, err := troncenv.LoadCore()
@@ -107,13 +83,9 @@ func Load() (Config, error) {
 }
 
 // loadServiceSecrets reads what other services present to Echo: the
-// transcriber's token, the integrated apps' secrets, the origins allowed to
+// integrated apps' secrets, the origins allowed to
 // frame the embed route, and the proxies whose forwarding headers count.
 func (cfg *Config) loadServiceSecrets() error {
-	cfg.TranscriberToken = troncenv.String("TRANSCRIBER_TOKEN", "")
-	if err := checkTranscriberToken(cfg.TranscriberToken); err != nil {
-		return err
-	}
 	keys, err := ParseIntegrationKeys(troncenv.String("ECHO_INTEGRATION_KEYS", ""))
 	if err != nil {
 		return err

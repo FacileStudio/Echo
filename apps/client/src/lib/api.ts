@@ -17,6 +17,7 @@ export interface TokenGrant {
 	url: string;
 	call_deadline?: string;
 	deadline_key?: string;
+	seat_key?: string;
 }
 
 export async function fetchMe(): Promise<Me | null> {
