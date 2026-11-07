@@ -46,6 +46,11 @@ services:
       RECORDINGS_DIR: /recordings
       ECHO_INTEGRATION_KEYS: ${ECHO_INTEGRATION_KEYS:-}
       ECHO_EMBED_ORIGINS: ${ECHO_EMBED_ORIGINS:-}
+      OIDC_ISSUER: ${OIDC_ISSUER:-}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
+      OIDC_REDIRECT_URL: ${OIDC_REDIRECT_URL:-}
+      OIDC_SUCCESS_URL: ${OIDC_SUCCESS_URL:-}
       # Hops whose X-Forwarded-For is believed: Traefik's private network and
       # Cloudflare's edge. The join rate limit additionally reads
       # Cf-Connecting-Ip when Traefik forwarded a request from a Cloudflare edge.
