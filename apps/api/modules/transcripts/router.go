@@ -2,6 +2,7 @@ package transcripts
 
 import (
 	"crypto/subtle"
+	"github.com/FacileStudio/Echo/apps/api/internal/plans"
 	"net/http"
 	"strings"
 
@@ -57,7 +58,7 @@ func (h handler) append(w http.ResponseWriter, r *http.Request) {
 		speaker = "unknown"
 	}
 	if err := h.service.Append(r.Context(), chi.URLParam(r, "slug"), speaker, req.Text); err != nil {
-		httpjson.WriteError(w, err)
+		plans.WriteError(w, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

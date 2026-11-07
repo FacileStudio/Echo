@@ -89,11 +89,14 @@ func (Summary) TableName() string { return "summaries" }
 // CallParticipant tracks one LiveKit identity's presence in a call. SID is
 // the participant's per-connection id: a redelivered participant_joined
 // carries the sid that already left, which is how a rejoin is told apart
-// from a retry.
+// from a retry. UserID is the signed-in account behind a user-<id> identity
+// and is what ties a call to a person's history; guests have none, and an
+// erased person's rows lose it.
 type CallParticipant struct {
 	ID       int64      `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
 	CallID   uuid.UUID  `json:"call_id" gorm:"column:call_id;type:uuid;not null;uniqueIndex:idx_call_participant_identity"`
 	Identity string     `json:"identity" gorm:"column:identity;not null;uniqueIndex:idx_call_participant_identity"`
+	UserID   *int64     `json:"user_id,omitempty" gorm:"column:user_id;index"`
 	SID      string     `json:"sid" gorm:"column:sid;not null;default:''"`
 	Name     string     `json:"name" gorm:"column:name;not null;default:''"`
 	JoinedAt time.Time  `json:"joined_at" gorm:"column:joined_at;not null"`

@@ -9,7 +9,7 @@ import "gorm.io/gorm"
 // own users table — kept verbatim otherwise, statement for statement,
 // including the v0.3.0 re-key of a local identity onto the account id.
 func Migrate(db *gorm.DB) error {
-	if err := db.AutoMigrate(&User{}, &Room{}, &Call{}, &Transcript{}, &Summary{}, &CallParticipant{}, &ForfaitState{}); err != nil {
+	if err := db.AutoMigrate(&User{}, &Room{}, &Call{}, &Transcript{}, &Summary{}, &CallParticipant{}, &ForfaitState{}, &Recording{}, &TranscriptLine{}); err != nil {
 		return err
 	}
 
@@ -19,6 +19,7 @@ func Migrate(db *gorm.DB) error {
 		callIndexes,
 		integrationIndexes,
 		deletionState,
+		historyBackfill,
 	}
 	for _, statement := range statements {
 		if err := db.Exec(statement).Error; err != nil {
@@ -61,6 +62,8 @@ CREATE TABLE IF NOT EXISTS directory_deletion_state (
 const callIndexes = `
 CREATE UNIQUE INDEX IF NOT EXISTS calls_livekit_room_sid_key
 	ON calls (livekit_room_sid) WHERE livekit_room_sid <> '';
+CREATE UNIQUE INDEX IF NOT EXISTS recordings_egress_key
+	ON recordings (egress_id) WHERE egress_id <> '';
 `
 
 // integrationIndexes makes the integration API idempotent at the database:
@@ -111,4 +114,21 @@ CREATE TABLE IF NOT EXISTS porte_login_codes (
 	expires_at  timestamptz NOT NULL,
 	consumed_at timestamptz
 );
+`
+
+// historyBackfill links rows written before the meetings area existed. A seat
+// whose identity is user-<id> gets that id as user_id, but only for an account
+// that still exists, so an erased person is never relinked. Every recorded
+// call gets one recordings row, once. Both statements are no-ops on a second
+// boot.
+const historyBackfill = `
+UPDATE call_participants p SET user_id = substr(p.identity, 6)::bigint
+ WHERE p.user_id IS NULL AND p.identity ~ '^user-[0-9]{1,18}$'
+   AND EXISTS (SELECT 1 FROM users u WHERE u.id = substr(p.identity, 6)::bigint);
+
+INSERT INTO recordings (id, call_id, egress_id, filename, shared, created_at)
+SELECT gen_random_uuid(), c.id, c.egress_id, c.recording_path, false, c.updated_at FROM calls c
+ WHERE c.recording_path <> ''
+   AND NOT EXISTS (SELECT 1 FROM recordings r WHERE r.call_id = c.id)
+ON CONFLICT DO NOTHING;
 `

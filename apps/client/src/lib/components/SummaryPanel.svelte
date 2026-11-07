@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { Alert, Button, Spinner, icons } from '@facile/muse';
 	import { ApiError, generateCallSummary, type CallId, type CallSummary } from '$lib/api';
+	import { PlanLimitError } from '$lib/planLimit';
+	import PlanLimitNotice from './PlanLimitNotice.svelte';
 	import { formatDateTime } from '$lib/format';
 	import { t } from '$lib/i18n/index.svelte';
 
@@ -8,9 +10,10 @@
 		callId: CallId;
 		summary?: CallSummary;
 		hasTranscript: boolean;
+		canGenerate?: boolean;
 	}
 
-	let { callId, summary, hasTranscript }: Props = $props();
+	let { callId, summary, hasTranscript, canGenerate = true }: Props = $props();
 
 	let generated = $state<CallSummary | undefined>(undefined);
 	let pending = $state(false);
@@ -18,6 +21,7 @@
 	const current = $derived(generated ?? summary);
 
 	let error = $state('');
+	let planLimit = $state<PlanLimitError | null>(null);
 
 	function messageFor(e: unknown): string {
 		if (e instanceof ApiError && e.status === 503) {
@@ -35,10 +39,12 @@
 	async function generate() {
 		pending = true;
 		error = '';
+		planLimit = null;
 		try {
 			generated = await generateCallSummary(callId);
 		} catch (e) {
-			error = messageFor(e);
+			if (e instanceof PlanLimitError) planLimit = e;
+			else error = messageFor(e);
 		} finally {
 			pending = false;
 		}
@@ -46,6 +52,9 @@
 </script>
 
 <div class="flex flex-col gap-1">
+	{#if planLimit}
+		<PlanLimitNotice error={planLimit} />
+	{/if}
 	{#if error}
 		<Alert tone="danger" title={t('summary.unavailable')}>{error}</Alert>
 	{/if}
@@ -66,7 +75,7 @@
 		<p class="text-fc-p text-fc-muted">{t('summary.none')}</p>
 	{/if}
 
-	{#if hasTranscript}
+	{#if hasTranscript && canGenerate}
 		<div>
 			<Button
 				variant={current ? 'outline' : 'primary'}

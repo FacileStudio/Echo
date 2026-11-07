@@ -2,6 +2,8 @@ package webhooks
 
 import (
 	"errors"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/FacileStudio/Echo/apps/api/schemas"
@@ -29,6 +31,7 @@ func participantJoined(db *gorm.DB, room *livekit.Room, who *livekit.Participant
 		return db.Create(&schemas.CallParticipant{
 			CallID:   call.ID,
 			Identity: who.GetIdentity(),
+			UserID:   accountOf(who.GetIdentity()),
 			SID:      who.GetSid(),
 			Name:     who.GetName(),
 			JoinedAt: joined,
@@ -38,6 +41,20 @@ func participantJoined(db *gorm.DB, room *livekit.Room, who *livekit.Participant
 		return err
 	}
 	return rejoin(db, &existing, who, joined)
+}
+
+// accountOf is the account id behind a user-<id> identity, or nil for a guest
+// or any other identity. It ties the seat to the person's history.
+func accountOf(identity string) *int64 {
+	digits, ok := strings.CutPrefix(identity, "user-")
+	if !ok {
+		return nil
+	}
+	id, err := strconv.ParseInt(digits, 10, 64)
+	if err != nil || id <= 0 {
+		return nil
+	}
+	return &id
 }
 
 // rejoin clears left_at only for a genuinely later connection.

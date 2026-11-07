@@ -21,6 +21,7 @@ const (
 	KeyMaxCallMinutes  = "echo.max_call_minutes"
 	KeyMaxParticipants = "echo.max_participants"
 	KeyRecording       = "echo.recording"
+	KeyAIAccess        = "ai.access"
 )
 
 // Features are the free-plan defaults that apply once Registre has pushed
@@ -30,6 +31,7 @@ func Features() []forfait.Feature {
 		{Key: KeyMaxCallMinutes, Kind: forfait.Limit, Default: json.RawMessage(`40`)},
 		{Key: KeyMaxParticipants, Kind: forfait.Limit, Default: json.RawMessage(`4`)},
 		{Key: KeyRecording, Kind: forfait.Bool, Default: json.RawMessage(`false`)},
+		{Key: KeyAIAccess, Kind: forfait.Bool, Default: json.RawMessage(`false`)},
 	}
 }
 

@@ -167,3 +167,14 @@ func (s *Service) RequireRecording(ctx context.Context, slug string, callerID in
 	}
 	return s.plans.Require(policy, plans.KeyRecording)
 }
+
+// RequireAI fails unless the plan of the room's owner includes ai.access.
+// Transcripts and summaries are AI features, so they follow the owner's plan
+// for everyone who reads them. A plan without it answers a *forfait.LimitError.
+func (s *Service) RequireAI(ctx context.Context, room schemas.Room) error {
+	policy, err := s.plans.ForRoom(ctx, room)
+	if err != nil {
+		return err
+	}
+	return s.plans.Require(policy, plans.KeyAIAccess)
+}

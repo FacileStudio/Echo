@@ -1,13 +1,19 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { Alert, TextElevate, Button, Card, Field, Input } from '@facile/muse';
+	import { onMount } from 'svelte';
+	import { Alert, Avatar, TextElevate, Button, Card, Field, Input } from '@facile/muse';
 	import { slugify } from '$lib/api';
 	import { readKey } from '$lib/e2ee';
 	import { t } from '$lib/i18n/index.svelte';
+	import { loadSession, session } from '$lib/session.svelte';
 
 	let room = $state('');
 	let error = $state('');
+
+	onMount(() => {
+		void loadSession();
+	});
 
 	const loginError = $derived(page.url.searchParams.get('error') ?? '');
 
@@ -51,5 +57,19 @@
 				<Button type="submit" size="lg" class="w-full">{t('home.open')}</Button>
 			</form>
 		</Card>
+
+		{#if session.loaded}
+			{#if session.me}
+				<div class="flex items-center justify-between gap-1">
+					<span class="flex min-w-0 items-center gap-1">
+						<Avatar src={session.me.picture} name={session.me.name || session.me.email} size="sm" class="rounded-full" />
+						<span class="truncate text-fc-p text-fc-ink">{session.me.name || session.me.email}</span>
+					</span>
+					<Button href="/history" variant="outline" size="sm">{t('meetings.link')}</Button>
+				</div>
+			{:else}
+				<Button href="/login" variant="ghost" class="w-full">{t('login.continue')}</Button>
+			{/if}
+		{/if}
 	</div>
 </main>

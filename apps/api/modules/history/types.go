@@ -23,17 +23,21 @@ type summaryPayload struct {
 }
 
 type participantOut struct {
-	Identity string `json:"identity"`
-	Name     string `json:"name"`
-	JoinedAt string `json:"joined_at"`
-	LeftAt   string `json:"left_at,omitempty"`
+	Identity  string `json:"identity"`
+	Name      string `json:"name"`
+	AvatarURL string `json:"avatar_url,omitempty"`
+	JoinedAt  string `json:"joined_at"`
+	LeftAt    string `json:"left_at,omitempty"`
 }
 
 type callDetail struct {
 	callResponse
-	Transcript   string           `json:"transcript,omitempty"`
-	Summary      *summaryPayload  `json:"summary,omitempty"`
-	Participants []participantOut `json:"participants"`
+	RoomSlug      string           `json:"room_slug"`
+	RoomName      string           `json:"room_name"`
+	Role          string           `json:"role"`
+	HasTranscript bool             `json:"has_transcript"`
+	Summary       *summaryPayload  `json:"summary,omitempty"`
+	Participants  []participantOut `json:"participants"`
 }
 
 func toResponse(call schemas.Call) callResponse {
@@ -54,21 +58,4 @@ func toSummary(summary schemas.Summary) summaryPayload {
 		Model:     summary.Model,
 		CreatedAt: summary.CreatedAt.UTC().Format(time.RFC3339),
 	}
-}
-
-func toParticipants(rows []schemas.CallParticipant) []participantOut {
-	out := make([]participantOut, 0, len(rows))
-	for _, row := range rows {
-		left := ""
-		if row.LeftAt != nil {
-			left = row.LeftAt.UTC().Format(time.RFC3339)
-		}
-		out = append(out, participantOut{
-			Identity: row.Identity,
-			Name:     row.Name,
-			JoinedAt: row.JoinedAt.UTC().Format(time.RFC3339),
-			LeftAt:   left,
-		})
-	}
-	return out
 }

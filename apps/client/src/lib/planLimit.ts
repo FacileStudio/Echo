@@ -59,6 +59,7 @@ export async function planLimitFrom(res: Response): Promise<PlanLimitError> {
 export function planLimitText(error: PlanLimitError): string {
 	if (error.key === 'echo.max_participants' && error.limit !== null) return t('plan.full', { count: error.limit });
 	if (error.key === 'echo.recording') return t('plan.noRecording');
+	if (error.key === 'ai.access') return t('plan.noAi');
 	if (error.key === 'echo.max_call_minutes' && error.limit !== null) return t('plan.minutes', { count: error.limit });
 	if (error.key === 'echo.max_call_minutes') return t('plan.minutesGeneric');
 	return error.message;

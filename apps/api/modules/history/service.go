@@ -15,8 +15,10 @@ import (
 
 const listLimit = 200
 
-// Service serves per-room call history, transcripts and summaries. Owner
-// gated like recording: a call is the room owner's business record.
+// Service serves call history, recordings, transcripts and summaries. The
+// room owner sees everything of their calls; someone who only sat in a call
+// sees its participants, transcript and summary, and a recording only when
+// the owner shared it.
 type Service struct {
 	orm           *gorm.DB
 	rooms         *rooms.Service
@@ -61,53 +63,23 @@ func (s *Service) List(ctx context.Context, slug string, callerID int64) ([]call
 	return out, nil
 }
 
-// ownedCall loads the call after checking its room belongs to callerID.
-func (s *Service) ownedCall(ctx context.Context, callID string, callerID int64) (*schemas.Call, error) {
-	id, err := uuid.Parse(callID)
-	if err != nil {
-		return nil, troncerrors.NotFound("call not found")
-	}
-	var call schemas.Call
-	if err := s.orm.WithContext(ctx).First(&call, "id = ?", id).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, troncerrors.NotFound("call not found")
-		}
-		return nil, err
-	}
-	var room schemas.Room
-	if err := s.orm.WithContext(ctx).First(&room, "id = ?", call.RoomID).Error; err != nil {
-		return nil, err
-	}
-	if room.OwnerID == nil || *room.OwnerID != callerID {
-		return nil, troncerrors.Forbidden("only the room owner can do this")
-	}
-	return &call, nil
-}
-
-// Detail returns one owned call with its participants, transcript and summary.
+// Detail returns one call the caller owns or sat in, with its participants and
+// summary. The transcript has its own endpoint, and the recordings theirs.
 func (s *Service) Detail(ctx context.Context, callID string, callerID int64) (*callDetail, error) {
-	call, err := s.ownedCall(ctx, callID, callerID)
+	got, err := s.accessible(ctx, callID, callerID)
 	if err != nil {
 		return nil, err
 	}
-	detail := &callDetail{callResponse: toResponse(*call)}
-
-	var participants []schemas.CallParticipant
-	err = s.orm.WithContext(ctx).Where("call_id = ?", call.ID).Order("joined_at").Find(&participants).Error
-	if err != nil {
+	detail := &callDetail{
+		callResponse: toResponse(*got.call),
+		RoomSlug:     got.room.Slug,
+		RoomName:     got.room.Name,
+		Role:         got.role,
+	}
+	if err := s.describe(ctx, got, detail); err != nil {
 		return nil, err
 	}
-	detail.Participants = toParticipants(participants)
-
-	transcript, err := s.transcriptOf(ctx, call.ID)
-	if err != nil {
-		return nil, err
-	}
-	if transcript != nil {
-		detail.Transcript = transcript.Content
-	}
-
-	summary, err := s.summaryOf(ctx, call.ID)
+	summary, err := s.summaryOf(ctx, got.call.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -118,10 +90,36 @@ func (s *Service) Detail(ctx context.Context, callID string, callerID int64) (*c
 	return detail, nil
 }
 
+// describe fills what a call shows beside its summary: the people, whether the
+// caller can watch a recording, and whether a transcript exists.
+func (s *Service) describe(ctx context.Context, got *access, detail *callDetail) error {
+	people, err := s.participantsOf(ctx, []uuid.UUID{got.call.ID})
+	if err != nil {
+		return err
+	}
+	detail.Participants = people[got.call.ID]
+	if detail.Participants == nil {
+		detail.Participants = []participantOut{}
+	}
+	if detail.HasRecording, err = s.hasVisibleRecording(ctx, got); err != nil {
+		return err
+	}
+	transcript, err := s.transcriptOf(ctx, got.call.ID)
+	detail.HasTranscript = transcript != nil && transcript.Content != ""
+	return err
+}
+
 // Summarize generates (or regenerates) the AI summary of an owned call.
 func (s *Service) Summarize(ctx context.Context, callID string, callerID int64) (*summaryPayload, error) {
-	call, err := s.ownedCall(ctx, callID, callerID)
+	got, err := s.accessible(ctx, callID, callerID)
 	if err != nil {
+		return nil, err
+	}
+	if !got.owner() {
+		return nil, troncerrors.Forbidden("only the room owner can do this")
+	}
+	call := got.call
+	if err := s.rooms.RequireAI(ctx, got.room); err != nil {
 		return nil, err
 	}
 	if s.summarizer == nil {

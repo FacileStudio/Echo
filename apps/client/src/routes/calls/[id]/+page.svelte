@@ -1,12 +1,13 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
-	import { Alert, Button, Card, Page, PageHeader, Section, Spinner, icons } from '@facile/muse';
-	import { ApiError, fetchCall, fetchCallRecording, type CallDetail } from '$lib/api';
+	import { Alert, Card, Page, PageHeader, Section, Spinner } from '@facile/muse';
+	import { ApiError, fetchCall, type CallDetail } from '$lib/api';
 	import { formatDateTime, formatDuration } from '$lib/format';
 	import { t } from '$lib/i18n/index.svelte';
 	import { loadSession } from '$lib/session.svelte';
 	import ParticipantTable from '$lib/components/ParticipantTable.svelte';
+	import RecordingPlayer from '$lib/components/RecordingPlayer.svelte';
 	import TranscriptPane from '$lib/components/TranscriptPane.svelte';
 	import SummaryPanel from '$lib/components/SummaryPanel.svelte';
 
@@ -25,9 +26,6 @@
 		call ? `${formatDateTime(call.started_at)} · ${formatDuration(call.started_at, call.ended_at)}` : ''
 	);
 
-	let downloading = $state(false);
-	let downloadError = $state('');
-
 	// SvelteKit reuses this component between two /calls/[id] routes, so the
 	// fetch is keyed on the id rather than on mount. `sequence` drops a slow
 	// answer for a previous id that lands after a newer one.
@@ -40,7 +38,6 @@
 		loaded = false;
 		error = '';
 		denied = false;
-		downloadError = '';
 
 		if (!wanted) {
 			loaded = true;
@@ -63,33 +60,12 @@
 			if (ticket === sequence) loaded = true;
 		})();
 	});
-
-	async function download(callId: CallDetail['id']): Promise<void> {
-		downloading = true;
-		downloadError = '';
-		let objectUrl = '';
-		try {
-			const { blob, filename } = await fetchCallRecording(callId);
-			objectUrl = URL.createObjectURL(blob);
-			const anchor = document.createElement('a');
-			anchor.href = objectUrl;
-			anchor.download = filename;
-			anchor.click();
-		} catch (e) {
-			downloadError = e instanceof Error ? e.message : String(e);
-		} finally {
-			// Revoking synchronously after click() cancels the download in
-			// Chrome; give the browser a turn to pick the blob up first.
-			if (objectUrl) setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
-			downloading = false;
-		}
-	}
 </script>
 
 <svelte:head><title>{t('title.call')}</title></svelte:head>
 
 <Page width="lg" class="gap-1 px-4 py-10">
-	<PageHeader title={t('callPage.title')} description={subtitle} back={{ href: '/', label: t('callPage.home') }} />
+	<PageHeader title={t('callPage.title')} description={subtitle} back={{ href: call ? '/history' : '/', label: call ? t('meetings.title') : t('callPage.home') }} />
 
 	{#if !loaded}
 		<Card><div class="flex justify-center py-4"><Spinner /></div></Card>
@@ -103,35 +79,20 @@
 		</Section>
 
 		<Section title={t('callPage.recording')} card>
-			{#if call.has_recording}
-				{@const recordingId = call.id}
-				{#if downloadError}
-					<Alert tone="danger" title={t('callPage.downloadFailed')}>{downloadError}</Alert>
-				{/if}
-				<Button
-					variant="outline"
-					size="sm"
-					icon={icons.download}
-					disabled={downloading}
-					onclick={() => download(recordingId)}
-				>
-					{downloading ? t('callPage.preparing') : t('callPage.download')}
-				</Button>
-			{:else}
-				<p class="text-fc-p text-fc-muted">{t('callPage.noRecording')}</p>
-			{/if}
+			<RecordingPlayer callId={call.id} />
 		</Section>
 
 		<Section title={t('callPage.summary')} card>
 			<SummaryPanel
 				callId={call.id}
 				summary={call.summary}
-				hasTranscript={Boolean(call.transcript?.trim())}
+				hasTranscript={call.has_transcript}
+				canGenerate={call.role === 'owner'}
 			/>
 		</Section>
 
 		<Section title={t('callPage.transcript')} card>
-			<TranscriptPane transcript={call.transcript} />
+			<TranscriptPane callId={call.id} hasTranscript={call.has_transcript} />
 		</Section>
 	{/if}
 </Page>

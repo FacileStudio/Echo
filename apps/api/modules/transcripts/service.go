@@ -3,6 +3,7 @@ package transcripts
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/FacileStudio/Echo/apps/api/schemas"
 	troncerrors "github.com/FacileStudio/tronc/errors"
@@ -11,13 +12,30 @@ import (
 	"gorm.io/gorm/clause"
 )
 
+// Gate decides whether a room's plan allows transcripts. A nil Gate allows
+// them, which is the deployment without Registre.
+type Gate func(ctx context.Context, room schemas.Room) error
+
 // Service persists final transcript lines for the open call of a room.
 type Service struct {
-	orm *gorm.DB
+	orm  *gorm.DB
+	gate Gate
 }
 
-// NewService builds a Service over the given database.
-func NewService(orm *gorm.DB) *Service { return &Service{orm: orm} }
+// NewService builds a Service over the given database. gate may be nil.
+func NewService(orm *gorm.DB, gate Gate) *Service { return &Service{orm: orm, gate: gate} }
+
+// admit refuses a line for a room whose owner's plan has no AI access.
+func (s *Service) admit(ctx context.Context, tx *gorm.DB, call schemas.Call) error {
+	if s.gate == nil {
+		return nil
+	}
+	var room schemas.Room
+	if err := tx.First(&room, "id = ?", call.RoomID).Error; err != nil {
+		return err
+	}
+	return s.gate(ctx, room)
+}
 
 // Append adds one final utterance to the room's open call transcript. The
 // call must still be open — after room_finished the record is history and no
@@ -32,8 +50,23 @@ func (s *Service) Append(ctx context.Context, slug, speaker, text string) error 
 		if err != nil {
 			return err
 		}
-		return appendLine(tx, call.ID, line)
+		if err := s.admit(ctx, tx, call); err != nil {
+			return err
+		}
+		if err := appendLine(tx, call.ID, line); err != nil {
+			return err
+		}
+		return tx.Create(&schemas.TranscriptLine{
+			CallID: call.ID, Speaker: speaker, Text: text, OffsetMS: offsetSince(call.StartedAt),
+		}).Error
 	})
+}
+
+// offsetSince is how far into the call a line arrived, in milliseconds. A
+// final utterance lands a moment after it was spoken, so the offset marks the
+// end of the cue.
+func offsetSince(startedAt time.Time) int64 {
+	return max(0, time.Since(startedAt).Milliseconds())
 }
 
 // lockOpenCall locks the call row for the duration of the transaction, which

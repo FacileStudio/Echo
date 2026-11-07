@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+### Added
+- Your meetings: `/history` lists the calls a signed-in person owns or joined, newest first, 20 per page, with date, duration and participants (names and Registre photos). `GET /api/meetings` scopes by the caller's account in the query.
+- Seats in `call_participants` carry the account (`user_id`), backfilled at boot for `user-<id>` identities whose account still exists.
+- Recordings are rows (`recordings`), one per egress, backfilled once from `calls.recording_path`. `GET /api/calls/{id}/recordings`, `GET /api/recordings/{id}/file` (range-capable, inline or `?download=1`, private, no-store) and `PATCH /api/recordings/{id}` with `{"shared": bool}`. Only the owner sees a recording until they share it with the call's participants; turning sharing on needs `echo.recording`.
+- A participant now opens the call page: participants, transcript and summary. Only the owner generates the summary.
+- Transcripts keep one timed row per utterance (`transcript_lines`). `GET /api/calls/{id}/transcript` searches with `?q=` and exports with `?format=txt` or `?format=vtt`. Transcripts written before this release stay readable and searchable but have no timings, so no `.vtt`.
+- GDPR erase also deletes transcript lines and recording rows with the owner's rooms, and on calls the person only joined it replaces their `user-<id>` identity by `erased-<seat>` in the seat, the transcript text and the lines, and clears `user_id`.
+
+### Changed
+- Transcripts and summaries are AI features and follow the room owner's `ai.access` entitlement (free: off). Reading, searching and exporting a transcript, generating a summary and the transcriber's ingestion answer 402 with `upgrade_url` without it; the client shows Echo's plan notice. Fails open without Registre, like every other limit.
+- `GET /api/calls/{id}` no longer returns the raw transcript. It returns `has_transcript`, `role`, `room_slug` and `room_name`. `GET /api/calls/{id}/recording` is replaced by the recordings routes above.
+- Recording streams get a two hour write budget instead of the server's 30 seconds.
+
 ## [2.4.0] - 2026-11-07
 
 ### Changed

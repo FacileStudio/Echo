@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/FacileStudio/Echo/apps/api/schemas"
 	"github.com/livekit/protocol/livekit"
 )
 
@@ -173,5 +174,45 @@ func TestARetriedEgressEndedStampsOnlyItsOwnCall(t *testing.T) {
 	}
 	if calls[1].RecordingPath != "" {
 		t.Fatalf("the retry stamped an unrelated call with %q", calls[1].RecordingPath)
+	}
+}
+
+func TestASignedInSeatKeepsItsAccountAndAGuestSeatDoesNot(t *testing.T) {
+	h := newHarness(t)
+	h.seedRoom("standup")
+	h.send(roomEvent(eventRoomStarted, "standup", "RM_1", base))
+	guest := &livekit.ParticipantInfo{Sid: "PA_2", Identity: "guest-ab12cd34", Name: "Guest", JoinedAt: base.Unix()}
+	h.send(peopleEvent(eventParticipantJoined, "standup", "RM_1", alice("PA_1", base), base))
+	h.send(peopleEvent(eventParticipantJoined, "standup", "RM_1", guest, base))
+
+	for _, row := range h.participants() {
+		switch row.Identity {
+		case "user-7":
+			if row.UserID == nil || *row.UserID != 7 {
+				t.Fatalf("the signed-in seat has user_id %v, want 7", row.UserID)
+			}
+		default:
+			if row.UserID != nil {
+				t.Fatalf("%s has user_id %v, want none", row.Identity, row.UserID)
+			}
+		}
+	}
+}
+
+func TestEgressEndedAddsOneRecordingPerEgressAndKeepsEachOfACall(t *testing.T) {
+	h := newHarness(t)
+	h.seedRoom("standup")
+	h.send(roomEvent(eventRoomStarted, "standup", "RM_1", base))
+	first := egressEvent("RM_1", "standup", "EG_1", "recordings/a.mp4", base.Add(time.Hour))
+	h.send(first)
+	h.send(first)
+	h.send(egressEvent("RM_1", "standup", "EG_2", "recordings/b.mp4", base.Add(2*time.Hour)))
+
+	var rows []schemas.Recording
+	if err := h.db.Order("filename").Find(&rows).Error; err != nil {
+		t.Fatal(err)
+	}
+	if len(rows) != 2 || rows[0].Filename != "recordings/a.mp4" || rows[1].Filename != "recordings/b.mp4" || rows[0].Shared {
+		t.Fatalf("recordings = %+v, want one private row per egress", rows)
 	}
 }
