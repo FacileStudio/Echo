@@ -58,6 +58,11 @@ for module in $GO_MODULES; do
   fi
 done
 
+if [ "$mode" != "format" ]; then
+  echo "== version =="
+  sh scripts/check-version.sh || status=1
+fi
+
 if [ "$mode" != "go" ] && [ "$mode" != "format" ]; then
   if [ -d "$CLIENT_DIR" ]; then
     echo "== $CLIENT_DIR =="
