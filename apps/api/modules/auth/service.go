@@ -3,60 +3,29 @@ package auth
 import (
 	"context"
 	stderrors "errors"
-	"net/http"
 
 	"github.com/FacileStudio/Echo/apps/api/internal/authcontext"
 	"github.com/FacileStudio/Echo/apps/api/schemas"
-	"github.com/FacileStudio/porte/local"
 	"github.com/FacileStudio/tronc/errors"
 
 	"gorm.io/gorm"
 )
 
-// Service exposes login, registration and the current-user endpoint,
-// delegating password work to the wrapped porte local kit.
+// Service reads Echo's accounts. Sign-in itself belongs to porte's OIDC kit.
 type Service struct {
-	orm   *gorm.DB
-	local *local.Kit
+	orm *gorm.DB
 }
 
-// NewService builds the auth service over Echo's user table and porte's
-// local password kit.
-func NewService(orm *gorm.DB, passwords *local.Kit) *Service {
-	return &Service{orm: orm, local: passwords}
-}
-
-// Register creates an account from a registration request and signs the
-// caller in.
-func (s *Service) Register(ctx context.Context, w http.ResponseWriter, r *http.Request, req RegisterRequest) (*schemas.User, string, error) {
-	userID, token, err := s.local.Register(ctx, w, r, req.Email, req.Name, req.Password)
-	if err != nil {
-		return nil, "", err
-	}
-	user, err := s.UserByID(ctx, userID)
-	if err != nil {
-		return nil, "", err
-	}
-	return user, token, nil
-}
-
-func (s *Service) Login(ctx context.Context, w http.ResponseWriter, r *http.Request, email, password string) (*schemas.User, string, error) {
-	userID, token, err := s.local.Login(ctx, w, r, email, password)
-	if err != nil {
-		return nil, "", err
-	}
-	user, err := s.UserByID(ctx, userID)
-	if err != nil {
-		return nil, "", err
-	}
-	return user, token, nil
+// NewService builds the auth service over Echo's user table.
+func NewService(orm *gorm.DB) *Service {
+	return &Service{orm: orm}
 }
 
 // IdentityForUser turns the user id porte authenticated into the identity the
 // rest of Echo reads. porte hands the middleware a session and a user id and
 // stops there: it holds no email and no is_admin, because what a role may do
-// is the app's business. A session pointing at a user that no longer exists —
-// the foreign key cascades a delete, so this is a race rather than a leak — is
+// is the app's business. A session pointing at a user that no longer exists
+// (the foreign key cascades a delete, so this is a race rather than a leak) is
 // still not an authenticated request and is refused.
 func (s *Service) IdentityForUser(ctx context.Context, userID int64) (authcontext.Identity, error) {
 	var out struct {
@@ -78,6 +47,7 @@ func (s *Service) IdentityForUser(ctx context.Context, userID int64) (authcontex
 	return authcontext.Identity{UserID: out.ID, Email: out.Email, IsAdmin: out.IsAdmin}, nil
 }
 
+// UserByID loads one account.
 func (s *Service) UserByID(ctx context.Context, id int64) (*schemas.User, error) {
 	var user schemas.User
 	if err := s.orm.WithContext(ctx).First(&user, id).Error; err != nil {

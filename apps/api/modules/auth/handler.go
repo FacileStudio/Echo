@@ -19,36 +19,6 @@ func newHandler(service *Service) *Handler {
 	return &Handler{service: service}
 }
 
-func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
-	var req RegisterRequest
-	if err := httpjson.DecodeJSON(w, r, &req); err != nil {
-		httpjson.WriteError(w, err)
-		return
-	}
-
-	user, token, err := h.service.Register(r.Context(), w, r, req)
-	if err != nil {
-		httpjson.WriteError(w, err)
-		return
-	}
-	httpjson.WriteJSON(w, http.StatusCreated, AuthResponse{Token: token, User: toUserResponse(*user)})
-}
-
-func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
-	var req LoginRequest
-	if err := httpjson.DecodeJSON(w, r, &req); err != nil {
-		httpjson.WriteError(w, err)
-		return
-	}
-
-	user, token, err := h.service.Login(r.Context(), w, r, req.Email, req.Password)
-	if err != nil {
-		httpjson.WriteError(w, err)
-		return
-	}
-	httpjson.WriteJSON(w, http.StatusOK, AuthResponse{Token: token, User: toUserResponse(*user)})
-}
-
 func (h *Handler) me(w http.ResponseWriter, r *http.Request) {
 	identity, ok := authcontext.From(r.Context())
 	if !ok {
@@ -69,6 +39,7 @@ func toUserResponse(user schemas.User) UserResponse {
 		ID:        user.ID,
 		Email:     user.Email,
 		Name:      user.Name,
+		Locale:    user.Locale,
 		IsAdmin:   user.IsAdmin,
 		CreatedAt: user.CreatedAt.UTC().Format(time.RFC3339),
 	}

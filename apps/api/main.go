@@ -17,7 +17,7 @@ import (
 	"github.com/FacileStudio/Echo/apps/api/internal/media"
 	"github.com/FacileStudio/Echo/apps/api/internal/middleware"
 	"github.com/FacileStudio/Echo/apps/api/internal/summarize"
-	"github.com/FacileStudio/Echo/apps/api/modules/auth"
+	"github.com/FacileStudio/Echo/apps/api/modules/deletions"
 	"github.com/FacileStudio/Echo/apps/api/modules/history"
 	"github.com/FacileStudio/Echo/apps/api/modules/integrations"
 	"github.com/FacileStudio/Echo/apps/api/modules/recording"
@@ -25,9 +25,6 @@ import (
 	"github.com/FacileStudio/Echo/apps/api/modules/transcripts"
 	"github.com/FacileStudio/Echo/apps/api/modules/webhooks"
 	"github.com/FacileStudio/Echo/apps/api/schemas"
-	"github.com/FacileStudio/porte/local"
-	"github.com/FacileStudio/porte/oidc"
-	portepg "github.com/FacileStudio/porte/pg"
 	"github.com/FacileStudio/porte/session"
 
 	troncenv "github.com/FacileStudio/tronc/env"
@@ -86,6 +83,7 @@ func run() int {
 		return 1
 	}
 
+	clientDir := spa.DirFromEnv()
 	router := httpx.NewRouter(httpx.Config{
 		Logger:         log,
 		TrustedProxies: cfg.TrustedProxies,
@@ -93,9 +91,10 @@ func run() int {
 			AllowedOrigins:   cfg.CORSAllowedOrigins,
 			AllowCredentials: true,
 		},
+		Security: securityConfig(clientDir, log),
 	})
-	router.Use(middleware.FrameAncestors(cfg.EmbedOrigins))
 	health.Mount(router)
+	router.Get("/version", versionHandler)
 	integrationKeys := integrations.NewKeys(cfg.IntegrationKeys)
 	forwarder := integrations.NewForwarder(db, integrationKeys, log)
 	planning.limiter.NotifyWith(forwarder)
@@ -106,9 +105,14 @@ func run() int {
 		NotifyWith(roomsService).
 		RegisterRoutes(router)
 	planning.Mount(router)
+	erasure := setupDeletions(cfg, db, log)
+	if erasure != nil {
+		deletions.RegisterRoutes(router, erasure)
+		go erasure.Run(shutdown)
+	}
 	router.Route("/api", func(r chi.Router) {
 		r.Use(extendWriteDeadline("/summary", summaryWriteBudget))
-		authKit.Mount(r, cfg.Porte.SSOOnly)
+		authKit.Mount(r)
 		rooms.RegisterRoutes(r, roomsService, authKit.service, authKit.requireAuth, middleware.NewRateLimiter())
 		recording.RegisterRoutes(r, recording.NewRecording(roomsService, mediaService), authKit.requireAuth)
 		historyService := history.NewService(db, roomsService, summarize.NewFromEnv(), cfg.RecordingsDir)
@@ -120,12 +124,7 @@ func run() int {
 	go sweepSessions(shutdown, authKit.sessions, log)
 	go planning.Run(shutdown, log)
 
-	// SPA catch-all must stay LAST — anything registered after it is unreachable.
-	clientDir := spa.DirFromEnv()
-	if spa.Available(clientDir) {
-		router.Handle("/*", spa.Handler(spa.Config{Dir: clientDir}))
-		log.Info("serving client", slog.String("dir", clientDir))
-	}
+	mountClient(router, clientDir, cfg.EmbedOrigins, log)
 
 	return serve(router, cfg.Port, shutdown.Done(), log)
 }
@@ -146,80 +145,6 @@ func openDatabase(url string, log *slog.Logger) (orm *gorm.DB, close func(), err
 		if err := sqlDB.Close(); err != nil {
 			log.Error("failed to close database", slog.Any("error", err))
 		}
-	}, nil
-}
-
-type authKit struct {
-	sessions    *session.Manager
-	kit         *oidc.Kit
-	service     *auth.Service
-	requireAuth func(http.Handler) http.Handler
-}
-
-// Mount wires the auth routes and, first, porte's Optional middleware over
-// the whole group. Without it porte's identity exists only inside RequireAuth,
-// so every public route that serves both a guest and a signed-in caller — the
-// room token endpoint, room create, room get — sees everyone as anonymous.
-// That is what minted guest grants for logged-in users and created every room
-// without an owner. Optional must be registered before any route on this
-// router: chi refuses a Use after the first handler.
-func (k *authKit) Mount(r chi.Router, ssoOnly bool) {
-	r.Use(k.sessions.Optional)
-	k.sessions.Mount(r)
-	k.kit.Mount(r)
-	auth.RegisterRoutes(r, k.service, ssoOnly, k.requireAuth)
-}
-
-func setupAuth(shutdown context.Context, cfg env.Config, db *gorm.DB, log *slog.Logger) (*authKit, error) {
-	sqlDB, err := db.DB()
-	if err != nil {
-		return nil, err
-	}
-	identityStore := portepg.New(sqlDB)
-	users := auth.NewUserStore(db)
-
-	sessions, err := session.New(cfg.Porte, session.Deps{
-		Sessions: identityStore.Sessions(),
-		Logger:   log,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	kit, err := oidc.New(shutdown, cfg.Porte, oidc.Deps{
-		Users:       users,
-		Identities:  identityStore.Identities(),
-		Sessions:    sessions,
-		Codes:       identityStore.LoginCodes(),
-		Logger:      log,
-		ConfigExtra: auth.ConfigExtra(cfg.AllowRegistration),
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	passwords, err := local.New(local.Config{AllowRegistration: cfg.AllowRegistration}, local.Deps{
-		Users:      users,
-		Identities: identityStore.Identities(),
-		Sessions:   sessions,
-		Logger:     log,
-		Count:      users.CountUsers,
-	})
-	if err != nil {
-		return nil, err
-	}
-	if kit.Enabled() {
-		log.Info("single sign-on enabled",
-			slog.String("issuer", cfg.Porte.Issuer),
-			slog.Bool("sso_only", cfg.Porte.SSOOnly))
-	}
-
-	service := auth.NewService(db, passwords)
-	return &authKit{
-		sessions:    sessions,
-		kit:         kit,
-		service:     service,
-		requireAuth: middleware.RequireAuth(sessions, service),
 	}, nil
 }
 
