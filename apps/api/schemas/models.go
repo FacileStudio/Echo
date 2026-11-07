@@ -26,6 +26,14 @@ type Room struct {
 
 func (Room) TableName() string { return "rooms" }
 
+// CaptureFlags are the organizer's switches for in-browser transcription and
+// recording. They gate nothing alone: a participant's lines and audio count
+// only with their own row in capture_consents.
+type CaptureFlags struct {
+	TranscribeOn bool `json:"-" gorm:"column:transcribe_on;not null;default:false"`
+	RecordOn     bool `json:"-" gorm:"column:record_on;not null;default:false"`
+}
+
 // Call is one session in a room, from first participant to last out.
 //
 // LivekitRoomSID is LiveKit's per-session room id and is the identity every
@@ -46,8 +54,9 @@ type Call struct {
 	LivekitRoomSID  string     `json:"livekit_room_sid" gorm:"column:livekit_room_sid;not null;default:''"`
 	EgressID        string     `json:"egress_id" gorm:"column:egress_id;not null;default:''"`
 	RecordingPath   string     `json:"recording_path" gorm:"column:recording_path;not null;default:''"`
-	CreatedAt       time.Time  `json:"created_at" gorm:"column:created_at;autoCreateTime"`
-	UpdatedAt       time.Time  `json:"updated_at" gorm:"column:updated_at;autoUpdateTime"`
+	CaptureFlags
+	CreatedAt time.Time `json:"created_at" gorm:"column:created_at;autoCreateTime"`
+	UpdatedAt time.Time `json:"updated_at" gorm:"column:updated_at;autoUpdateTime"`
 
 	Room Room `json:"-" gorm:"foreignKey:RoomID;constraint:OnDelete:CASCADE"`
 }

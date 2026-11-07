@@ -20,6 +20,7 @@ const cooldown = 2 * time.Minute
 // the owner's plan limits call length.
 type Admission struct {
 	Token    string
+	Identity string
 	Deadline *time.Time
 }
 

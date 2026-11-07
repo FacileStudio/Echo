@@ -12,10 +12,14 @@ const (
 	// are short; 128 bytes fits any real display name with room to spare.
 	maxSpeakerBytes = 128
 
-	// maxTextBytes bounds one final utterance. Vosk emits a final every few
+	// maxTextBytes bounds one final utterance. a recognizer emits a final every few
 	// seconds, so 4 KB is orders of magnitude above a real sentence and still
 	// small enough that no single request can move the transcript far.
 	maxTextBytes = 4096
+
+	// maxUtteranceMS bounds the span of one final utterance. A recognizer
+	// closes a result at every pause, so two minutes is far past real speech.
+	maxUtteranceMS = 2 * 60 * 1000
 
 	// maxTranscriptBytes is the ceiling for a whole stored transcript. At
 	// roughly 250 k tokens it stays under any Anthropic context window and

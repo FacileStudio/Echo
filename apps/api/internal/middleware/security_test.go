@@ -60,3 +60,13 @@ func TestCallsKeepCameraMicrophoneAndTheLiveKitSocket(t *testing.T) {
 		}
 	}
 }
+
+func TestThePolicyLetsTheRecognizerRunItsWorkerAndWebAssembly(t *testing.T) {
+	header := headersFor(t, nil, "/room/standup")
+	policy := header.Get("Content-Security-Policy") + header.Get("Content-Security-Policy-Report-Only")
+	for _, want := range []string{"worker-src 'self' blob:", "'wasm-unsafe-eval'", "blob:"} {
+		if !strings.Contains(policy, want) {
+			t.Fatalf("policy %q lacks %q", policy, want)
+		}
+	}
+}

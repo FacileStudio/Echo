@@ -176,7 +176,7 @@ func TestAParticipantReadsTheCallButNotItsRecordingUntilShared(t *testing.T) {
 	if list, err := s.Recordings(ctx, call.ID.String(), bob); err != nil || len(list) != 0 {
 		t.Fatalf("Recordings = %+v, %v, want none while unshared", list, err)
 	}
-	if _, _, err := s.RecordingFile(ctx, rec.ID.String(), bob); !forbidden(err) {
+	if _, err := s.RecordingFile(ctx, rec.ID.String(), bob); !forbidden(err) {
 		t.Fatalf("RecordingFile = %v, want forbidden while unshared", err)
 	}
 	if _, err := s.Summarize(ctx, call.ID.String(), bob); !forbidden(err) {

@@ -112,7 +112,7 @@ func TestOpenRecordingRefusesNonFiles(t *testing.T) {
 // The stored path never reaches Content-Disposition: a name like `a.mp4";x="`
 // would split the header parameter.
 func TestDownloadNameIsTheCallIDAndAFixedExtension(t *testing.T) {
-	name := downloadName("11111111-2222-3333-4444-555555555555")
+	name := downloadName("11111111-2222-3333-4444-555555555555", "video/mp4")
 	if name != "echo-11111111-2222-3333-4444-555555555555.mp4" {
 		t.Fatalf("downloadName = %q", name)
 	}

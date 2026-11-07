@@ -187,10 +187,10 @@ const rows = {
 	'participants.left': ['Left', 'Parti', 'Salió', 'Verlassen'],
 	'participants.still': ['Still connected', 'Toujours connecté', 'Sigue conectado', 'Noch verbunden'],
 	'transcript.none': [
-		'No transcript. Calls are end-to-end encrypted, so the server cannot transcribe them.',
-		'Pas de transcription. Les appels sont chiffrés de bout en bout, le serveur ne peut donc pas les transcrire.',
-		'Sin transcripción. Las llamadas están cifradas de extremo a extremo, así que el servidor no puede transcribirlas.',
-		'Kein Transkript. Anrufe sind Ende-zu-Ende-verschlüsselt, der Server kann sie daher nicht transkribieren.'
+		'No transcript. Calls are end-to-end encrypted, so each browser transcribes only its own microphone, and only when the organizer turned it on and the person accepted.',
+		'Pas de transcription. Les appels sont chiffrés de bout en bout : chaque navigateur ne transcrit que son propre micro, et seulement si l’organisateur l’a activé et que la personne a accepté.',
+		'Sin transcripción. Las llamadas están cifradas de extremo a extremo: cada navegador solo transcribe su propio micrófono, y solo si el organizador lo activó y la persona aceptó.',
+		'Kein Transkript. Anrufe sind Ende-zu-Ende-verschlüsselt: Jeder Browser transkribiert nur das eigene Mikrofon, und nur wenn der Organisator es eingeschaltet und die Person zugestimmt hat.'
 	],
 
 	'history.started': ['Started', 'Début', 'Inicio', 'Beginn'],
@@ -251,10 +251,10 @@ const rows = {
 		'Video herunterladen (MP4)'
 	],
 	'callPage.noRecording': [
-		'No recording. Calls are end-to-end encrypted, so the server cannot record them.',
-		'Pas d’enregistrement. Les appels sont chiffrés de bout en bout, le serveur ne peut donc pas les enregistrer.',
-		'Sin grabación. Las llamadas están cifradas de extremo a extremo, así que el servidor no puede grabarlas.',
-		'Keine Aufzeichnung. Anrufe sind Ende-zu-Ende-verschlüsselt, der Server kann sie daher nicht aufzeichnen.'
+		'No recording. Calls are end-to-end encrypted, so only the organizer’s browser can record, and only the voices of people who accepted.',
+		'Pas d’enregistrement. Les appels sont chiffrés de bout en bout : seul le navigateur de l’organisateur peut enregistrer, et uniquement la voix des personnes qui ont accepté.',
+		'Sin grabación. Las llamadas están cifradas de extremo a extremo: solo el navegador del organizador puede grabar, y solo la voz de quienes aceptaron.',
+		'Keine Aufzeichnung. Anrufe sind Ende-zu-Ende-verschlüsselt: Nur der Browser des Organisators kann aufzeichnen, und nur die Stimmen der Personen, die zugestimmt haben.'
 	],
 	'callPage.summary': ['AI summary', 'Résumé IA', 'Resumen con IA', 'KI-Zusammenfassung'],
 	'callPage.transcript': ['Transcript', 'Transcription', 'Transcripción', 'Transkript'],
@@ -291,10 +291,10 @@ const rows = {
 		'Erstellt von {model} am {date}'
 	],
 	'summary.noneEncrypted': [
-		'No summary. Calls are end-to-end encrypted, so the server cannot transcribe or summarise them.',
-		'Pas de résumé. Les appels sont chiffrés de bout en bout, le serveur ne peut donc ni les transcrire ni les résumer.',
-		'Sin resumen. Las llamadas están cifradas de extremo a extremo, así que el servidor no puede transcribirlas ni resumirlas.',
-		'Keine Zusammenfassung. Anrufe sind Ende-zu-Ende-verschlüsselt, der Server kann sie daher weder transkribieren noch zusammenfassen.'
+		'No summary. This call has no transcript to summarise: it needs transcription turned on during the call.',
+		'Pas de résumé. Cet appel n’a pas de transcription à résumer : il faut activer la transcription pendant l’appel.',
+		'Sin resumen. Esta llamada no tiene transcripción que resumir: hay que activar la transcripción durante la llamada.',
+		'Keine Zusammenfassung. Dieser Anruf hat kein Transkript zum Zusammenfassen: Die Transkription muss während des Anrufs eingeschaltet werden.'
 	],
 	'summary.none': [
 		'No summary has been generated for this call yet.',
@@ -366,6 +366,63 @@ const rows = {
 		'Les transcriptions et les résumés sont des fonctions IA, incluses dans un forfait payant.',
 		'Las transcripciones y los resúmenes son funciones de IA, incluidas en un plan de pago.',
 		'Transkripte und Zusammenfassungen sind KI-Funktionen und im kostenpflichtigen Tarif enthalten.'
+	],
+	'capture.askTitle': ['Your consent is asked', 'Votre accord est demandé', 'Se pide tu consentimiento', 'Deine Zustimmung wird erbeten'],
+	'capture.askTranscribe': [
+		'The organizer turned on transcription. Your microphone is turned into text on this device, and only the text is sent. No audio leaves your browser for this.',
+		'L’organisateur a activé la transcription. Votre micro est converti en texte sur cet appareil, et seul le texte est envoyé. Aucun son ne quitte votre navigateur pour cela.',
+		'El organizador activó la transcripción. Tu micrófono se convierte en texto en este dispositivo y solo se envía el texto. Ningún audio sale de tu navegador para ello.',
+		'Der Organisator hat die Transkription eingeschaltet. Dein Mikrofon wird auf diesem Gerät in Text umgewandelt, und nur der Text wird gesendet. Dafür verlässt kein Ton deinen Browser.'
+	],
+	'capture.askRecord': [
+		'The organizer turned on recording. Your voice would be added to an audio recording that only the organizer keeps. Video is never recorded.',
+		'L’organisateur a activé l’enregistrement. Votre voix serait ajoutée à un enregistrement audio que seul l’organisateur conserve. La vidéo n’est jamais enregistrée.',
+		'El organizador activó la grabación. Tu voz se añadiría a una grabación de audio que solo conserva el organizador. El vídeo nunca se graba.',
+		'Der Organisator hat die Aufzeichnung eingeschaltet. Deine Stimme würde einer Audioaufzeichnung hinzugefügt, die nur der Organisator behält. Video wird nie aufgezeichnet.'
+	],
+	'capture.language': ['Speech language', 'Langue parlée', 'Idioma hablado', 'Gesprochene Sprache'],
+	'capture.accept': ['Accept', 'Accepter', 'Aceptar', 'Zustimmen'],
+	'capture.decline': ['Decline', 'Refuser', 'Rechazar', 'Ablehnen'],
+	'capture.withdraw': ['Stop for me', 'Arrêter pour moi', 'Parar para mí', 'Für mich beenden'],
+	'capture.transcribing': ['Transcription is on', 'La transcription est active', 'La transcripción está activada', 'Die Transkription ist eingeschaltet'],
+	'capture.recording': ['Recording is on', 'L’enregistrement est actif', 'La grabación está activada', 'Die Aufzeichnung ist eingeschaltet'],
+	'capture.youIn': ['You are included', 'Vous êtes inclus', 'Estás incluido', 'Du bist dabei'],
+	'capture.youOut': ['You are not included', 'Vous n’êtes pas inclus', 'No estás incluido', 'Du bist nicht dabei'],
+	'capture.leftOut': [
+		{ one: '{count} person is not in the recording', other: '{count} people are not in the recording' },
+		{ one: '{count} personne n’est pas dans l’enregistrement', other: '{count} personnes ne sont pas dans l’enregistrement' },
+		{ one: '{count} persona no está en la grabación', other: '{count} personas no están en la grabación' },
+		{ one: '{count} Person ist nicht in der Aufzeichnung', other: '{count} Personen sind nicht in der Aufzeichnung' }
+	],
+	'capture.downloading': [
+		'Downloading the speech model ({percent}%). It is kept on this device for next time.',
+		'Téléchargement du modèle vocal ({percent} %). Il reste sur cet appareil pour la prochaine fois.',
+		'Descargando el modelo de voz ({percent} %). Se conserva en este dispositivo para la próxima vez.',
+		'Sprachmodell wird geladen ({percent} %). Es bleibt für das nächste Mal auf diesem Gerät.'
+	],
+	'capture.starting': ['Starting speech recognition…', 'Démarrage de la reconnaissance vocale…', 'Iniciando el reconocimiento de voz…', 'Spracherkennung wird gestartet …'],
+	'capture.modelFailed': [
+		'Speech recognition could not start on this device. You are not transcribed.',
+		'La reconnaissance vocale n’a pas pu démarrer sur cet appareil. Vous n’êtes pas transcrit.',
+		'El reconocimiento de voz no pudo iniciarse en este dispositivo. No se te transcribe.',
+		'Die Spracherkennung konnte auf diesem Gerät nicht starten. Du wirst nicht transkribiert.'
+	],
+	'capture.startTranscription': ['Start transcription', 'Démarrer la transcription', 'Iniciar la transcripción', 'Transkription starten'],
+	'capture.stopTranscription': ['Stop transcription', 'Arrêter la transcription', 'Detener la transcripción', 'Transkription beenden'],
+	'capture.startRecording': ['Start recording', 'Démarrer l’enregistrement', 'Iniciar la grabación', 'Aufzeichnung starten'],
+	'capture.stopRecording': ['Stop recording', 'Arrêter l’enregistrement', 'Detener la grabación', 'Aufzeichnung beenden'],
+	'capture.failed': ['Could not change this', 'Impossible de modifier ce réglage', 'No se pudo cambiar esto', 'Das ließ sich nicht ändern'],
+	'capture.cannotRecord': [
+		'This browser cannot record audio.',
+		'Ce navigateur ne peut pas enregistrer le son.',
+		'Este navegador no puede grabar audio.',
+		'Dieser Browser kann keinen Ton aufzeichnen.'
+	],
+	'capture.uploadFailed': [
+		'The recording upload failed. What was already saved is kept.',
+		'Le transfert de l’enregistrement a échoué. Ce qui était déjà sauvegardé est conservé.',
+		'Falló la subida de la grabación. Lo que ya se guardó se conserva.',
+		'Das Hochladen der Aufzeichnung ist fehlgeschlagen. Das bereits Gespeicherte bleibt erhalten.'
 	],
 	'api.failed': ['request failed ({status})', 'la requête a échoué ({status})', 'la solicitud falló ({status})', 'Anfrage fehlgeschlagen ({status})'],
 	'format.inProgress': ['In progress', 'En cours', 'En curso', 'Läuft']

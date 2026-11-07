@@ -53,7 +53,7 @@ const (
 	selectMeetings = `
 SELECT c.id, c.started_at, c.ended_at, r.slug, r.name AS room_name,
        COALESCE(r.owner_id = @me, false) AS owner,
-       EXISTS (SELECT 1 FROM recordings x WHERE x.call_id = c.id AND (x.shared OR r.owner_id = @me)) AS has_recording,
+       EXISTS (SELECT 1 FROM recordings x WHERE x.call_id = c.id AND x.status = 'complete' AND (x.shared OR r.owner_id = @me)) AS has_recording,
        EXISTS (SELECT 1 FROM transcripts t WHERE t.call_id = c.id AND t.content <> '') AS has_transcript` +
 		meetingsScope + `
  ORDER BY c.started_at DESC, c.id DESC LIMIT @limit OFFSET @offset`

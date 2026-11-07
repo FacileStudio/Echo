@@ -86,7 +86,7 @@ func TestNonOwnerIsRefusedEverywhere(t *testing.T) {
 		t.Fatalf("Summarize = %v, want forbidden", err)
 	}
 	rec := seedRecording(t, db, call.ID, "standup-1.mp4", true)
-	if _, _, err := s.RecordingFile(ctx, rec.ID.String(), stranger); !forbidden(err) {
+	if _, err := s.RecordingFile(ctx, rec.ID.String(), stranger); !forbidden(err) {
 		t.Fatalf("RecordingFile = %v, want forbidden", err)
 	}
 	if _, err := s.Recordings(ctx, id, stranger); !forbidden(err) {

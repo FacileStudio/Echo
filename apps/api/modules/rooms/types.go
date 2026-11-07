@@ -33,16 +33,20 @@ type RoomResponse struct {
 // owner's plan, RFC 3339 in UTC, and absent when call length is unlimited.
 // DeadlineKey is what GET /rooms/{slug}/deadline asks for in
 // X-Echo-Deadline-Key, so only someone admitted to the room can poll it.
+// SeatKey is what a guest sends in X-Echo-Seat-Key to the capture routes, so
+// the server learns who is calling from its own signature and never from the
+// request.
 type TokenResponse struct {
 	Token        string       `json:"token"`
 	URL          string       `json:"url"`
 	Room         RoomResponse `json:"room"`
 	CallDeadline string       `json:"call_deadline,omitempty"`
 	DeadlineKey  string       `json:"deadline_key"`
+	SeatKey      string       `json:"seat_key"`
 }
 
-func toTokenResponse(admission Admission, url, deadlineKey string) TokenResponse {
-	response := TokenResponse{Token: admission.Token, URL: url, DeadlineKey: deadlineKey}
+func toTokenResponse(admission Admission, url, deadlineKey, seatKey string) TokenResponse {
+	response := TokenResponse{Token: admission.Token, URL: url, DeadlineKey: deadlineKey, SeatKey: seatKey}
 	if admission.Deadline != nil {
 		response.CallDeadline = admission.Deadline.UTC().Format(time.RFC3339)
 	}

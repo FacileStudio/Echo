@@ -27,7 +27,6 @@ CORS_ALLOWED_ORIGINS = "http://localhost:5173"
 LIVEKIT_URL = "ws://localhost:7880"
 LIVEKIT_API_KEY = "devkey"
 LIVEKIT_API_SECRET = "secret"
-TRANSCRIBER_TOKEN = "dev-transcriber-token-not-for-production-use"
 RECORDINGS_DIR = "../../data/recordings"
 
 [tasks."dev:client"]
@@ -43,6 +42,10 @@ run = "docker compose -f deploy/compose/dev.yml down"
 [tasks.install]
 description = "Install client dependencies"
 run = 'cd apps/client && bun install --frozen-lockfile'
+
+[tasks.models]
+description = "Download the Vosk models in-browser transcription loads (about 80 MB, not committed)"
+run = "sh scripts/vosk-models.sh apps/client/static/models"
 
 [tasks.check]
 description = "Run the full quality gate: every Go module, then the client"

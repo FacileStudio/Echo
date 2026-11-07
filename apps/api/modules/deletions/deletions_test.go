@@ -141,8 +141,17 @@ func TestErasureKeepsAJoinedMeetingButNamesNoOne(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	answer := true
+	consents := []schemas.CaptureConsent{{CallID: call, Identity: identity, Transcribe: &answer}, {CallID: call, Identity: "user-" + itoa(kept), Transcribe: &answer}}
+	if err := f.db.Create(&consents).Error; err != nil {
+		t.Fatal(err)
+	}
+
 	if err := f.erased.ErasePerson(context.Background(), issuer, "sub-gone"); err != nil {
 		t.Fatal(err)
+	}
+	if f.count(t, "capture_consents", "identity = ?", identity) != 0 || f.count(t, "capture_consents", "call_id = ?", call) != 1 {
+		t.Fatal("the erased person's capture answers were kept, or the other person's were not")
 	}
 
 	var content string

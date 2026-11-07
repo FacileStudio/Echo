@@ -15,6 +15,8 @@
 	import ControlsBar from './ControlsBar.svelte';
 	import ChatPanel, { type ChatMessage } from './ChatPanel.svelte';
 	import CallCountdown from './CallCountdown.svelte';
+	import CaptureBanner from './CaptureBanner.svelte';
+	import { CaptureSession } from '$lib/captureSession.svelte';
 
 	interface Props {
 		url: string;
@@ -26,6 +28,7 @@
 		embedded?: boolean;
 		callDeadline?: string;
 		deadlineKey?: string;
+		seatKey?: string;
 		onLeave?: () => void;
 	}
 
@@ -39,6 +42,7 @@
 		embedded = false,
 		callDeadline = '',
 		deadlineKey = '',
+		seatKey = '',
 		onLeave
 	}: Props = $props();
 
@@ -56,9 +60,9 @@
 	let cryptError = $state('');
 	const failing = new Set<string>();
 	let encrypted = $state(false);
+	let capture = $state<CaptureSession | null>(null);
 
 	const supported = isE2EESupported();
-
 	const encoder = new TextEncoder();
 	const decoder = new TextDecoder();
 
@@ -94,6 +98,7 @@
 
 		version++;
 		participants = [room.localParticipant, ...Array.from(room.remoteParticipants.values())];
+		capture?.reconcile();
 		micOn = room.localParticipant.isMicrophoneEnabled;
 		camOn = room.localParticipant.isCameraEnabled;
 		screenOn = room.localParticipant.isScreenShareEnabled;
@@ -128,8 +133,9 @@
 		refresh();
 	}
 
-	function leave() {
-		room?.disconnect();
+	async function leave() {
+		await capture?.end();
+		await room?.disconnect();
 		if (onLeave) onLeave();
 		else window.location.href = '/';
 	}
@@ -165,11 +171,18 @@
 
 		const unbindAudio = bindRemoteAudio(r, (blocked) => (audioBlocked = blocked));
 
+		const session = slug && seatKey && !embedded ? new CaptureSession(slug, seatKey, () => r) : null;
 		connectEncrypted(r, keyProvider, e2eeKey, { url, token })
-			.then(() => publishMedia(r))
+			.then(() => {
+				publishMedia(r);
+				capture = session;
+				session?.begin();
+			})
 			.catch((e: unknown) => (error = e instanceof Error ? e.message : String(e)));
 
 		return () => {
+			void session?.end();
+			capture = null;
 			r.disconnect().finally(() => worker.terminate());
 			unbindAudio();
 			room = null;
@@ -193,10 +206,13 @@
 
 	<AudioPrompt blocked={audioBlocked} onEnable={() => void room?.startAudio()} />
 
-	{#if cryptError || error || screenError}
+	{#if capture?.state && (capture.state.transcription || capture.state.recording)}
+		<CaptureBanner session={capture} />
+	{/if}
+	{#if cryptError || error || screenError || capture?.error}
 		<div class="px-4 pb-3">
 			<Alert tone={cryptError ? 'danger' : 'warning'} title={cryptError ? t('live.cannotDecrypt') : t('live.mediaProblem')}>
-				{cryptError || error || screenError}
+				{cryptError || error || screenError || capture?.error}
 			</Alert>
 		</div>
 	{/if}
@@ -222,6 +238,7 @@
 			{chatOpen}
 			{encrypted}
 			canShare={canShareScreen()}
+			{capture}
 			onToggleMic={toggleMic}
 			onToggleCam={toggleCam}
 			onToggleScreen={toggleScreen}

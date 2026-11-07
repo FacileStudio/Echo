@@ -18,7 +18,7 @@ ECHO_INTEGRATION_KEYS=prisme:<secret>,bulle:<secret>
 
 - App names are lowercase letters and digits, up to 32 characters.
 - Each secret is at least 32 characters. Generate one with `openssl rand -hex 32`.
-- A malformed value refuses the boot, like `TRANSCRIBER_TOKEN`.
+- A malformed value refuses the boot.
 - Empty means the API refuses every caller with 401.
 - Echo compares the presented secret against every configured one in constant time, over
   SHA-256 digests, so timing tells a caller nothing.
