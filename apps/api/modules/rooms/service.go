@@ -2,6 +2,7 @@ package rooms
 
 import (
 	"context"
+	"encoding/json"
 	stderrors "errors"
 	"fmt"
 	"strings"
@@ -200,6 +201,8 @@ type JoinRequest struct {
 	Slug        string
 	UserID      *int64
 	Email       string
+	Name        string
+	Picture     string
 	DisplayName string
 	Address     string
 }
@@ -214,11 +217,13 @@ func (s *Service) Token(ctx context.Context, req JoinRequest) (Admission, error)
 	if room.IntegrationApp != "" {
 		return Admission{}, troncerrors.Forbidden("this call is joined from the app that created it")
 	}
+	metadata := ""
 	identity, ttl, grant := "guest-"+uuid.NewString()[:8], guestTokenTTL, guestGrant
 	name := req.DisplayName
 	if req.UserID != nil {
 		identity, ttl, grant = fmt.Sprintf("user-%d", *req.UserID), 0, moderatorGrant
-		name = displayNameOr(req.Email, req.DisplayName)
+		name = displayNameOr(displayNameOr(req.Name, req.Email), req.DisplayName)
+		metadata = avatarMetadata(req.Picture)
 	} else if req.DisplayName == "" {
 		return Admission{}, troncerrors.Invalid("display_name is required for guests")
 	}
@@ -226,7 +231,7 @@ func (s *Service) Token(ctx context.Context, req JoinRequest) (Admission, error)
 	if err != nil {
 		return Admission{}, err
 	}
-	token, err := s.media.IssueFor(room.Slug, media.Participant{Identity: identity, Name: name, TTL: ttl}, grant)
+	token, err := s.media.IssueFor(room.Slug, media.Participant{Identity: identity, Name: name, Metadata: metadata, TTL: ttl}, grant)
 	return Admission{Token: token, Deadline: deadline}, err
 }
 
@@ -239,4 +244,15 @@ func displayNameOr(primary, fallback string) string {
 		return primary
 	}
 	return fallback
+}
+
+func avatarMetadata(picture string) string {
+	if picture == "" {
+		return ""
+	}
+	encoded, err := json.Marshal(map[string]string{"avatar_url": picture})
+	if err != nil {
+		return ""
+	}
+	return string(encoded)
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	stderrors "errors"
 	"net/mail"
+	"net/url"
 	"strings"
 
 	"github.com/FacileStudio/Echo/apps/api/schemas"
@@ -117,6 +118,7 @@ func createAccount(tx *gorm.DB, claims porte.Claims) (int64, error) {
 	user := schemas.User{
 		Email:   claims.Email,
 		Name:    claims.DisplayName(),
+		Picture: pictureOf(claims),
 		Locale:  porte.NormalizeLocale(claims.Locale),
 		IsAdmin: count == 0,
 	}
@@ -134,6 +136,9 @@ func refreshProfile(tx *gorm.DB, userID int64, claims porte.Claims) error {
 	if name := claims.DisplayName(); name != "" {
 		updates["name"] = name
 	}
+	if picture := pictureOf(claims); picture != "" {
+		updates["picture"] = picture
+	}
 	if claims.Locale != "" {
 		updates["locale"] = porte.NormalizeLocale(claims.Locale)
 	}
@@ -144,4 +149,14 @@ func refreshProfile(tx *gorm.DB, userID int64, claims porte.Claims) error {
 		return errors.Internal("failed to update the account", err)
 	}
 	return nil
+}
+
+func pictureOf(claims porte.Claims) string {
+	for _, raw := range []string{claims.AvatarURL, claims.Picture} {
+		parsed, err := url.Parse(raw)
+		if err == nil && parsed.Host != "" && (parsed.Scheme == "https" || parsed.Scheme == "http") {
+			return raw
+		}
+	}
+	return ""
 }

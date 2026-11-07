@@ -137,7 +137,7 @@ func (h *Handler) token(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var userID *int64
-	email := ""
+	email, name, picture := "", "", ""
 	if authenticated, ok := porte.From(r.Context()); ok {
 		identity, err := h.resolver.IdentityForUser(r.Context(), authenticated.UserID)
 		if err != nil {
@@ -145,11 +145,11 @@ func (h *Handler) token(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		userID = &identity.UserID
-		email = identity.Email
+		email, name, picture = identity.Email, identity.Name, identity.Picture
 	}
 
 	admission, err := h.service.Token(r.Context(), JoinRequest{
-		Slug: slug, UserID: userID, Email: email, DisplayName: req.DisplayName,
+		Slug: slug, UserID: userID, Email: email, Name: name, Picture: picture, DisplayName: req.DisplayName,
 		Address: clientAddress(r),
 	})
 	if err != nil {

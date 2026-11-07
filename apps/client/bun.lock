@@ -5,7 +5,7 @@
     "": {
       "name": "client",
       "dependencies": {
-        "@facile/muse": "github:FacileStudio/muse#v0.13.0",
+        "@facile/muse": "github:FacileStudio/muse#006adfc",
         "gsap": "^3.13.0",
         "livekit-client": "^2.22.0",
       },
@@ -26,7 +26,7 @@
   "packages": {
     "@bufbuild/protobuf": ["@bufbuild/protobuf@1.10.1", "", {}, "sha512-wJ8ReQbHxsAfXhrf9ixl0aYbZorRuOWpBNzm8pL8ftmSxQx/wnJD5Eg861NwJU/czy2VXFIebCeZnZrI9rktIQ=="],
 
-    "@facile/muse": ["@facile/muse@github:FacileStudio/muse#472ecaa", { "dependencies": { "gsap": "^3.13.0", "tailwind-merge": "^3.5.0" }, "peerDependencies": { "svelte": "^5.0.0", "tailwindcss": "^4.0.0" } }, "FacileStudio-muse-472ecaa", "sha512-lOGUdQjr/zBvBCRApCbPJs09nfWbbec+ZbVRnHMSTVM6I1nw6pZGrDEsH48FDMlMev7WHQZ8UbrAy6hopf5GxQ=="],
+    "@facile/muse": ["@facile/muse@github:FacileStudio/muse#006adfc", { "dependencies": { "gsap": "^3.13.0", "tailwind-merge": "^3.5.0" }, "peerDependencies": { "svelte": "^5.0.0", "tailwindcss": "^4.0.0" } }, "FacileStudio-muse-006adfc"],
 
     "@jridgewell/gen-mapping": ["@jridgewell/gen-mapping@0.3.13", "", { "dependencies": { "@jridgewell/sourcemap-codec": "^1.5.0", "@jridgewell/trace-mapping": "^0.3.24" } }, "sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA=="],
 

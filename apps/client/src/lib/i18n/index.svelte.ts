@@ -1,35 +1,34 @@
-import { createTranslator, LOCALE_COOKIE, resolveLocale, type Locale } from '@facile/muse';
-import { catalogs } from './messages';
+import { catalogs, type Locale, type Message, type MessageKey } from './messages';
 
+const supported: readonly Locale[] = ['fr', 'en', 'es', 'de'];
 const session = $state<{ locale: string | null }>({ locale: null });
-let active: () => Locale = () => 'en';
 
 /** Records the locale the signed-in person has on their Registre profile. */
 export function setSessionLocale(locale: string | null) {
 	session.locale = locale;
 }
 
-function cookieLocale(): string | null {
-	if (typeof document === 'undefined') return null;
-	const prefix = `${LOCALE_COOKIE}=`;
-	const found = document.cookie.split('; ').find((part) => part.startsWith(prefix));
-	return found ? decodeURIComponent(found.slice(prefix.length)) : null;
+function resolve(tag: string | null | undefined): Locale {
+	const base = (tag ?? '').slice(0, 2).toLowerCase();
+	return supported.find((candidate) => candidate === base) ?? 'en';
 }
 
-/** The locale source for `provideLocale`: session, then the picked cookie, then the browser. */
-export function localeSource(): string | null {
-	return session.locale ?? cookieLocale() ?? (typeof navigator === 'undefined' ? null : navigator.language);
-}
-
-/** Points the translator and the Intl helpers at the locale `provideLocale` resolved. */
-export function bindLocale(source: () => Locale) {
-	active = source;
-}
-
-/** The locale currently in force. */
+/** The locale in force: the Registre profile, else the browser language, else English. */
 export function locale(): Locale {
-	return resolveLocale(active());
+	return resolve(session.locale ?? (typeof navigator === 'undefined' ? null : navigator.language));
+}
+
+function pick(message: Message, params: Record<string, string | number> | undefined, current: Locale): string {
+	let text = message;
+	if (typeof text !== 'string') {
+		const category = new Intl.PluralRules(current).select(Number(params?.count ?? 0));
+		text = category === 'one' ? text.one : text.other;
+	}
+	return text.replace(/\{(\w+)\}/g, (whole, name: string) => String(params?.[name] ?? whole));
 }
 
 /** Translates an app message in the current locale. */
-export const t = createTranslator(catalogs, () => active());
+export function t(key: MessageKey, params?: Record<string, string | number>): string {
+	const current = locale();
+	return pick(catalogs[current][key], params, current);
+}

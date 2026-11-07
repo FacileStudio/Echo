@@ -31,11 +31,13 @@ func (s *Service) IdentityForUser(ctx context.Context, userID int64) (authcontex
 	var out struct {
 		ID      int64
 		Email   string
+		Name    string
+		Picture string
 		IsAdmin bool
 	}
 	err := s.orm.WithContext(ctx).
 		Model(&schemas.User{}).
-		Select("id", "email", "is_admin").
+		Select("id", "email", "name", "picture", "is_admin").
 		Where("id = ?", userID).
 		Scan(&out).Error
 	if err != nil {
@@ -44,7 +46,7 @@ func (s *Service) IdentityForUser(ctx context.Context, userID int64) (authcontex
 	if out.ID == 0 {
 		return authcontext.Identity{}, errors.Unauthorized("invalid auth token")
 	}
-	return authcontext.Identity{UserID: out.ID, Email: out.Email, IsAdmin: out.IsAdmin}, nil
+	return authcontext.Identity{UserID: out.ID, Email: out.Email, Name: out.Name, Picture: out.Picture, IsAdmin: out.IsAdmin}, nil
 }
 
 // UserByID loads one account.

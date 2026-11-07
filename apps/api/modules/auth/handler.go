@@ -39,6 +39,7 @@ func toUserResponse(user schemas.User) UserResponse {
 		ID:        user.ID,
 		Email:     user.Email,
 		Name:      user.Name,
+		Picture:   user.Picture,
 		Locale:    user.Locale,
 		IsAdmin:   user.IsAdmin,
 		CreatedAt: user.CreatedAt.UTC().Format(time.RFC3339),

@@ -7,8 +7,8 @@
 		"dev": "vite dev",
 		"build": "vite build",
 		"preview": "vite preview",
-		"prepare": "svelte-kit sync || echo ''",
 		"test": "bun run scripts/check-messages.ts",
+		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch"
 	},
@@ -25,7 +25,7 @@
 		"vite": "^8.0.16"
 	},
 	"dependencies": {
-		"@facile/muse": "github:FacileStudio/muse#v0.13.0",
+		"@facile/muse": "github:FacileStudio/muse#006adfc",
 		"gsap": "^3.13.0",
 		"livekit-client": "^2.22.0"
 	}

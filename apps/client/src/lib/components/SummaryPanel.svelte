@@ -53,17 +53,17 @@
 	{#if pending}
 		<div class="flex items-center gap-1">
 			<Spinner />
-			<p class="text-fc-sm text-fc-fg-muted">{t('summary.generating')}</p>
+			<p class="text-fc-p text-fc-muted">{t('summary.generating')}</p>
 		</div>
 	{:else if current}
-		<p class="text-fc-sm whitespace-pre-wrap text-fc-fg">{current.content}</p>
-		<p class="text-fc-xs text-fc-fg-muted">
+		<p class="text-fc-p whitespace-pre-wrap text-fc-ink">{current.content}</p>
+		<p class="text-fc-subtext text-fc-muted">
 			{t('summary.generatedBy', { model: current.model, date: formatDateTime(current.created_at) })}
 		</p>
 	{:else if !hasTranscript}
-		<p class="text-fc-sm text-fc-fg-muted">{t('summary.noneEncrypted')}</p>
+		<p class="text-fc-p text-fc-muted">{t('summary.noneEncrypted')}</p>
 	{:else}
-		<p class="text-fc-sm text-fc-fg-muted">{t('summary.none')}</p>
+		<p class="text-fc-p text-fc-muted">{t('summary.none')}</p>
 	{/if}
 
 	{#if hasTranscript}

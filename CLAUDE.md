@@ -10,12 +10,18 @@ dependency like Postgres, not a fork. The Jitsi fork this repo used to be is tag
 
 ## Auth model (decided 2026-08-24)
 
-- porte with OIDC SSO **and** local password fallback (`porte/oidc` + `porte/local`)
+- porte with OIDC SSO only (`porte/oidc`): sign-in goes through Registre, there is no password route. Name and photo come from the Registre claims
 - Guest join without an account: display name → scoped LiveKit access token minted by the API;
   guests never touch porte tables
 - Logged-in room owner gets moderator grants; guests get publish/subscribe only
 - Read `~/Projects/Facile/Code/porte/SPEC.md` before touching auth, and
   `~/.mycelium/memory/bugs/porte-adoption-null-oidc-subject.md` before any adoption work
+
+## Design exception
+
+Echo keeps its own design (Noah's redesign) and is exempt from the muse and no-borders
+harmonisation. Do not bump muse, swap in muse AuthScreen or SignInWithFacile, restyle tiles or
+remove borders (the speaking tile keeps its border). Changes here are functional or text only.
 
 ## Domain rules
 

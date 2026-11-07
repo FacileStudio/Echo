@@ -60,7 +60,9 @@ const (
 
 // ErasePerson deletes the account behind a Registre identity and what it owns:
 // its rooms with their calls, transcripts, summaries and participant rows, and
-// the recordings of those calls when the volume lets Echo remove them. Calls
+// the recordings of those calls. A stored path is the egress container's
+// absolute /output/<name>.mp4, so only its basename is resolved inside the
+// recordings volume, through os.Root so a planted symlink cannot leave it. Calls
 // the person joined in rooms other people own stay, with the name blanked. A
 // subject that is already gone is a no-op, so a replayed notice changes
 // nothing.
@@ -92,9 +94,14 @@ func (d *Deletions) ErasePerson(ctx context.Context, provider, subject string) e
 }
 
 func (d *Deletions) removeRecordings(stored []string) {
-	for _, relative := range stored {
-		path := filepath.Join(d.recordingsDir, filepath.Clean("/"+relative))
-		if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
+	root, err := os.OpenRoot(d.recordingsDir)
+	if err != nil {
+		d.logger.Warn("deletions: recordings volume unavailable", slog.Any("error", err))
+		return
+	}
+	defer root.Close()
+	for _, path := range stored {
+		if err := root.Remove(filepath.Base(path)); err != nil && !errors.Is(err, os.ErrNotExist) {
 			d.logger.Warn("deletions: could not remove an erased person's recording", slog.Any("error", err))
 		}
 	}

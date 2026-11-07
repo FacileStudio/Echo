@@ -3,13 +3,15 @@
 ## [Unreleased]
 
 ### Changed
-- Libraries: porte v0.5.2 to v0.12.1, porte/directory v0.2.1 to v0.3.0, tronc v0.11.0 to v0.17.1, muse from the untagged commit 006adfc to v0.13.0.
+- Libraries: porte v0.5.2 to v0.12.1, porte/directory v0.2.1 to v0.3.0, tronc v0.11.0 to v0.17.1. muse stays at the untagged commit 006adfc: Echo keeps its own design.
 - Sign-in goes through Registre only. `/api/auth/register` and `/api/auth/login` are gone, `ALLOW_REGISTRATION` and `SSO_ONLY` are no longer read, and `/auth/config` no longer reports `allow_registration`. Guests still join by link with a display name.
 - An OIDC login links to an existing account only by a verified email, and refuses when that account already holds another subject of the same issuer. An unverified claim never rewrites a stored address.
 - tronc security headers replace the local frame middleware. Camera, microphone and display-capture stay allowed; `/embed/*` can be framed only by `ECHO_EMBED_ORIGINS`; the CSP allows the LiveKit origin and the built client's inline scripts (report-only).
-- The UI is in fr, en, es and de, follows the Registre locale, then the locale cookie, then the browser. Dates use Intl in that locale. Moved to muse v0.13 tokens, no borders.
+- The UI is in fr, en, es and de, follows the Registre locale, then the locale cookie, then the browser. Dates use Intl in that locale. Text only: markup, classes and colours are unchanged.
 
 ### Added
+- Signed-in people take their name and photo from the Registre claims, refreshed at every login (`users.picture`). Calls use that name and put the photo in the LiveKit participant metadata (`avatar_url`), which the tile shows in place of the initials.
+- The GDPR erase also deletes the person's recording MP4 files. The API now mounts the recordings volume writable, and a one-shot `recordings-perms` service opens the directory to its non-root user.
 - GDPR deletion: Echo polls Registre's deletions and accepts the signed push at `POST /api/registre/deletions`. It deletes the person's account, rooms, calls, transcripts, summaries and recordings, and blanks their name on seats in other people's calls.
 - `users.locale`, `porte_login_codes.provider` and `.subject`, and `directory_deletion_state`, all added idempotently at boot.
 - `GET /version` from the `APP_VERSION` build arg.
@@ -39,6 +41,8 @@
 - An unlimited plan creates its LiveKit room with an explicit ceiling of 10,000 instead of 0, so upgrading mid-call raises the ceiling of the running room.
 
 ### Added
+- Signed-in people take their name and photo from the Registre claims, refreshed at every login (`users.picture`). Calls use that name and put the photo in the LiveKit participant metadata (`avatar_url`), which the tile shows in place of the initials.
+- The GDPR erase also deletes the person's recording MP4 files. The API now mounts the recordings volume writable, and a one-shot `recordings-perms` service opens the directory to its non-root user.
 - `GET /api/rooms/{slug}/deadline` returns the running call's deadline to a caller holding the room's `deadline_key`, which every token response carries. The budget is per address, across rooms. The call countdown polls it every minute, so an upgrade or a restart reaches it.
 - Without `OIDC_ISSUER` the API logs at boot that plans are never synced and every limit stays open. The README says so too.
 
@@ -51,6 +55,8 @@
 ## [2.3.0] - 2026-11-04
 
 ### Added
+- Signed-in people take their name and photo from the Registre claims, refreshed at every login (`users.picture`). Calls use that name and put the photo in the LiveKit participant metadata (`avatar_url`), which the tile shows in place of the initials.
+- The GDPR erase also deletes the person's recording MP4 files. The API now mounts the recordings volume writable, and a one-shot `recordings-perms` service opens the directory to its non-root user.
 - Plan limits from Registre (porte/forfait), read for the room owner's Registre subject: `echo.max_participants` (free: 4), `echo.max_call_minutes` (free: 40) and `echo.recording` (free: off). A room with no owner, or whose owner never signed in through Registre, gets the free limits. Integration rooms are unlimited.
 - A full call refuses a new participant with HTTP 402 (`payment_required`, with `key`, `limit` and `upgrade_url`), and the join page offers the upgrade link. The count is LiveKit's participant list, falling back to call rows, plus tokens admitted in the last 60 seconds that have not connected yet. That count never refuses the signed-in owner; a limit of 0 refuses everyone with 402.
 - `POST /api/rooms` and `POST /api/rooms/{slug}/token` are rate limited: 10 a minute per address for guests (an IPv6 caller per /64, and 40 per /48), 30 per account for signed-in users (429 above that). The limiter keeps at most 50,000 buckets and evicts the least recently used.
@@ -69,6 +75,8 @@
 ## [2.2.0] - 2026-11-03
 
 ### Added
+- Signed-in people take their name and photo from the Registre claims, refreshed at every login (`users.picture`). Calls use that name and put the photo in the LiveKit participant metadata (`avatar_url`), which the tile shows in place of the initials.
+- The GDPR erase also deletes the person's recording MP4 files. The API now mounts the recordings volume writable, and a one-shot `recordings-perms` service opens the directory to its non-root user.
 - Every call is end-to-end encrypted with LiveKit E2EE: audio, video, screen shares and chat. The room key lives in the link fragment (`#key=`), which no server sees. A room link opened without a key gets a fresh one, remembered per room in the browser.
 - A lock in the call controls shows the call is encrypted. A participant with the wrong key sees "Can't decrypt this call" instead of a broken call, and a browser that cannot encrypt is refused with an explanation.
 - `/embed/{room}` requires a `key` in its fragment. The integrating app owns key distribution; see `docs/integrations.md`.
@@ -88,6 +96,8 @@
 ## [2.1.0] - 2026-11-03
 
 ### Added
+- Signed-in people take their name and photo from the Registre claims, refreshed at every login (`users.picture`). Calls use that name and put the photo in the LiveKit participant metadata (`avatar_url`), which the tile shows in place of the initials.
+- The GDPR erase also deletes the person's recording MP4 files. The API now mounts the recordings volume writable, and a one-shot `recordings-perms` service opens the directory to its non-root user.
 - Integration API for other suite apps: create or reuse a room per external id, mint 10-minute LiveKit join tokens, and list who is in the call. Apps authenticate with a secret from `ECHO_INTEGRATION_KEYS`.
 - `/embed/{room}` renders a call without Echo's header, for an app to show in an iframe. Only origins in `ECHO_EMBED_ORIGINS` may frame it.
 - Call events of integration rooms (participant joined or left, room finished) are forwarded to the app's `callback_url`, signed with HMAC-SHA256 in `X-Echo-Signature`.
@@ -104,6 +114,8 @@
 ## [2.0.0] - 2026-11-02
 
 ### Added
+- Signed-in people take their name and photo from the Registre claims, refreshed at every login (`users.picture`). Calls use that name and put the photo in the LiveKit participant metadata (`avatar_url`), which the tile shows in place of the initials.
+- The GDPR erase also deletes the person's recording MP4 files. The API now mounts the recordings volume writable, and a one-shot `recordings-perms` service opens the directory to its non-root user.
 - LiveKit as the media server, deployed as infrastructure next to the app.
 - Persistent named rooms, guest join with a scoped LiveKit token, moderator grants for the room owner.
 - Room recording through LiveKit egress, live French captions from a Vosk transcriber, call history, transcripts and AI summaries.

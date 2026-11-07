@@ -56,7 +56,7 @@
 				</div>
 			</div>
 		{:else}
-			<p class="col-span-full self-center text-center text-fc-sm text-fc-fg-muted">{t('stage.connecting')}</p>
+			<p class="col-span-full self-center text-center text-fc-p text-fc-muted">{t('stage.connecting')}</p>
 		{/each}
 	</main>
 {/if}

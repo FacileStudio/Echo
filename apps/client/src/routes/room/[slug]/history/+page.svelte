@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
-	import { Alert, Button, Card, EmptyState, Page, PageHeader, SignInWithFacile, Spinner, icons } from '@facile/muse';
-	import { API_BASE, ApiError, fetchRoomCalls, type CallListItem } from '$lib/api';
+	import { Alert, Button, Card, EmptyState, Page, PageHeader, Spinner, icons } from '@facile/muse';
+	import { ApiError, fetchRoomCalls, type CallListItem } from '$lib/api';
 	import CallHistoryTable from '$lib/components/CallHistoryTable.svelte';
 	import { t } from '$lib/i18n/index.svelte';
 	import { loadSession } from '$lib/session.svelte';
@@ -73,7 +73,7 @@
 		<Card><div class="flex justify-center py-4"><Spinner /></div></Card>
 	{:else if denied}
 		<Alert tone="warning" title={t('historyPage.ownerOnly')}>{t('historyPage.ownerOnlyBody', { slug })}</Alert>
-		<div><SignInWithFacile href="{API_BASE}/api/auth/oidc" size="sm" /></div>
+		<div><Button href="/login" variant="outline" size="sm">{t('login.signIn')}</Button></div>
 	{:else if error}
 		<Alert tone="danger" title={t('historyPage.loadFailed')}>{error}</Alert>
 	{:else if calls.length === 0}

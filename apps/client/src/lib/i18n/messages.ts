@@ -1,8 +1,13 @@
-import type { Catalogs, Message } from '@facile/muse';
+export type Message = string | { one: string; other: string };
+export type Locale = 'fr' | 'en' | 'es' | 'de';
+export type Catalogs<C> = Record<Locale, C>;
 
 type Row = readonly [en: Message, fr: Message, es: Message, de: Message];
 
 const rows = {
+	'login.signIn': ['Sign in', 'Connexion', 'Iniciar sesión', 'Anmelden'],
+	'login.description': ['Echo uses the studio single sign-on.', 'Echo utilise la connexion unique du studio.', 'Echo usa el inicio de sesión único del estudio.', 'Echo nutzt die zentrale Anmeldung des Studios.'],
+	'login.continue': ['Continue with Facile', 'Continuer avec Facile', 'Continuar con Facile', 'Weiter mit Facile'],
 	'title.login': ['Sign in · Echo', 'Connexion · Echo', 'Iniciar sesión · Echo', 'Anmelden · Echo'],
 	'title.room': ['{slug} · Echo', '{slug} · Echo', '{slug} · Echo', '{slug} · Echo'],
 	'title.call': ['Call · Echo', 'Appel · Echo', 'Llamada · Echo', 'Anruf · Echo'],
@@ -17,7 +22,6 @@ const rows = {
 		'Escribe un nombre de sala o pega un enlace de sala',
 		'Gib einen Raumnamen ein oder füge einen Raumlink ein'
 	],
-	'home.signedIn': ['Signed in as {name}', 'Connecté en tant que {name}', 'Sesión iniciada como {name}', 'Angemeldet als {name}'],
 	'auth.failed': ['Login failed', 'Échec de la connexion', 'Error al iniciar sesión', 'Anmeldung fehlgeschlagen'],
 
 	'room.join': ['Join the room.', 'Rejoignez la salle.', 'Únete a la sala.', 'Tritt dem Raum bei.'],
@@ -136,7 +140,6 @@ const rows = {
 	'tile.screenOf': ['{name}’s screen', 'Écran de {name}', 'Pantalla de {name}', 'Bildschirm von {name}'],
 	'tile.you': ['{name} (you)', '{name} (vous)', '{name} (tú)', '{name} (du)'],
 	'tile.muted': ['Muted', 'Micro coupé', 'Silenciado', 'Stummgeschaltet'],
-	'tile.speaking': ['Speaking', 'Parle', 'Hablando', 'Spricht'],
 	'stage.connecting': ['Connecting…', 'Connexion…', 'Conectando…', 'Verbindung wird hergestellt…'],
 	'audio.enable': ['Enable sound', 'Activer le son', 'Activar el sonido', 'Ton aktivieren'],
 
