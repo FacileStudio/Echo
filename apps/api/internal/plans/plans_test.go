@@ -172,3 +172,34 @@ func TestTheDeadlineFollowsTheLimit(t *testing.T) {
 		t.Fatal("an unlimited policy got a deadline")
 	}
 }
+
+func TestAIAccessFailsOpenOnlyBeforeTheFirstRevision(t *testing.T) {
+	p := New(testdb.Migrated(t), issuer, nil)
+	owner := forfait.Scope{Subject: "sub-pro"}
+	if err := p.Require(Policy{Scope: owner}, KeyAIAccess); err != nil {
+		t.Fatalf("before the first revision ai.access = %v, want open", err)
+	}
+
+	if err := p.Apply(context.Background(), proSnapshot()); err != nil {
+		t.Fatalf("apply: %v", err)
+	}
+	if err := p.Require(Policy{Scope: owner}, KeyAIAccess); err == nil {
+		t.Fatal("an owner whose entitlements lack ai.access was allowed after the first revision")
+	}
+	if err := p.Require(Policy{}, KeyAIAccess); err == nil {
+		t.Fatal("a room with no linked owner was allowed ai.access")
+	}
+
+	comped := proSnapshot()
+	comped.EntitlementsRevision++
+	comped.People[0].Entitlements[KeyAIAccess] = json.RawMessage(`true`)
+	if err := p.Apply(context.Background(), comped); err != nil {
+		t.Fatalf("apply: %v", err)
+	}
+	if err := p.Require(Policy{Scope: owner}, KeyAIAccess); err != nil {
+		t.Fatalf("a comped owner once the catalog publishes ai.access = %v, want allowed", err)
+	}
+	if err := p.Require(Policy{Scope: forfait.Scope{Subject: "sub-other"}}, KeyAIAccess); err == nil {
+		t.Fatal("another owner inherited ai.access")
+	}
+}

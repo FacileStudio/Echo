@@ -100,17 +100,17 @@
 					{t('transcript.matches', { count: transcript.lines.length, total: transcript.total })}
 				</p>
 			{/if}
-			<ul
-				class="max-h-96 list-none overflow-y-auto rounded-fc bg-fc-surface p-4 text-fc-p text-fc-ink"
+			<div
+				class="max-h-96 overflow-y-auto rounded-fc bg-fc-surface p-4 text-fc-p whitespace-pre-wrap text-fc-ink"
 				aria-busy={loading}
 			>
 				{#each transcript.lines as line, index (index)}
-					<li class="whitespace-pre-wrap">
+					<p>
 						<span class="text-fc-muted">{clock(line.offset_ms)}</span>
 						<span class="font-medium">{line.speaker || t('transcript.unknownSpeaker')}</span>: {line.text}
-					</li>
+					</p>
 				{/each}
-			</ul>
+			</div>
 		{/if}
 	</div>
 {/if}
