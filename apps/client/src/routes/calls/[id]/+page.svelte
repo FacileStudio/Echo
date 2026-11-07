@@ -1,13 +1,20 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { Alert, Button, Card, Page, PageHeader, Section, Spinner, icons } from '@facile/muse';
-	import { ApiError, fetchCall, fetchCallRecording, type CallDetail } from '$lib/api';
+	import { onMount } from 'svelte';
+	import { Alert, Button, Card, Page, PageHeader, Section, SignInWithFacile, Spinner, icons } from '@facile/muse';
+	import { API_BASE, ApiError, fetchCall, fetchCallRecording, type CallDetail } from '$lib/api';
 	import { formatDateTime, formatDuration } from '$lib/format';
+	import { t } from '$lib/i18n/index.svelte';
+	import { loadSession } from '$lib/session.svelte';
 	import ParticipantTable from '$lib/components/ParticipantTable.svelte';
 	import TranscriptPane from '$lib/components/TranscriptPane.svelte';
 	import SummaryPanel from '$lib/components/SummaryPanel.svelte';
 
 	const id = $derived(page.params.id ?? '');
+
+	onMount(() => {
+		void loadSession();
+	});
 
 	let call = $state<CallDetail | null>(null);
 	let loaded = $state(false);
@@ -79,29 +86,28 @@
 	}
 </script>
 
-<svelte:head><title>Call · Echo</title></svelte:head>
+<svelte:head><title>{t('title.call')}</title></svelte:head>
 
 <Page width="lg" class="gap-1 px-4 py-10">
-	<PageHeader title="Call details" description={subtitle} back={{ href: '/', label: 'Home' }} />
+	<PageHeader title={t('callPage.title')} description={subtitle} back={{ href: '/', label: t('callPage.home') }} />
 
 	{#if !loaded}
 		<Card><div class="flex justify-center py-4"><Spinner /></div></Card>
 	{:else if denied}
-		<Alert tone="warning" title="Owner only">
-			Only the room owner can see this call. Sign in with the account that created the room.
-		</Alert>
+		<Alert tone="warning" title={t('historyPage.ownerOnly')}>{t('callPage.ownerOnlyBody')}</Alert>
+		<div><SignInWithFacile href="{API_BASE}/api/auth/oidc" size="sm" /></div>
 	{:else if error}
-		<Alert tone="danger" title="Could not load call">{error}</Alert>
+		<Alert tone="danger" title={t('callPage.loadFailed')}>{error}</Alert>
 	{:else if call}
-		<Section title="Participants" card>
+		<Section title={t('callPage.participants')} card>
 			<ParticipantTable participants={call.participants} />
 		</Section>
 
-		<Section title="Recording" card>
+		<Section title={t('callPage.recording')} card>
 			{#if call.has_recording}
 				{@const recordingId = call.id}
 				{#if downloadError}
-					<Alert tone="danger" title="Download failed">{downloadError}</Alert>
+					<Alert tone="danger" title={t('callPage.downloadFailed')}>{downloadError}</Alert>
 				{/if}
 				<Button
 					variant="outline"
@@ -110,16 +116,14 @@
 					disabled={downloading}
 					onclick={() => download(recordingId)}
 				>
-					{downloading ? 'Preparing the download…' : 'Download the video (MP4)'}
+					{downloading ? t('callPage.preparing') : t('callPage.download')}
 				</Button>
 			{:else}
-				<p class="text-fc-p text-fc-muted">
-					No recording. Calls are end-to-end encrypted, so the server cannot record them.
-				</p>
+				<p class="text-fc-sm text-fc-fg-muted">{t('callPage.noRecording')}</p>
 			{/if}
 		</Section>
 
-		<Section title="AI summary" card>
+		<Section title={t('callPage.summary')} card>
 			<SummaryPanel
 				callId={call.id}
 				summary={call.summary}
@@ -127,7 +131,7 @@
 			/>
 		</Section>
 
-		<Section title="Transcript" card>
+		<Section title={t('callPage.transcript')} card>
 			<TranscriptPane transcript={call.transcript} />
 		</Section>
 	{/if}

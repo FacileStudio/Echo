@@ -1,12 +1,4 @@
-const dateTimeFormat = new Intl.DateTimeFormat('fr-FR', {
-	dateStyle: 'medium',
-	timeStyle: 'short'
-});
-
-const timeFormat = new Intl.DateTimeFormat('fr-FR', {
-	hour: '2-digit',
-	minute: '2-digit'
-});
+import { locale, t } from './i18n/index.svelte';
 
 function parse(iso: string | undefined): Date | null {
 	if (!iso) return null;
@@ -16,18 +8,18 @@ function parse(iso: string | undefined): Date | null {
 
 export function formatDateTime(iso: string | undefined): string {
 	const d = parse(iso);
-	return d ? dateTimeFormat.format(d) : '—';
+	return d ? new Intl.DateTimeFormat(locale(), { dateStyle: 'medium', timeStyle: 'short' }).format(d) : '—';
 }
 
-export function formatTime(iso: string | undefined): string {
-	const d = parse(iso);
-	return d ? timeFormat.format(d) : '—';
+export function formatTime(iso: string | number | undefined): string {
+	const d = typeof iso === 'number' ? new Date(iso) : parse(iso);
+	return d ? new Intl.DateTimeFormat(locale(), { hour: '2-digit', minute: '2-digit' }).format(d) : '—';
 }
 
 export function formatDuration(startedAt: string, endedAt?: string): string {
 	const start = parse(startedAt);
 	const end = parse(endedAt);
-	if (!start || !end) return 'In progress';
+	if (!start || !end) return t('format.inProgress');
 	const seconds = Math.max(0, Math.round((end.getTime() - start.getTime()) / 1000));
 	const hours = Math.floor(seconds / 3600);
 	const minutes = Math.floor((seconds % 3600) / 60);

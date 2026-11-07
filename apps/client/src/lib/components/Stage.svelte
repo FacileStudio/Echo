@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { LocalParticipant, RemoteParticipant } from 'livekit-client';
 	import { gridCols, gridColumn, gridRows, tileWidth } from '$lib/grid';
+	import { t } from '$lib/i18n/index.svelte';
 	import { isSharing } from '$lib/screenShare';
 	import ParticipantTile from './ParticipantTile.svelte';
 
@@ -55,7 +56,7 @@
 				</div>
 			</div>
 		{:else}
-			<p class="col-span-full self-center text-center text-fc-p text-fc-muted">Connecting…</p>
+			<p class="col-span-full self-center text-center text-fc-sm text-fc-fg-muted">{t('stage.connecting')}</p>
 		{/each}
 	</main>
 {/if}

@@ -1,17 +1,15 @@
+import { t } from './i18n/index.svelte';
 import { ExternalE2EEKeyProvider, isE2EESupported, type Room } from 'livekit-client';
 
 export { isE2EESupported };
-
-const ownKeyError =
-	"Can't decrypt this call: your link is missing the right key. Ask for the full link, including everything after #.";
 
 /**
  * Words a decrypt failure for the person who sees it. When nobody else in the call can be
  * decrypted, this browser holds the wrong key; otherwise the named participants do.
  */
 export function decryptError(failing: string[], remotes: number): string {
-	if (failing.length === 0 || failing.length >= remotes) return ownKeyError;
-	return `Can't decrypt ${failing.join(', ')}: they joined with a different key. Send them the full link.`;
+	if (failing.length === 0 || failing.length >= remotes) return t('crypt.own');
+	return t('crypt.others', { names: failing.join(', ') });
 }
 
 /** Returns 32 random bytes as base64url, the format of an Echo room key. */

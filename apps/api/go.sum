@@ -10,6 +10,8 @@ github.com/FacileStudio/porte v0.5.2 h1:uB/KeI38IjOoJJz6Fm/wfkmfHW1Q/SjsOE+KQh0d
 github.com/FacileStudio/porte v0.5.2/go.mod h1:dXC79PY1VUB8mpirq2IBA0/8/hpEAWH4+ZhsJ1D57h0=
 github.com/FacileStudio/porte v0.12.0 h1:3/Fw9jnp5cssY0PA3MyexHBRqr+W0r2XStaKwWmk2zc=
 github.com/FacileStudio/porte v0.12.0/go.mod h1:iLtV3iaFheNiZWt+wfBF2FKB0XRLxve5GrhmJ6h3X0I=
+github.com/FacileStudio/porte v0.12.1 h1:O5qWol7P37F+aWYJO7QyxdoiffZ2bke05avXBsBXBZg=
+github.com/FacileStudio/porte v0.12.1/go.mod h1:iLtV3iaFheNiZWt+wfBF2FKB0XRLxve5GrhmJ6h3X0I=
 github.com/FacileStudio/porte/directory v0.2.1 h1:w/7AhH74OTj/RhMshO2TshQTSZpGek+/HiMi0CNGCnI=
 github.com/FacileStudio/porte/directory v0.2.1/go.mod h1:i7UxoAqCgqAq4ny9/bbuqT/Z69xD7GYG1w3fpH6EhTw=
 github.com/FacileStudio/porte/directory v0.3.0 h1:BtdaNK7kbbv5s5whX4VyIHK0cJ4dC8f+timjyecnEfE=

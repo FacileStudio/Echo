@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { Alert } from '@facile/muse';
+	import { t } from '$lib/i18n/index.svelte';
 	import LiveRoom from '$lib/components/LiveRoom.svelte';
 	import { readEmbedGrant, type EmbedGrant } from '$lib/embed';
 
@@ -23,18 +24,15 @@
 	}
 </script>
 
-<svelte:head><title>Call · Echo</title></svelte:head>
+<svelte:head><title>{t('title.call')}</title></svelte:head>
 
 {#if left}
 	<main class="flex min-h-dvh items-center justify-center px-4">
-		<p class="text-fc-p text-fc-muted">You left the call.</p>
+		<p class="text-fc-sm text-fc-fg-muted">{t('embed.left')}</p>
 	</main>
 {:else if grant && !grant.key}
 	<main class="flex min-h-dvh items-center justify-center px-4">
-		<Alert tone="danger" title="Cannot join">
-			This call link has no encryption key. Echo calls are end-to-end encrypted, so the app that opened
-			this call must pass the key. Open the call again from your app.
-		</Alert>
+		<Alert tone="danger" title={t('embed.cannotJoin')}>{t('embed.noKey')}</Alert>
 	</main>
 {:else if grant}
 	<LiveRoom
@@ -48,6 +46,6 @@
 	/>
 {:else if checked}
 	<main class="flex min-h-dvh items-center justify-center px-4">
-		<Alert tone="danger" title="Cannot join">This call link has no join token. Open the call again from your app.</Alert>
+		<Alert tone="danger" title={t('embed.cannotJoin')}>{t('embed.noToken')}</Alert>
 	</main>
 {/if}

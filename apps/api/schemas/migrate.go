@@ -39,18 +39,8 @@ ALTER TABLE porte_login_codes
 `
 
 // deletionState is the one row porte/directory's Deletions receiver keeps its
-// cursor and handled subjects in, plus the magic-link table porte's
-// EraseIdentity deletes from. Echo mounts no magic link, but the eraser names
-// the table and fails without it.
+// cursor and handled subjects in.
 const deletionState = `
-CREATE TABLE IF NOT EXISTS porte_magic_links (
-	token_hash  text PRIMARY KEY,
-	user_id     bigint NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-	ip          text NOT NULL DEFAULT '',
-	created_at  timestamptz NOT NULL,
-	expires_at  timestamptz NOT NULL,
-	consumed_at timestamptz
-);
 
 CREATE TABLE IF NOT EXISTS directory_deletion_state (
 	id         integer PRIMARY KEY,

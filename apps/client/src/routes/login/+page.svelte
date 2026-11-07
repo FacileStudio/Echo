@@ -1,18 +1,24 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { Alert, Button, Page, PageHeader } from '@facile/muse';
+	import { Alert, AuthScreen } from '@facile/muse';
+	import { API_BASE } from '$lib/api';
+	import { t } from '$lib/i18n/index.svelte';
 
 	const error = $derived(page.url.searchParams.get('error') ?? '');
 </script>
 
-<svelte:head><title>Sign in · Echo</title></svelte:head>
+<svelte:head><title>{t('title.login')}</title></svelte:head>
 
-<Page width="sm" class="gap-4 px-4 py-10">
-	<PageHeader title="Sign in" description="Echo uses the studio single sign-on." />
-
-	{#if error}
-		<Alert tone="danger" title="Login failed">{error}</Alert>
-	{/if}
-
-	<Button href="/">Back to Echo</Button>
-</Page>
+<AuthScreen appName="Echo" href="{API_BASE}/api/auth/oidc">
+	{#snippet logo()}
+		<img src="/logo.svg" alt="" class="size-12" />
+	{/snippet}
+	{#snippet tagline()}
+		{t('home.tagline')}
+	{/snippet}
+	{#snippet notice()}
+		{#if error}
+			<Alert tone="danger" title={t('auth.failed')}>{error}</Alert>
+		{/if}
+	{/snippet}
+</AuthScreen>
