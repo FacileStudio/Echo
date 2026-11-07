@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.6.2] - 2026-11-07
+
 ### Changed
 - `GET /version` is baked into the image from the version in `apps/client/package.json` (`scripts/version.sh`), so it matches the release tag without any deploy environment change. The `APP_VERSION` build argument is gone. Nothing in the UI changes.
 
