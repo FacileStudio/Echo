@@ -15,8 +15,10 @@ func Migrate(db *gorm.DB) error {
 
 	statements := []string{
 		porteSchema,
+		porteBindingColumns,
 		callIndexes,
 		integrationIndexes,
+		deletionState,
 	}
 	for _, statement := range statements {
 		if err := db.Exec(statement).Error; err != nil {
@@ -25,6 +27,37 @@ func Migrate(db *gorm.DB) error {
 	}
 	return nil
 }
+
+// porteBindingColumns are the two columns porte v0.10.0 added to
+// porte_login_codes so a code is bound to the identity that vouched for it.
+// Echo keeps porte's DDL in porteSchema and never applies pg.Schema, so porte
+// cannot add them. Without them the CLI and mobile logins fail.
+const porteBindingColumns = `
+ALTER TABLE porte_login_codes
+	ADD COLUMN IF NOT EXISTS provider text NOT NULL DEFAULT '',
+	ADD COLUMN IF NOT EXISTS subject text NOT NULL DEFAULT '';
+`
+
+// deletionState is the one row porte/directory's Deletions receiver keeps its
+// cursor and handled subjects in, plus the magic-link table porte's
+// EraseIdentity deletes from. Echo mounts no magic link, but the eraser names
+// the table and fails without it.
+const deletionState = `
+CREATE TABLE IF NOT EXISTS porte_magic_links (
+	token_hash  text PRIMARY KEY,
+	user_id     bigint NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	ip          text NOT NULL DEFAULT '',
+	created_at  timestamptz NOT NULL,
+	expires_at  timestamptz NOT NULL,
+	consumed_at timestamptz
+);
+
+CREATE TABLE IF NOT EXISTS directory_deletion_state (
+	id         integer PRIMARY KEY,
+	state      bytea NOT NULL,
+	updated_at timestamptz NOT NULL DEFAULT now()
+);
+`
 
 // callIndexes carries the one index GORM's struct tags cannot express.
 //

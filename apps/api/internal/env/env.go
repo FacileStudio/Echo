@@ -14,8 +14,7 @@ import (
 type Config struct {
 	troncenv.Core
 
-	AllowRegistration bool
-	Porte             porte.Config
+	Porte porte.Config
 
 	// TranscriberToken authenticates the transcriber worker against the
 	// transcript ingestion endpoint. It is required: an open ingestion
@@ -88,10 +87,6 @@ func Load() (Config, error) {
 
 	cfg := Config{Core: core}
 
-	if cfg.AllowRegistration, err = troncenv.Bool("ALLOW_REGISTRATION", true); err != nil {
-		return Config{}, err
-	}
-
 	cfg.Porte = porte.Config{
 		ClaimsScope:  troncenv.String("OIDC_CLAIMS_SCOPE", ""),
 		Issuer:       troncenv.String("OIDC_ISSUER", ""),
@@ -100,16 +95,10 @@ func Load() (Config, error) {
 		RedirectURL:  troncenv.String("OIDC_REDIRECT_URL", ""),
 		SuccessURL:   troncenv.String("OIDC_SUCCESS_URL", ""),
 	}
-	if cfg.Porte.SSOOnly, err = troncenv.Bool("SSO_ONLY", false); err != nil {
-		return Config{}, err
-	}
 	if err := cfg.loadServiceSecrets(); err != nil {
 		return Config{}, err
 	}
 	cfg.RecordingsDir = troncenv.String("RECORDINGS_DIR", "/recordings")
-	if cfg.Porte.SSOOnly && !cfg.Porte.Enabled() {
-		return Config{}, fmt.Errorf("SSO_ONLY=true with no OIDC_ISSUER leaves no way to sign in")
-	}
 	if err := cfg.Porte.Validate(); err != nil {
 		return Config{}, err
 	}
