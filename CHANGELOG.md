@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Changed
+- `GET /version` is baked into the image from the version in `apps/client/package.json` (`scripts/version.sh`), so it matches the release tag without any deploy environment change. The `APP_VERSION` build argument is gone. Nothing in the UI changes.
+
 ## [2.6.1] - 2026-11-07
 ### Security
 - Registre tokens are sealed at rest. porte v0.12.1 to v0.13.0: `porte_identities.access_token` and `refresh_token` are encrypted with AES-256-GCM under `PORTE_TOKEN_KEY`. Existing rows are sealed once, in the background, after boot, and the count is logged. An invalid `PORTE_TOKEN_KEY` stops the boot. With the key unset nothing changes.
