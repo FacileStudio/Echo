@@ -100,7 +100,7 @@ func TestNonOwnerIsRefusedEverywhere(t *testing.T) {
 	}
 }
 
-// An unowned room has no owner to be, so ownedCall fails closed: nobody reads
+// An unowned room has no owner to be, so the access check fails closed: nobody reads
 // its calls, including the person who created it as a guest. Pinned because
 // the alternative reading — nil owner means public — is a data leak.
 func TestUnownedRoomIsRefusedEverySide(t *testing.T) {

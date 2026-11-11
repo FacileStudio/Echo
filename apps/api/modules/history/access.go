@@ -61,15 +61,3 @@ func (s *Service) accessible(ctx context.Context, callID string, callerID int64)
 	}
 	return &access{call: &call, room: room, role: roleParticipant}, nil
 }
-
-// ownedCall loads the call after checking its room belongs to callerID.
-func (s *Service) ownedCall(ctx context.Context, callID string, callerID int64) (*schemas.Call, error) {
-	got, err := s.accessible(ctx, callID, callerID)
-	if err != nil {
-		return nil, err
-	}
-	if !got.owner() {
-		return nil, troncerrors.Forbidden("only the room owner can do this")
-	}
-	return got.call, nil
-}
