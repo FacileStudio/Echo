@@ -89,7 +89,7 @@ func buildServer(shutdown context.Context, cfg env.Config, db *gorm.DB, log *slo
 		func(ctx context.Context) { planning.Run(ctx, log) },
 		deps.capturing.Run,
 	}}
-	if erasure := setupDeletions(cfg, db, log); erasure != nil {
+	if erasure := setupDeletions(cfg, authKit.users, log); erasure != nil {
 		deletions.RegisterRoutes(router, erasure)
 		s.background = append(s.background, erasure.Run)
 	}

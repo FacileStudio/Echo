@@ -7,6 +7,7 @@ import (
 
 	"github.com/FacileStudio/Echo/apps/api/internal/env"
 	"github.com/FacileStudio/Echo/apps/api/modules/auth"
+	"github.com/FacileStudio/Echo/apps/api/modules/deletions"
 	"github.com/FacileStudio/porte/kit"
 	"github.com/FacileStudio/porte/oidc"
 	"github.com/FacileStudio/porte/session"
@@ -53,7 +54,7 @@ func setupAuth(shutdown context.Context, cfg env.Config, db *gorm.DB, log *slog.
 		return nil, err
 	}
 	resealInBackground(shutdown, identityStore, log)
-	users, err := auth.NewStore(shutdown, sqlDB, log)
+	users, err := auth.NewStore(shutdown, sqlDB, log, deletions.EraseData)
 	if err != nil {
 		return nil, err
 	}

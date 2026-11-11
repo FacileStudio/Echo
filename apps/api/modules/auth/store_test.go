@@ -20,7 +20,7 @@ func newStore(t *testing.T) (*kit.Store, *gorm.DB) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	store, err := NewStore(context.Background(), sqlDB, slog.New(slog.DiscardHandler))
+	store, err := NewStore(context.Background(), sqlDB, slog.New(slog.DiscardHandler), nil)
 	if err != nil {
 		t.Fatalf("NewStore: %v", err)
 	}

@@ -5,11 +5,14 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 	"time"
 
 	"github.com/FacileStudio/Echo/apps/api/internal/testdb"
+	"github.com/FacileStudio/Echo/apps/api/modules/auth"
 	"github.com/FacileStudio/Echo/apps/api/schemas"
+	"github.com/FacileStudio/porte/directory"
 	portepg "github.com/FacileStudio/porte/pg"
 
 	"github.com/google/uuid"
@@ -28,7 +31,19 @@ func newFixture(t *testing.T) fixture {
 	t.Helper()
 	db := testdb.Migrated(t)
 	dir := t.TempDir()
-	return fixture{db: db, dir: dir, erased: &Deletions{orm: db, recordingsDir: dir, logger: slog.Default()}}
+	sqlDB, err := db.DB()
+	if err != nil {
+		t.Fatal(err)
+	}
+	users, err := auth.NewStore(context.Background(), sqlDB, slog.Default(), EraseData)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return fixture{db: db, dir: dir, erased: New(users, directory.Client{Issuer: issuer}, nil, dir, slog.Default())}
+}
+
+func itoa(id int64) string {
+	return strconv.FormatInt(id, 10)
 }
 
 func (f fixture) person(t *testing.T, email, subject string) int64 {

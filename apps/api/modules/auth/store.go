@@ -16,7 +16,10 @@ func Columns() kit.Columns {
 }
 
 // NewStore is porte/kit's account store over Echo's users table. It resolves
-// a Registre sign-in to an account and hydrates the request identity.
-func NewStore(ctx context.Context, sqlDB *sql.DB, log *slog.Logger) (*kit.Store, error) {
-	return kit.NewStore(ctx, kit.Store{DB: sqlDB, Columns: Columns(), Logger: log})
+// a Registre sign-in to an account, hydrates the request identity and, with
+// eraseData, erases an account's data before the kit deletes the account.
+func NewStore(
+	ctx context.Context, sqlDB *sql.DB, log *slog.Logger, eraseData func(context.Context, *sql.Tx, int64) error,
+) (*kit.Store, error) {
+	return kit.NewStore(ctx, kit.Store{DB: sqlDB, Columns: Columns(), Logger: log, EraseData: eraseData})
 }
