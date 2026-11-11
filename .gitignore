@@ -1,4 +1,6 @@
 # Go
+/apps/api/api
+/apps/api/bin/
 *.test
 *.out
 .gocache/
