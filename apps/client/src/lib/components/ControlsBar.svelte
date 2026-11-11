@@ -4,6 +4,7 @@
 	import { callIcons } from '$lib/icons';
 	import type { CaptureSession } from '$lib/captureSession.svelte';
 	import { recorderFormat } from '$lib/recorder';
+	import { openWhiteboard } from '$lib/whiteboard';
 
 	interface Props {
 		micOn: boolean;
@@ -13,6 +14,8 @@
 		encrypted: boolean;
 		canShare: boolean;
 		capture?: CaptureSession | null;
+		boardRoom?: string;
+		onBoardError?: (message: string) => void;
 		onToggleMic: () => void;
 		onToggleCam: () => void;
 		onToggleScreen: () => void;
@@ -28,6 +31,8 @@
 		encrypted,
 		canShare,
 		capture = null,
+		boardRoom = '',
+		onBoardError,
 		onToggleMic,
 		onToggleCam,
 		onToggleScreen,
@@ -40,6 +45,15 @@
 	const recordOn = $derived(!!capture?.state?.recording);
 	const canRecord = recorderFormat() !== null;
 	const off = 'bg-fc-danger/10 text-fc-danger hover:bg-fc-danger/20';
+	let boardOpening = $state(false);
+
+	async function openBoard() {
+		boardOpening = true;
+		onBoardError?.('');
+		const result = await openWhiteboard(boardRoom);
+		boardOpening = false;
+		if ('error' in result) onBoardError?.(t(result.error === 'signIn' ? 'whiteboard.signIn' : 'whiteboard.failed'));
+	}
 </script>
 
 <div class="flex items-center gap-1">
@@ -102,6 +116,18 @@
 				onclick={() => void capture?.toggle('recording')}
 			>
 				<Icon icon={callIcons.record} />
+			</IconButton>
+		{/if}
+
+		{#if boardRoom}
+			<IconButton
+				variant="ghost"
+				aria-label={t('whiteboard.open')}
+				title={t('whiteboard.open')}
+				disabled={boardOpening}
+				onclick={() => void openBoard()}
+			>
+				<Icon icon={callIcons.whiteboard} />
 			</IconButton>
 		{/if}
 	{/if}
