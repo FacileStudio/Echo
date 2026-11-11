@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+## [2.7.0] - 2026-11-11
+
+### Changed
+- Sign-in runs on porte/kit (porte v0.18.3). The account store, the request identity and the session middleware come from porte instead of Echo's own copies (`internal/authcontext`, `internal/middleware/auth.go` and `modules/auth/oidc.go` are gone). Routes, their unauthenticated status codes, the `/api/auth/config` body and the 401 bodies are unchanged. One rule changes: at sign-in the stored picture becomes whatever Registre sends, so a Registre account without a picture now clears Echo's copy.
+- `users.password_hash` gets the database default `''` at boot, because the kit's insert does not name it.
+- The rate limiter keys on the address tronc's RealIP resolved. tronc now recovers the visitor from `Cf-Connecting-Ip` on the genuine Cloudflare chain (`httpx.Config.CDNProxies`), and Echo no longer reads that header itself. `TRUSTED_PROXIES` must keep `cloudflare`, which is the default, or every visitor shares the edge's bucket. Request logs now show the visitor's address.
+- tronc v0.21.0, porte v0.18.3, porte/directory v0.4.0, Go 1.26.10, golang.org/x/net v0.62.0, golang.org/x/crypto v0.58.0.
+- Gates: filet v0.19.2 with `preset: facile` (same findings as before), douane v0.7.2 in CI with `-fail critical -scope prod`, a tracked `lefthook.yml` (`mise run hooks`). `douane.yml` permits GO-2026-5932 until 2027-02-08: its only fix is an unreleased x/crypto commit.
+
+### Fixed
+- A Registre erasure goes through porte/kit's `EraseAccount`, which matches the issuer with or without a trailing slash, and now also replaces the erased person's `user-<id>` in the AI summary of every call they joined in someone else's room. Before, the summary kept it. `docs/erasure.md` states the rule, and a test scans every text column after an erasure.
+
+### Rollback
+- Safe in both directions with no data step. v2.6.2's AutoMigrate removes the `password_hash` default again and does not need it; this version puts it back at boot. Measured old, new, old, new against one database.
+
 ## [2.6.2] - 2026-11-07
 
 ### Changed
