@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased]
+
+### Security
+
+- github.com/go-chi/chi/v5 v5.3.1 to v5.4.0 (CVE-2026-114437, client IP spoofing in `ClientIPFromXFF`; Echo does not call it).
+- github.com/google/cel-go v0.28.1 to v0.30.0, indirect through LiveKit's protovalidate (GHSA-gcjh-h69q-9w9g).
+- vite ^8.3.8 (8.2.2 to 8.3.8), with `overrides` for devalue ^5.9.3 (5.9.1 to 5.9.4) and source-map-js ^1.2.2 (1.2.1 to 1.2.2).
+- An `overrides` entry pins uuid ^11.1.1 (CVE-2026-41907). vosk-browser 0.0.8 pins uuid 9.0.0 but bundles its own copy of the v4 code in `dist/vosk.js`, so the shipped bundle does not change.
+
 ## [2.8.0] - 2026-11-11
 
 ### Added

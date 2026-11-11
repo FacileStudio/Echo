@@ -23,12 +23,17 @@
 		"svelte-check": "^4.6.0",
 		"tailwindcss": "^4.3.3",
 		"typescript": "^6.0.3",
-		"vite": "^8.0.16"
+		"vite": "^8.3.8"
 	},
 	"dependencies": {
 		"@facile/muse": "github:FacileStudio/muse#006adfc",
 		"gsap": "^3.13.0",
 		"livekit-client": "^2.22.0",
 		"vosk-browser": "0.0.8"
+	},
+	"overrides": {
+		"devalue": "^5.9.3",
+		"source-map-js": "^1.2.2",
+		"uuid": "^11.1.1"
 	}
 }
