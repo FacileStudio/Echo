@@ -108,6 +108,8 @@ func newRouter(cfg env.Config, clientDir string, log *slog.Logger) chi.Router {
 	router := httpx.NewRouter(httpx.Config{
 		Logger:         log,
 		TrustedProxies: cfg.TrustedProxies,
+		CDNProxies:     troncmiddleware.CloudflareProxies,
+		CDNHeader:      middleware.CloudflareHeader,
 		CORS: troncmiddleware.CORSConfig{
 			AllowedOrigins:   cfg.CORSAllowedOrigins,
 			AllowCredentials: true,

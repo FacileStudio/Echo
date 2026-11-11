@@ -7,6 +7,7 @@ import (
 
 	"github.com/FacileStudio/Echo/apps/api/internal/env"
 	"github.com/FacileStudio/tronc/httpx"
+	troncmiddleware "github.com/FacileStudio/tronc/middleware"
 )
 
 func behindCloudflare(t *testing.T) http.Handler {
@@ -17,7 +18,11 @@ func behindCloudflare(t *testing.T) http.Handler {
 	if err != nil {
 		t.Fatalf("load: %v", err)
 	}
-	router := httpx.NewRouter(httpx.Config{TrustedProxies: cfg.TrustedProxies})
+	router := httpx.NewRouter(httpx.Config{
+		TrustedProxies: cfg.TrustedProxies,
+		CDNProxies:     troncmiddleware.CloudflareProxies,
+		CDNHeader:      CloudflareHeader,
+	})
 	router.With(NewRateLimiter().Limit(Budget{Scope: "t", Guest: 1, Member: 1})).Post("/token", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	})

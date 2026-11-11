@@ -4,46 +4,20 @@ import (
 	"net"
 	"net/http"
 	"net/netip"
-	"strings"
-
-	troncmiddleware "github.com/FacileStudio/tronc/middleware"
 )
 
-// ClientAddr is the visitor's address for rate limiting.
-//
-// Production's Traefik deletes the X-Forwarded-For Cloudflare sends and
-// writes only the Cloudflare edge it received from, so after tronc's RealIP
-// the request still carries Traefik's own container address. Cloudflare's
-// Cf-Connecting-Ip then names the visitor, and it is believed only when the
-// chain is the genuine one: the peer is on the private network, and the
-// rightmost X-Forwarded-For hop, which Traefik itself wrote, is a Cloudflare
-// edge. A request that reached Traefik any other way has its own address as
-// that hop, so a Cf-Connecting-Ip it forged is never read. Every other
-// request keys on RemoteAddr as RealIP resolved it.
-func ClientAddr(r *http.Request) netip.Addr {
-	peer := hostAddr(r.RemoteAddr)
-	if !peer.IsValid() || !troncmiddleware.TrustedBy(peer, troncmiddleware.DefaultTrustedProxies) {
-		return peer
-	}
-	if !troncmiddleware.TrustedBy(rightmostHop(r), troncmiddleware.CloudflareProxies) {
-		return peer
-	}
-	visitor, err := netip.ParseAddr(strings.TrimSpace(r.Header.Get("Cf-Connecting-Ip")))
-	if err != nil {
-		return peer
-	}
-	return visitor.Unmap()
-}
+// CloudflareHeader is the header Cloudflare names the visitor in. tronc's
+// RealIP believes it only when the rightmost X-Forwarded-For hop, the one
+// Traefik wrote, is a Cloudflare edge (httpx.Config.CDNProxies).
+const CloudflareHeader = "Cf-Connecting-Ip"
 
-// rightmostHop is the last X-Forwarded-For entry, the one the nearest proxy
-// wrote, or the zero address when there is none or it does not parse.
-func rightmostHop(r *http.Request) netip.Addr {
-	forwarded := r.Header.Values("X-Forwarded-For")
-	if len(forwarded) == 0 {
-		return netip.Addr{}
-	}
-	hops := strings.Split(forwarded[len(forwarded)-1], ",")
-	return hostAddr(strings.TrimSpace(hops[len(hops)-1]))
+// ClientAddr is the visitor's address for rate limiting: the host of
+// RemoteAddr as tronc's RealIP rewrote it. Production's Traefik replaces the
+// X-Forwarded-For Cloudflare sends with the edge alone, so RealIP recovers the
+// visitor from CloudflareHeader on the genuine chain and leaves RemoteAddr
+// alone on every other request. Nothing here reads a forwarded header.
+func ClientAddr(r *http.Request) netip.Addr {
+	return hostAddr(r.RemoteAddr)
 }
 
 // hostAddr parses an address with or without a port.
