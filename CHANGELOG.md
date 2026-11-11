@@ -1,10 +1,16 @@
 # Changelog
 
-## [Unreleased]
+## [2.7.1] - 2026-11-11
 
 ### Changed
 
 - Licensed under the GNU Affero General Public License v3.0 only (`AGPL-3.0-only`). See `LICENSE`.
+- The compiled binary `apps/api/api`, tracked since v2.0.0, is gone from the tree, and `.gitignore` keeps `apps/api/api` and `apps/api/bin/` out.
+
+### Security
+
+- Go 1.26.11 with the `golang:1.26.11-alpine` builder, for the standard library advisories published on 2026-11-11 (GO-2026-6848 to GO-2026-6859).
+- google.golang.org/grpc v1.83.2, github.com/klauspost/compress v1.20.2 and github.com/go-jose/go-jose/v4 v4.1.6, which clear every high advisory in the production binary.
 
 ## [2.7.0] - 2026-11-11
 
