@@ -148,3 +148,7 @@ docs/             REBUILD_PLAN.md, integrations.md and design notes
 The previous Echo was a Jitsi Meet fork. It served well but drifted from the suite's stack and
 carried permanent upstream merge debt. The fork's last state is tagged `jitsi-final`; this line
 of development (`v2`) replaced it outright. See `docs/REBUILD_PLAN.md` for the reasoning.
+
+## License
+
+Echo is licensed under the GNU Affero General Public License v3.0 only (`AGPL-3.0-only`); see [LICENSE](LICENSE). A commercial license is available from Facile Studio for use that cannot meet the AGPL's terms.
