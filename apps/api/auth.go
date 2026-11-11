@@ -8,6 +8,7 @@ import (
 	"github.com/FacileStudio/Echo/apps/api/internal/env"
 	"github.com/FacileStudio/Echo/apps/api/modules/auth"
 	"github.com/FacileStudio/Echo/apps/api/modules/deletions"
+	"github.com/FacileStudio/porte"
 	"github.com/FacileStudio/porte/kit"
 	"github.com/FacileStudio/porte/oidc"
 	"github.com/FacileStudio/porte/session"
@@ -15,11 +16,12 @@ import (
 	"gorm.io/gorm"
 )
 
-// authKit is porte's session manager and OIDC kit, the kit's store over
-// Echo's users table, and Echo's account service.
+// authKit is porte's session manager, OIDC kit and identity store, the kit's
+// store over Echo's users table, and Echo's account service.
 type authKit struct {
 	sessions    *session.Manager
 	oidc        *oidc.Kit
+	identities  porte.IdentityStore
 	users       *kit.Store
 	service     *auth.Service
 	requireAuth func(http.Handler) http.Handler
@@ -80,6 +82,7 @@ func setupAuth(shutdown context.Context, cfg env.Config, db *gorm.DB, log *slog.
 	return &authKit{
 		sessions:    sessions,
 		oidc:        oidcKit,
+		identities:  identityStore.Identities(),
 		users:       users,
 		service:     auth.NewService(db),
 		requireAuth: kit.RequireAuth(sessions, users),

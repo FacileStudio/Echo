@@ -50,6 +50,7 @@ services:
       PORTE_TOKEN_KEY: ${PORTE_TOKEN_KEY:-}
       OIDC_REDIRECT_URL: ${OIDC_REDIRECT_URL:-}
       OIDC_SUCCESS_URL: ${OIDC_SUCCESS_URL:-}
+      MCP_RESOURCE: ${MCP_RESOURCE:-https://echo.facile.studio/mcp}
       # Hops whose X-Forwarded-For is believed: Traefik's private network and
       # Cloudflare's edge. The join rate limit additionally reads
       # Cf-Connecting-Ip when Traefik forwarded a request from a Cloudflare edge.

@@ -1,5 +1,21 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- A remote MCP server at `/mcp` on tronc/mcp, behind Registre tokens bound to `MCP_RESOURCE` (scopes `echo.read`, `echo.write`). Nine tools: `echo_list_rooms`, `echo_create_room`, `echo_rename_room`, `echo_delete_room`, `echo_list_meetings`, `echo_get_meeting`, `echo_read_transcript`, `echo_summarize_meeting` and `echo_share_recording`. Each calls the service behind the matching web route, so a client sees what the same person sees in Echo. Deleting a room is confirmed in the client, or on the new `/pending` page when the client cannot ask. A person's first MCP call creates their account. MCP is free; transcripts and summaries keep their `ai.access` gate.
+- `echo_create_room` returns the invite link with a fresh room key, which Echo hands over and does not store.
+- An erasure also deletes the person's pending MCP requests.
+
+### Changed
+
+- tronc v0.22.1, porte/mcpauth v0.2.1, modelcontextprotocol/go-sdk v1.8.0.
+
+### Migration
+
+- Additive: the `mcp_actions` table and its index (`tronc/mcp.PendingSchema`), created at boot. Old, new, old, new boots against one database pass.
+
 ## [2.7.1] - 2026-11-11
 
 ### Changed

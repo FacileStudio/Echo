@@ -34,13 +34,17 @@ func WriteError(w http.ResponseWriter, err error) {
 		Key:     refusal.Key,
 		Limit:   refusal.Limit,
 	}
-	if safeUpgradeURL(refusal.UpgradeURL) {
-		body.UpgradeURL = refusal.UpgradeURL
-	}
+	body.UpgradeURL = UpgradeURL(refusal)
 	httpjson.WriteJSON(w, http.StatusPaymentRequired, map[string]any{"error": body})
 }
 
-func safeUpgradeURL(raw string) bool {
-	parsed, err := url.Parse(raw)
-	return raw != "" && err == nil && parsed.Scheme == "https" && parsed.Host != "" && parsed.User == nil
+// UpgradeURL is the refusal's upgrade page when it is an https URL with a
+// host and no credentials, and empty otherwise, because clients render it as
+// a link.
+func UpgradeURL(refusal *forfait.LimitError) string {
+	parsed, err := url.Parse(refusal.UpgradeURL)
+	if refusal.UpgradeURL == "" || err != nil || parsed.Scheme != "https" || parsed.Host == "" || parsed.User != nil {
+		return ""
+	}
+	return refusal.UpgradeURL
 }
