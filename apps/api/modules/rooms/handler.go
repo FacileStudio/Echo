@@ -6,12 +6,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/FacileStudio/Echo/apps/api/internal/authcontext"
 	"github.com/FacileStudio/Echo/apps/api/internal/middleware"
 	"github.com/FacileStudio/Echo/apps/api/internal/plans"
 	"github.com/FacileStudio/Echo/apps/api/internal/seat"
 	"github.com/FacileStudio/Echo/apps/api/schemas"
 	"github.com/FacileStudio/porte"
+	"github.com/FacileStudio/porte/kit"
 	"github.com/FacileStudio/tronc/errors"
 	"github.com/FacileStudio/tronc/httpjson"
 	"github.com/go-chi/chi/v5"
@@ -20,11 +20,11 @@ import (
 // Handler serves the rooms HTTP endpoints.
 type Handler struct {
 	service  *Service
-	resolver middleware.IdentityResolver
+	resolver kit.Resolver
 	limits   Limits
 }
 
-func newHandler(service *Service, resolver middleware.IdentityResolver) *Handler {
+func newHandler(service *Service, resolver kit.Resolver) *Handler {
 	return &Handler{service: service, resolver: resolver}
 }
 
@@ -75,7 +75,7 @@ func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) list(w http.ResponseWriter, r *http.Request) {
-	identity, ok := authcontext.From(r.Context())
+	identity, ok := kit.FromContext(r.Context())
 	if !ok {
 		httpjson.WriteError(w, errors.Unauthorized("not authenticated"))
 		return
@@ -99,7 +99,7 @@ func (h *Handler) rename(w http.ResponseWriter, r *http.Request) {
 		httpjson.WriteError(w, err)
 		return
 	}
-	identity, ok := authcontext.From(r.Context())
+	identity, ok := kit.FromContext(r.Context())
 	if !ok {
 		httpjson.WriteError(w, errors.Unauthorized("not authenticated"))
 		return
@@ -114,7 +114,7 @@ func (h *Handler) rename(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) delete(w http.ResponseWriter, r *http.Request) {
-	identity, ok := authcontext.From(r.Context())
+	identity, ok := kit.FromContext(r.Context())
 	if !ok {
 		httpjson.WriteError(w, errors.Unauthorized("not authenticated"))
 		return
@@ -140,13 +140,13 @@ func (h *Handler) token(w http.ResponseWriter, r *http.Request) {
 	var userID *int64
 	email, name, picture := "", "", ""
 	if authenticated, ok := porte.From(r.Context()); ok {
-		identity, err := h.resolver.IdentityForUser(r.Context(), authenticated.UserID)
+		identity, err := h.resolver.Identity(r.Context(), authenticated.UserID)
 		if err != nil {
 			httpjson.WriteError(w, err)
 			return
 		}
 		userID = &identity.UserID
-		email, name, picture = identity.Email, identity.Name, identity.Picture
+		email, name, picture = identity.Email, identity.Name, identity.PictureURL
 	}
 
 	admission, err := h.service.Token(r.Context(), JoinRequest{
@@ -161,19 +161,19 @@ func (h *Handler) token(w http.ResponseWriter, r *http.Request) {
 }
 
 // callerID resolves the logged-in caller on a route that may be public.
-// It reads porte's session context, NOT authcontext, which only RequireAuth
-// hydrates: a public route reading authcontext always sees an anonymous
+// It reads porte's session context, NOT the kit identity, which only RequireAuth
+// hydrates: a public route reading it always sees an anonymous
 // caller, which is how every room was created without an owner. Routes
 // behind RequireAuth carry the porte context too, so this works on both.
 func (h *Handler) callerID(ctx context.Context) (*int64, error) {
-	if identity, ok := authcontext.From(ctx); ok {
+	if identity, ok := kit.FromContext(ctx); ok {
 		return &identity.UserID, nil
 	}
 	authenticated, ok := porte.From(ctx)
 	if !ok {
 		return nil, nil
 	}
-	identity, err := h.resolver.IdentityForUser(ctx, authenticated.UserID)
+	identity, err := h.resolver.Identity(ctx, authenticated.UserID)
 	if err != nil {
 		return nil, err
 	}

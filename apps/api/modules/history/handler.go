@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/FacileStudio/Echo/apps/api/internal/authcontext"
 	"github.com/FacileStudio/Echo/apps/api/internal/plans"
+	"github.com/FacileStudio/porte/kit"
 	troncerrors "github.com/FacileStudio/tronc/errors"
 	"github.com/FacileStudio/tronc/httpjson"
 	"github.com/go-chi/chi/v5"
@@ -15,8 +15,8 @@ type handler struct{ service *Service }
 
 // caller resolves the authenticated identity, writing the 401 itself when
 // there is none so each handler stays a straight line.
-func caller(w http.ResponseWriter, r *http.Request) (authcontext.Identity, bool) {
-	identity, ok := authcontext.From(r.Context())
+func caller(w http.ResponseWriter, r *http.Request) (kit.Identity, bool) {
+	identity, ok := kit.FromContext(r.Context())
 	if !ok {
 		httpjson.WriteError(w, troncerrors.Unauthorized("not authenticated"))
 	}

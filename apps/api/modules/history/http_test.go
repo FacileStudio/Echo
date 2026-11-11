@@ -13,13 +13,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/FacileStudio/Echo/apps/api/internal/authcontext"
 	"github.com/FacileStudio/Echo/apps/api/internal/media"
 	"github.com/FacileStudio/Echo/apps/api/internal/plans"
 	"github.com/FacileStudio/Echo/apps/api/internal/testdb"
 	"github.com/FacileStudio/Echo/apps/api/modules/rooms"
 	"github.com/FacileStudio/Echo/apps/api/schemas"
 	"github.com/FacileStudio/porte/directory"
+	"github.com/FacileStudio/porte/kit"
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 )
@@ -33,7 +33,7 @@ func actingAs(next http.Handler) http.Handler {
 			http.Error(w, "unauthenticated", http.StatusUnauthorized)
 			return
 		}
-		next.ServeHTTP(w, r.WithContext(authcontext.With(r.Context(), authcontext.Identity{UserID: id})))
+		next.ServeHTTP(w, r.WithContext(kit.WithIdentity(r.Context(), kit.Identity{UserID: id})))
 	})
 }
 

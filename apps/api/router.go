@@ -93,7 +93,11 @@ func buildServer(shutdown context.Context, cfg env.Config, db *gorm.DB, log *slo
 		deletions.RegisterRoutes(router, erasure)
 		s.background = append(s.background, erasure.Run)
 	}
-	router.Route("/api", func(r chi.Router) { mountAPI(r, deps) })
+	var mountErr error
+	router.Route("/api", func(r chi.Router) { mountErr = mountAPI(r, deps) })
+	if mountErr != nil {
+		return nil, fmt.Errorf("routes: %w", mountErr)
+	}
 	mountClient(router, clientDir, cfg.EmbedOrigins, log)
 	return s, nil
 }
@@ -116,15 +120,18 @@ func newRouter(cfg env.Config, clientDir string, log *slog.Logger) chi.Router {
 }
 
 // mountAPI registers every route under /api.
-func mountAPI(r chi.Router, deps apiDeps) {
+func mountAPI(r chi.Router, deps apiDeps) error {
 	r.Use(extendWriteDeadline("/summary", summaryWriteBudget))
 	r.Use(extendWriteDeadline("/file", recordingWriteBudget))
-	deps.auth.Mount(r)
-	rooms.RegisterRoutes(r, deps.rooms, deps.auth.service, deps.auth.requireAuth, middleware.NewRateLimiter())
+	if err := deps.auth.Mount(r); err != nil {
+		return err
+	}
+	rooms.RegisterRoutes(r, deps.rooms, deps.auth.users, deps.auth.requireAuth, middleware.NewRateLimiter())
 	recording.RegisterRoutes(r, recording.NewRecording(deps.rooms, deps.media), deps.auth.requireAuth)
 	historyService := history.NewService(deps.db, deps.rooms, summarize.NewFromEnv(), deps.cfg.RecordingsDir)
 	history.RegisterRoutes(r, historyService, deps.auth.requireAuth)
 	transcripts.RegisterRoutes(r, transcripts.NewService(deps.db, deps.rooms.RequireAI), deps.seats, deps.captureLimiter)
 	capture.RegisterRoutes(r, deps.capturing, deps.auth.requireAuth)
 	integrations.RegisterRoutes(r, integrations.NewService(deps.db, deps.media, deps.keys))
+	return nil
 }

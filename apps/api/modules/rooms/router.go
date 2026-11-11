@@ -3,7 +3,7 @@ package rooms
 import (
 	"net/http"
 
-	"github.com/FacileStudio/Echo/apps/api/internal/middleware"
+	"github.com/FacileStudio/porte/kit"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -14,7 +14,7 @@ import (
 // the strict creation budget, so nobody can mint unbounded room rows, LiveKit
 // rooms and timers. Joining an existing room spends a far larger budget per
 // address and room, so a whole office behind one NAT can join one call.
-func RegisterRoutes(router chi.Router, service *Service, resolver middleware.IdentityResolver,
+func RegisterRoutes(router chi.Router, service *Service, resolver kit.Resolver,
 	requireAuth func(http.Handler) http.Handler, limits Limits) {
 	handler := newHandler(service, resolver)
 	handler.limits = limits

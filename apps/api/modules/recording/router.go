@@ -3,9 +3,9 @@ package recording
 import (
 	"net/http"
 
-	"github.com/FacileStudio/Echo/apps/api/internal/authcontext"
 	"github.com/FacileStudio/Echo/apps/api/internal/media"
 	"github.com/FacileStudio/Echo/apps/api/internal/plans"
+	"github.com/FacileStudio/porte/kit"
 	"github.com/FacileStudio/tronc/errors"
 	"github.com/FacileStudio/tronc/httpjson"
 	"github.com/go-chi/chi/v5"
@@ -28,7 +28,7 @@ func RegisterRoutes(router chi.Router, recording *Recording, requireAuth func(ht
 }
 
 func (h handler) start(w http.ResponseWriter, r *http.Request) {
-	identity, ok := authcontext.From(r.Context())
+	identity, ok := kit.FromContext(r.Context())
 	if !ok {
 		httpjson.WriteError(w, errors.Unauthorized("not authenticated"))
 		return
@@ -42,7 +42,7 @@ func (h handler) start(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h handler) stop(w http.ResponseWriter, r *http.Request) {
-	identity, ok := authcontext.From(r.Context())
+	identity, ok := kit.FromContext(r.Context())
 	if !ok {
 		httpjson.WriteError(w, errors.Unauthorized("not authenticated"))
 		return

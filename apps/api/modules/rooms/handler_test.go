@@ -4,28 +4,28 @@ import (
 	"context"
 	"testing"
 
-	"github.com/FacileStudio/Echo/apps/api/internal/authcontext"
 	"github.com/FacileStudio/porte"
+	"github.com/FacileStudio/porte/kit"
 )
 
 type stubResolver struct {
-	identity authcontext.Identity
+	identity kit.Identity
 	err      error
 	calls    int
 }
 
-func (s *stubResolver) IdentityForUser(context.Context, int64) (authcontext.Identity, error) {
+func (s *stubResolver) Identity(context.Context, int64) (kit.Identity, error) {
 	s.calls++
 	return s.identity, s.err
 }
 
 // The rooms create and get routes are public: they are mounted without
-// RequireAuth so guests can use them. authcontext is hydrated only inside
+// RequireAuth so guests can use them. The kit identity is hydrated only inside
 // RequireAuth, so a public route that reads it sees every logged-in caller
 // as anonymous, and every room it creates gets a nil owner. That shipped,
 // and it locked history, recording and summaries out for everyone.
 func TestCallerIDResolvesALoggedInCallerOnAPublicRoute(t *testing.T) {
-	resolver := &stubResolver{identity: authcontext.Identity{UserID: 42}}
+	resolver := &stubResolver{identity: kit.Identity{UserID: 42}}
 	handler := newHandler(nil, resolver)
 
 	ctx := porte.WithIdentity(context.Background(), porte.Identity{UserID: 42})
@@ -42,7 +42,7 @@ func TestCallerIDResolvesALoggedInCallerOnAPublicRoute(t *testing.T) {
 }
 
 func TestCallerIDIsNilForAGuest(t *testing.T) {
-	resolver := &stubResolver{identity: authcontext.Identity{UserID: 42}}
+	resolver := &stubResolver{identity: kit.Identity{UserID: 42}}
 	handler := newHandler(nil, resolver)
 
 	got, err := handler.callerID(context.Background())
@@ -60,10 +60,10 @@ func TestCallerIDIsNilForAGuest(t *testing.T) {
 // A route behind RequireAuth already carries the hydrated identity, so the
 // resolver must not be consulted a second time on every request.
 func TestCallerIDPrefersTheHydratedIdentity(t *testing.T) {
-	resolver := &stubResolver{identity: authcontext.Identity{UserID: 7}}
+	resolver := &stubResolver{identity: kit.Identity{UserID: 7}}
 	handler := newHandler(nil, resolver)
 
-	ctx := authcontext.With(context.Background(), authcontext.Identity{UserID: 99})
+	ctx := kit.WithIdentity(context.Background(), kit.Identity{UserID: 99})
 	got, err := handler.callerID(ctx)
 	if err != nil {
 		t.Fatalf("callerID: %v", err)

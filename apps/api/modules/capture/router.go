@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/FacileStudio/Echo/apps/api/internal/authcontext"
 	"github.com/FacileStudio/Echo/apps/api/internal/middleware"
 	"github.com/FacileStudio/Echo/apps/api/internal/plans"
+	"github.com/FacileStudio/porte/kit"
 	troncerrors "github.com/FacileStudio/tronc/errors"
 	"github.com/FacileStudio/tronc/httpjson"
 	"github.com/go-chi/chi/v5"
@@ -53,7 +53,7 @@ func (h handler) seated(w http.ResponseWriter, r *http.Request, scope string, pe
 }
 
 func (h handler) owner(w http.ResponseWriter, r *http.Request, scope string, perMinute int) (int64, bool) {
-	who, ok := authcontext.From(r.Context())
+	who, ok := kit.FromContext(r.Context())
 	if !ok {
 		httpjson.WriteError(w, troncerrors.Unauthorized("not authenticated"))
 		return 0, false

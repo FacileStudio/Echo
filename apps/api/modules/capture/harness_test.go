@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/FacileStudio/Echo/apps/api/internal/authcontext"
 	"github.com/FacileStudio/Echo/apps/api/internal/media"
 	"github.com/FacileStudio/Echo/apps/api/internal/middleware"
 	"github.com/FacileStudio/Echo/apps/api/internal/plans"
@@ -20,6 +19,7 @@ import (
 	"github.com/FacileStudio/Echo/apps/api/schemas"
 	"github.com/FacileStudio/porte"
 	"github.com/FacileStudio/porte/directory"
+	"github.com/FacileStudio/porte/kit"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -111,14 +111,14 @@ func (w *world) do(c call) *httptest.ResponseRecorder {
 		return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 			if id, err := strconv.ParseInt(r.Header.Get("X-Test-Session"), 10, 64); err == nil {
 				ctx := porte.WithIdentity(r.Context(), porte.Identity{UserID: id})
-				r = r.WithContext(authcontext.With(ctx, authcontext.Identity{UserID: id}))
+				r = r.WithContext(kit.WithIdentity(ctx, kit.Identity{UserID: id}))
 			}
 			next.ServeHTTP(rw, r)
 		})
 	})
 	requireAuth := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-			if _, ok := authcontext.From(r.Context()); !ok {
+			if _, ok := kit.FromContext(r.Context()); !ok {
 				http.Error(rw, "unauthenticated", http.StatusUnauthorized)
 				return
 			}

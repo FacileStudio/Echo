@@ -14,6 +14,7 @@ func Migrate(db *gorm.DB) error {
 	}
 
 	statements := []string{
+		userDefaults,
 		porteSchema,
 		porteBindingColumns,
 		callIndexes,
@@ -28,6 +29,11 @@ func Migrate(db *gorm.DB) error {
 	}
 	return nil
 }
+
+// userDefaults gives the legacy password_hash column the default its struct
+// tag declares. porte/kit inserts an account naming only the columns it
+// knows, and GORM's AutoMigrate never adds a default to a column that exists.
+const userDefaults = `ALTER TABLE users ALTER COLUMN password_hash SET DEFAULT '';`
 
 // porteBindingColumns are the two columns porte v0.10.0 added to
 // porte_login_codes so a code is bound to the identity that vouched for it.

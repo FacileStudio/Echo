@@ -11,7 +11,7 @@ type User struct {
 	ID           int64     `json:"id" gorm:"column:id;primaryKey"`
 	Email        string    `json:"email" gorm:"column:email;uniqueIndex;not null"`
 	Name         string    `json:"name" gorm:"column:name"`
-	PasswordHash string    `json:"-" gorm:"column:password_hash;not null"`
+	PasswordHash string    `json:"-" gorm:"column:password_hash;not null;default:''"`
 	Picture      string    `json:"picture" gorm:"column:picture;not null;default:''"`
 	Locale       string    `json:"locale" gorm:"column:locale;not null;default:en"`
 	IsAdmin      bool      `json:"is_admin" gorm:"column:is_admin;default:false"`
