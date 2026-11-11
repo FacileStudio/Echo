@@ -3,6 +3,9 @@ package deletions
 import (
 	"context"
 	"database/sql"
+	"strconv"
+
+	mcpkit "github.com/FacileStudio/tronc/mcp"
 )
 
 // filesKey carries the recording files an erasure removes once its
@@ -41,7 +44,8 @@ func statements() []string {
 // transcript lines, the transcript text and the summary, so nothing kept
 // names them. The kit deletes the users row after it, in the same
 // transaction. The recording files of the deleted calls are handed to the
-// caller through the context, to be removed after the commit.
+// caller through the context, to be removed after the commit. The person's
+// pending MCP actions go too.
 func EraseData(ctx context.Context, tx *sql.Tx, userID int64) error {
 	files, err := recordingFiles(ctx, tx, userID)
 	if err != nil {
@@ -55,7 +59,7 @@ func EraseData(ctx context.Context, tx *sql.Tx, userID int64) error {
 	if list, ok := ctx.Value(filesKey{}).(*[]string); ok {
 		*list = append(*list, files...)
 	}
-	return nil
+	return mcpkit.ErasePending(ctx, tx, strconv.FormatInt(userID, 10))
 }
 
 func recordingFiles(ctx context.Context, tx *sql.Tx, userID int64) ([]string, error) {

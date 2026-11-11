@@ -22,6 +22,10 @@ type summaryPayload struct {
 	CreatedAt string `json:"created_at"`
 }
 
+// Participant is one person of a call as the history routes show them, for
+// the MCP tools.
+type Participant = participantOut
+
 type participantOut struct {
 	Identity  string `json:"identity"`
 	Name      string `json:"name"`

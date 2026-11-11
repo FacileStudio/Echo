@@ -30,6 +30,11 @@ type Config struct {
 	// TrustedProxies are the hops whose X-Forwarded-For tronc's RealIP
 	// believes, from TRUSTED_PROXIES.
 	TrustedProxies []netip.Prefix
+
+	// MCPResource is MCP_RESOURCE, the canonical URI of the MCP endpoint,
+	// such as https://echo.facile.studio/mcp. Registre binds tokens to it.
+	// Empty, or with OIDC off, /mcp is not mounted.
+	MCPResource string
 }
 
 // defaultTrustedProxies is what an unset TRUSTED_PROXIES means here.
@@ -75,6 +80,7 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 	cfg.RecordingsDir = troncenv.String("RECORDINGS_DIR", "/recordings")
+	cfg.MCPResource = strings.TrimSpace(troncenv.String("MCP_RESOURCE", ""))
 	if err := cfg.Porte.Validate(); err != nil {
 		return Config{}, err
 	}

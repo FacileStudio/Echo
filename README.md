@@ -89,6 +89,7 @@ The API reads these on top of the tronc core variables (`PORT`, `DATABASE_URL`, 
 | `RECORDINGS_DIR` | no | `/recordings` | Directory the recordings volume is mounted at. Browser recordings are written here, so it must be writable; empty disables recording |
 | `ECHO_INTEGRATION_KEYS` | no | empty | `app:secret` pairs, comma-separated, for the integration API; empty refuses every app |
 | `ECHO_EMBED_ORIGINS` | no | empty | Origins allowed to frame `/embed/{room}`, comma-separated; empty allows none |
+| `MCP_RESOURCE` | no | empty | Canonical URI of the MCP endpoint, `https://echo.facile.studio/mcp` in production. Set with `OIDC_*` to serve `/mcp`; empty leaves it unmounted |
 | `TRUSTED_PROXIES` | no | `private,cloudflare` | Hops whose `X-Forwarded-For` is believed: CIDR blocks, addresses, the names `private` and `cloudflare` (tronc's published Cloudflare edge ranges), or `none`. echo.facile.studio sits behind Cloudflare and Traefik. Production's Traefik replaces Cloudflare's `X-Forwarded-For` with the edge address alone, so the join rate limit reads `Cf-Connecting-Ip` only when the peer is private and the rightmost `X-Forwarded-For` hop is a Cloudflare edge; otherwise it keys on the address this setting resolves |
 
 Plan limits (see [docs/plans.md](docs/plans.md)) come from Registre, and Echo syncs them only when
@@ -133,6 +134,31 @@ To make livekit-server call the webhook, its config needs a `webhook` block poin
 `https://echo.facile.studio/livekit/webhook`. See `deploy/compose/livekit.yaml`, and read the
 comment at the top of that file: production supplies the config through the `LIVEKIT_CONFIG`
 environment variable, not by mounting the file.
+
+## MCP server
+
+`POST /mcp` serves the Model Context Protocol to any MCP client (Claude, ChatGPT, Cursor, Bulle)
+holding a Registre access token bound to `MCP_RESOURCE`, with scopes `echo.read` and
+`echo.write`. `/.well-known/oauth-protected-resource/mcp` tells a client how to get one. The
+first MCP call of a person who never opened Echo creates their account, as a first sign-in
+would. MCP is free on every plan; transcripts and summaries still need `ai.access`.
+
+| Tool | Does | Confirmed |
+|---|---|---|
+| `echo_list_rooms` | the caller's rooms, links without key | no |
+| `echo_create_room` | a new room and its invite link with a fresh `#key=`, never stored | no |
+| `echo_rename_room` | a room's display name | no |
+| `echo_delete_room` | a room with every meeting in it | yes |
+| `echo_list_meetings` | the meetings the caller owns or sat in, by cursor | no |
+| `echo_get_meeting` | people, summary and recordings of one meeting | no |
+| `echo_read_transcript` | transcript lines, filtered by `query`, by cursor | no |
+| `echo_summarize_meeting` | writes the AI summary again (owner, `ai.access`) | no |
+| `echo_share_recording` | shares a recording with the call's participants or takes it back | no |
+
+A confirmed tool asks in the client when it can elicit (MRTR). Otherwise it returns a
+`confirm_url` to `/pending`, where the signed-in person confirms or dismisses the request
+(`GET /api/mcp/pending`, `POST /api/mcp/pending/{id}/confirm|dismiss`, session only). A room
+renamed or used for a new call after the request cannot be confirmed.
 
 ## Layout
 

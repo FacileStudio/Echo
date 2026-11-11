@@ -425,7 +425,56 @@ const rows = {
 		'Das Hochladen der Aufzeichnung ist fehlgeschlagen. Das bereits Gespeicherte bleibt erhalten.'
 	],
 	'api.failed': ['request failed ({status})', 'la requête a échoué ({status})', 'la solicitud falló ({status})', 'Anfrage fehlgeschlagen ({status})'],
-	'format.inProgress': ['In progress', 'En cours', 'En curso', 'Läuft']
+	'format.inProgress': ['In progress', 'En cours', 'En curso', 'Läuft'],
+
+	'title.pending': ['Confirm · Echo', 'Confirmer · Echo', 'Confirmar · Echo', 'Bestätigen · Echo'],
+	'pending.title': ['Waiting for you', 'En attente de vous', 'Esperando tu respuesta', 'Wartet auf dich'],
+	'pending.description': [
+		'An assistant connected to Echo asked to do this. Nothing happens until you confirm.',
+		'Un assistant connecté à Echo a demandé à faire ceci. Rien ne se passe tant que vous ne confirmez pas.',
+		'Un asistente conectado a Echo pidió hacer esto. No pasa nada hasta que confirmes.',
+		'Ein mit Echo verbundener Assistent möchte das tun. Nichts passiert, bevor du bestätigst.'
+	],
+	'pending.signInTitle': ['Sign in to confirm', 'Connectez-vous pour confirmer', 'Inicia sesión para confirmar', 'Melde dich zum Bestätigen an'],
+	'pending.signInBody': [
+		'Sign in, then open the link from your assistant again.',
+		'Connectez-vous, puis rouvrez le lien de votre assistant.',
+		'Inicia sesión y vuelve a abrir el enlace de tu asistente.',
+		'Melde dich an und öffne dann den Link deines Assistenten erneut.'
+	],
+	'pending.loadFailed': ['Could not load the requests', 'Impossible de charger les demandes', 'No se pudieron cargar las solicitudes', 'Anfragen konnten nicht geladen werden'],
+	'pending.emptyTitle': ['Nothing to confirm', 'Rien à confirmer', 'Nada que confirmar', 'Nichts zu bestätigen'],
+	'pending.emptyBody': [
+		'Requests you already answered, and requests older than 7 days, are gone.',
+		'Les demandes déjà traitées et celles de plus de 7 jours ont disparu.',
+		'Las solicitudes ya respondidas y las de más de 7 días ya no están.',
+		'Bereits beantwortete und über 7 Tage alte Anfragen sind verschwunden.'
+	],
+	'pending.deleteRoom': ['Delete room', 'Supprimer la salle', 'Eliminar sala', 'Raum löschen'],
+	'pending.askedBy': ['Asked by {client} · {when}', 'Demandé par {client} · {when}', 'Pedido por {client} · {when}', 'Angefragt von {client} · {when}'],
+	'pending.meetings': [
+		{ one: '{count} meeting', other: '{count} meetings' },
+		{ one: '{count} réunion', other: '{count} réunions' },
+		{ one: '{count} reunión', other: '{count} reuniones' },
+		{ one: '{count} Meeting', other: '{count} Meetings' }
+	],
+	'pending.deleteNote': [
+		'The room and every meeting in it go for good: transcripts, summaries and recordings.',
+		'La salle et toutes ses réunions disparaissent définitivement : transcriptions, résumés et enregistrements.',
+		'La sala y todas sus reuniones se eliminan para siempre: transcripciones, resúmenes y grabaciones.',
+		'Der Raum und alle seine Meetings werden endgültig gelöscht: Transkripte, Zusammenfassungen und Aufnahmen.'
+	],
+	'pending.changed': [
+		'This room changed after the request, so it cannot be confirmed. Ask your assistant again.',
+		'Cette salle a changé depuis la demande, elle ne peut donc pas être confirmée. Redemandez à votre assistant.',
+		'Esta sala cambió después de la solicitud, así que no se puede confirmar. Vuelve a pedírselo a tu asistente.',
+		'Dieser Raum hat sich seit der Anfrage geändert und kann nicht bestätigt werden. Frag deinen Assistenten erneut.'
+	],
+	'pending.missing': ['This room no longer exists.', 'Cette salle n’existe plus.', 'Esta sala ya no existe.', 'Dieser Raum existiert nicht mehr.'],
+	'pending.confirm': ['Delete for good', 'Supprimer définitivement', 'Eliminar para siempre', 'Endgültig löschen'],
+	'pending.dismiss': ['Dismiss', 'Ignorer', 'Descartar', 'Verwerfen'],
+	'pending.deleted': ['The room is deleted.', 'La salle est supprimée.', 'La sala se eliminó.', 'Der Raum ist gelöscht.'],
+	'pending.dismissed': ['Dismissed. Nothing was deleted.', 'Ignorée. Rien n’a été supprimé.', 'Descartada. No se eliminó nada.', 'Verworfen. Nichts wurde gelöscht.']
 } as const satisfies Record<string, Row>;
 
 export type MessageKey = keyof typeof rows;

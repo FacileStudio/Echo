@@ -1,6 +1,9 @@
 package schemas
 
-import "gorm.io/gorm"
+import (
+	mcpkit "github.com/FacileStudio/tronc/mcp"
+	"gorm.io/gorm"
+)
 
 // Migrate brings the schema up to date on every boot. Echo is a fresh porte
 // adoption: there are no legacy sessions to carry over and no pre-porte
@@ -21,6 +24,7 @@ func Migrate(db *gorm.DB) error {
 		integrationIndexes,
 		deletionState,
 		historyBackfill,
+		mcpkit.PendingSchema,
 	}
 	for _, statement := range statements {
 		if err := db.Exec(statement).Error; err != nil {

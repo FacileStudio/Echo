@@ -31,6 +31,7 @@ row afterwards.
 | Their lines in that call | `speaker` set to `erased-<seat id>` |
 | Their `user-<id>` in that call's transcript text and AI summary | replaced by `erased-<seat id>` |
 | Their capture answers in that call | deleted |
+| Their pending MCP requests (`mcp_actions`) | deleted |
 
 A call in someone else's room stays: it is the other people's record. Nothing kept names the
 erased person.

@@ -36,7 +36,7 @@ func (h *Handler) create(w http.ResponseWriter, r *http.Request) {
 	}
 	slug := req.Slug
 	if slug == "" {
-		slug = slugify(req.Name)
+		slug = Slugify(req.Name)
 	}
 	if slug == "" {
 		httpjson.WriteError(w, errors.Invalid("a name or a slug is required"))
@@ -190,7 +190,9 @@ func toRoomResponse(room schemas.Room, viewerID *int64) RoomResponse {
 	}
 }
 
-func slugify(name string) string {
+// Slugify turns a room name into the slug POST /rooms derives from it: lowercase
+// letters and digits, spaces, hyphens and underscores as hyphens, nothing else.
+func Slugify(name string) string {
 	lowered := strings.ToLower(name)
 	var builder strings.Builder
 	for _, r := range lowered {

@@ -14,6 +14,7 @@ import (
 	"github.com/FacileStudio/Echo/apps/api/modules/deletions"
 	"github.com/FacileStudio/Echo/apps/api/modules/history"
 	"github.com/FacileStudio/Echo/apps/api/modules/integrations"
+	"github.com/FacileStudio/Echo/apps/api/modules/mcp"
 	"github.com/FacileStudio/Echo/apps/api/modules/recording"
 	"github.com/FacileStudio/Echo/apps/api/modules/rooms"
 	"github.com/FacileStudio/Echo/apps/api/modules/transcripts"
@@ -50,6 +51,8 @@ type apiDeps struct {
 	seats          *seat.Keys
 	captureLimiter *middleware.RateLimiter
 	capturing      *capture.Service
+	history        *history.Service
+	mcp            *mcp.Service
 	keys           integrations.Keys
 }
 
@@ -77,6 +80,10 @@ func buildServer(shutdown context.Context, cfg env.Config, db *gorm.DB, log *slo
 	deps.seats = seat.NewKeys(mediaService.Secret())
 	deps.captureLimiter = middleware.NewRateLimiter()
 	deps.capturing = capture.NewService(db, deps.rooms, deps.seats, deps.captureLimiter, cfg.RecordingsDir)
+	deps.history = history.NewService(db, deps.rooms, summarize.NewFromEnv(), cfg.RecordingsDir)
+	if err := mountMCP(shutdown, router, &deps, log); err != nil {
+		return nil, fmt.Errorf("mcp: %w", err)
+	}
 	webhooks.New(db, troncenv.String("LIVEKIT_API_KEY", ""), mediaService.Secret()).
 		NotifyWith(forwarder).
 		NotifyWith(planning.limiter).
@@ -130,10 +137,27 @@ func mountAPI(r chi.Router, deps apiDeps) error {
 	}
 	rooms.RegisterRoutes(r, deps.rooms, deps.auth.users, deps.auth.requireAuth, middleware.NewRateLimiter())
 	recording.RegisterRoutes(r, recording.NewRecording(deps.rooms, deps.media), deps.auth.requireAuth)
-	historyService := history.NewService(deps.db, deps.rooms, summarize.NewFromEnv(), deps.cfg.RecordingsDir)
-	history.RegisterRoutes(r, historyService, deps.auth.requireAuth)
+	history.RegisterRoutes(r, deps.history, deps.auth.requireAuth)
 	transcripts.RegisterRoutes(r, transcripts.NewService(deps.db, deps.rooms.RequireAI), deps.seats, deps.captureLimiter)
 	capture.RegisterRoutes(r, deps.capturing, deps.auth.requireAuth)
 	integrations.RegisterRoutes(r, integrations.NewService(deps.db, deps.media, deps.keys))
+	if deps.mcp != nil {
+		mcp.RegisterPendingRoutes(r, deps.mcp, deps.auth.requireAuth)
+	}
+	return nil
+}
+
+// mountMCP builds the MCP server over the rooms and history services and
+// mounts /mcp on the root router, when MCP_RESOURCE and OIDC are set. The
+// confirm page's API is mounted with the other /api routes.
+func mountMCP(ctx context.Context, router chi.Router, deps *apiDeps, log *slog.Logger) error {
+	var err error
+	deps.mcp, err = newMCP(ctx, deps, mcp.Deps{
+		Rooms: deps.rooms, History: deps.history, Accounts: deps.auth.users, Limiter: middleware.NewRateLimiter(),
+	}, log)
+	if err != nil || deps.mcp == nil {
+		return err
+	}
+	mcp.RegisterRoutes(router, deps.mcp)
 	return nil
 }
