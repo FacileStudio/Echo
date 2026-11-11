@@ -1,6 +1,7 @@
 [tools]
 go = "1.26"
 bun = "1"
+lefthook = "2.1.12"
 
 # local overrides (ANTHROPIC_API_KEY, OIDC_*) go in .env, which is gitignored
 [env]
@@ -46,6 +47,10 @@ run = 'cd apps/client && bun install --frozen-lockfile'
 [tasks.models]
 description = "Download the Vosk models in-browser transcription loads (about 80 MB, not committed)"
 run = "sh scripts/vosk-models.sh apps/client/static/models"
+
+[tasks.hooks]
+description = "Install the tracked git hooks (lefthook.yml)"
+run = "lefthook install --reset-hooks-path"
 
 [tasks.check]
 description = "Run the full quality gate: every Go module, then the client"

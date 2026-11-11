@@ -12,7 +12,7 @@ RUN apk add --no-cache curl unzip
 COPY scripts/vosk-models.sh /vosk-models.sh
 RUN sh /vosk-models.sh /models
 
-FROM golang:1.26-alpine AS api-build
+FROM golang:1.26.10-alpine AS api-build
 
 ARG TARGETOS=linux
 ARG TARGETARCH

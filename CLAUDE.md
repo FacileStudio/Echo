@@ -60,5 +60,6 @@ remove borders (the speaking tile keeps its border). Changes here are functional
 | Quality gate | `mise run check` |
 | Go-only gate | `mise run check-go` |
 | Format Go | `mise run format` |
+| Install the pre-push hook (`scripts/check.sh`, `filet gate`) | `mise run hooks` |
 
 Deploy target: Dokploy compose `Echo v2` on gare.facile.studio, source `deploy/compose/app.yml`, autoDeploy from `master`, served at echo.facile.studio. LiveKit runs in the separate `Echo Media` compose (echo-live.facile.studio). Jitsi was removed on 2026-11-02; its last version is tagged `jitsi-final`.
