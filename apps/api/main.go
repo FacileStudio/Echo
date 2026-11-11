@@ -14,29 +14,10 @@ import (
 
 	"github.com/FacileStudio/Echo/apps/api/internal/database"
 	"github.com/FacileStudio/Echo/apps/api/internal/env"
-	"github.com/FacileStudio/Echo/apps/api/internal/media"
-	"github.com/FacileStudio/Echo/apps/api/internal/middleware"
-	"github.com/FacileStudio/Echo/apps/api/internal/seat"
-	"github.com/FacileStudio/Echo/apps/api/internal/summarize"
-	"github.com/FacileStudio/Echo/apps/api/modules/capture"
-	"github.com/FacileStudio/Echo/apps/api/modules/deletions"
-	"github.com/FacileStudio/Echo/apps/api/modules/history"
-	"github.com/FacileStudio/Echo/apps/api/modules/integrations"
-	"github.com/FacileStudio/Echo/apps/api/modules/recording"
-	"github.com/FacileStudio/Echo/apps/api/modules/rooms"
-	"github.com/FacileStudio/Echo/apps/api/modules/transcripts"
-	"github.com/FacileStudio/Echo/apps/api/modules/webhooks"
 	"github.com/FacileStudio/Echo/apps/api/schemas"
 	"github.com/FacileStudio/porte/session"
-
-	troncenv "github.com/FacileStudio/tronc/env"
-	"github.com/FacileStudio/tronc/health"
 	"github.com/FacileStudio/tronc/healthcheck"
-	"github.com/FacileStudio/tronc/httpx"
 	"github.com/FacileStudio/tronc/logger"
-	troncmiddleware "github.com/FacileStudio/tronc/middleware"
-	"github.com/FacileStudio/tronc/spa"
-	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 )
 
@@ -67,75 +48,14 @@ func run() int {
 	}
 	defer closeDB()
 
-	authKit, err := setupAuth(shutdown, cfg, db, log)
+	app, err := buildServer(shutdown, cfg, db, log)
 	if err != nil {
-		log.Error("auth", slog.Any("error", err))
+		log.Error("startup", slog.Any("error", err))
 		return 1
 	}
+	app.start(shutdown)
 
-	mediaService, err := media.NewServiceFromEnv()
-	if err != nil {
-		log.Error("media config", slog.Any("error", err))
-		return 1
-	}
-
-	planning, err := setupPlans(shutdown, cfg, db, mediaService, log)
-	if err != nil {
-		log.Error("plans", slog.Any("error", err))
-		return 1
-	}
-
-	clientDir := spa.DirFromEnv()
-	router := httpx.NewRouter(httpx.Config{
-		Logger:         log,
-		TrustedProxies: cfg.TrustedProxies,
-		CORS: troncmiddleware.CORSConfig{
-			AllowedOrigins:   cfg.CORSAllowedOrigins,
-			AllowCredentials: true,
-		},
-		Security: securityConfig(clientDir, log),
-	})
-	health.Mount(router)
-	router.Get("/version", versionHandler)
-	integrationKeys := integrations.NewKeys(cfg.IntegrationKeys)
-	forwarder := integrations.NewForwarder(db, integrationKeys, log)
-	planning.limiter.NotifyWith(forwarder)
-	roomsService := rooms.NewService(db, mediaService, planning.plans, planning.limiter)
-	seats := seat.NewKeys(mediaService.Secret())
-	captureLimiter := middleware.NewRateLimiter()
-	capturing := capture.NewService(db, roomsService, seats, captureLimiter, cfg.RecordingsDir)
-	webhooks.New(db, troncenv.String("LIVEKIT_API_KEY", ""), mediaService.Secret()).
-		NotifyWith(forwarder).
-		NotifyWith(planning.limiter).
-		NotifyWith(roomsService).
-		NotifyWith(capturing).
-		RegisterRoutes(router)
-	planning.Mount(router)
-	erasure := setupDeletions(cfg, db, log)
-	if erasure != nil {
-		deletions.RegisterRoutes(router, erasure)
-		go erasure.Run(shutdown)
-	}
-	router.Route("/api", func(r chi.Router) {
-		r.Use(extendWriteDeadline("/summary", summaryWriteBudget))
-		r.Use(extendWriteDeadline("/file", recordingWriteBudget))
-		authKit.Mount(r)
-		rooms.RegisterRoutes(r, roomsService, authKit.service, authKit.requireAuth, middleware.NewRateLimiter())
-		recording.RegisterRoutes(r, recording.NewRecording(roomsService, mediaService), authKit.requireAuth)
-		historyService := history.NewService(db, roomsService, summarize.NewFromEnv(), cfg.RecordingsDir)
-		history.RegisterRoutes(r, historyService, authKit.requireAuth)
-		transcripts.RegisterRoutes(r, transcripts.NewService(db, roomsService.RequireAI), seats, captureLimiter)
-		capture.RegisterRoutes(r, capturing, authKit.requireAuth)
-		integrations.RegisterRoutes(r, integrations.NewService(db, mediaService, integrationKeys))
-	})
-
-	go sweepSessions(shutdown, authKit.sessions, log)
-	go planning.Run(shutdown, log)
-	go capturing.Run(shutdown)
-
-	mountClient(router, clientDir, cfg.EmbedOrigins, log)
-
-	return serve(router, cfg.Port, shutdown.Done(), log)
+	return serve(app.router, cfg.Port, shutdown.Done(), log)
 }
 
 func openDatabase(url string, log *slog.Logger) (orm *gorm.DB, close func(), err error) {
