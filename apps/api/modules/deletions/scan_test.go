@@ -21,8 +21,7 @@ import (
 type person struct {
 	id                   int64
 	email, name, subject string
-	ownCall, keptCall    uuid.UUID
-	identity, provider   string
+	identity             string
 	db                   *gorm.DB
 }
 
@@ -39,7 +38,7 @@ func seedPerson(t *testing.T, db *gorm.DB, provider, email, name, subject string
 	if err := db.Create(&user).Error; err != nil {
 		t.Fatal(err)
 	}
-	p := person{id: user.ID, email: email, name: name, subject: subject, identity: "user-" + itoa(user.ID), provider: provider, db: db}
+	p := person{id: user.ID, email: email, name: name, subject: subject, identity: "user-" + itoa(user.ID), db: db}
 	p.exec(t, `INSERT INTO porte_identities (user_id, provider, subject, access_token) VALUES (?, ?, ?, ?)`, p.id, provider, subject, "tok-"+subject)
 	p.exec(t, `INSERT INTO porte_sessions (token_hash, user_id, label) VALUES (?, ?, ?)`, "hash-"+subject, p.id, name)
 	p.exec(t, `INSERT INTO porte_login_codes (code_hash, user_id, expires_at, provider, subject) VALUES (?, ?, now(), ?, ?)`,
