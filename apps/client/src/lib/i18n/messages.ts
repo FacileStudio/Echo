@@ -407,6 +407,19 @@ const rows = {
 		'El reconocimiento de voz no pudo iniciarse en este dispositivo. No se te transcribe.',
 		'Die Spracherkennung konnte auf diesem Gerät nicht starten. Du wirst nicht transkribiert.'
 	],
+	'whiteboard.open': ['Open the whiteboard', 'Ouvrir le tableau blanc', 'Abrir la pizarra', 'Whiteboard öffnen'],
+	'whiteboard.signIn': [
+		'Sign in to Toile, then open the whiteboard again.',
+		'Connectez-vous à Toile, puis rouvrez le tableau blanc.',
+		'Inicia sesión en Toile y vuelve a abrir la pizarra.',
+		'Melde dich bei Toile an und öffne das Whiteboard erneut.'
+	],
+	'whiteboard.failed': [
+		'Could not open the whiteboard. Try again in a moment.',
+		'Impossible d’ouvrir le tableau blanc. Réessayez dans un instant.',
+		'No se pudo abrir la pizarra. Vuelve a intentarlo en un momento.',
+		'Das Whiteboard konnte nicht geöffnet werden. Versuche es gleich noch einmal.'
+	],
 	'capture.startTranscription': ['Start transcription', 'Démarrer la transcription', 'Iniciar la transcripción', 'Transkription starten'],
 	'capture.stopTranscription': ['Stop transcription', 'Arrêter la transcription', 'Detener la transcripción', 'Transkription beenden'],
 	'capture.startRecording': ['Start recording', 'Démarrer l’enregistrement', 'Iniciar la grabación', 'Aufzeichnung starten'],

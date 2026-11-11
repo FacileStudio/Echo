@@ -57,6 +57,7 @@
 	let messages = $state<ChatMessage[]>([]);
 	let error = $state('');
 	let screenError = $state('');
+	let boardError = $state('');
 	let cryptError = $state('');
 	const failing = new Set<string>();
 	let encrypted = $state(false);
@@ -209,10 +210,10 @@
 	{#if capture?.state && (capture.state.transcription || capture.state.recording)}
 		<CaptureBanner session={capture} />
 	{/if}
-	{#if cryptError || error || screenError || capture?.error}
+	{#if cryptError || error || screenError || boardError || capture?.error}
 		<div class="px-4 pb-3">
 			<Alert tone={cryptError ? 'danger' : 'warning'} title={cryptError ? t('live.cannotDecrypt') : t('live.mediaProblem')}>
-				{cryptError || error || screenError || capture?.error}
+				{cryptError || error || screenError || boardError || capture?.error}
 			</Alert>
 		</div>
 	{/if}
@@ -239,6 +240,8 @@
 			{encrypted}
 			canShare={canShareScreen()}
 			{capture}
+			boardRoom={embedded ? '' : slug}
+			onBoardError={(message) => (boardError = message)}
 			onToggleMic={toggleMic}
 			onToggleCam={toggleCam}
 			onToggleScreen={toggleScreen}

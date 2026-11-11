@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- A whiteboard button in the call controls for the organizer. It asks Toile for the room's board (`POST /api/boards/meeting`) and opens the edit link in a new tab. See docs/integrations.md.
+
 ## [2.8.1] - 2026-11-11
 
 ### Security

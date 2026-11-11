@@ -8,7 +8,7 @@
 		"dev": "vite dev",
 		"build": "vite build",
 		"preview": "vite preview",
-		"test": "bun run scripts/check-messages.ts && bun run scripts/check-capture.ts",
+		"test": "bun run scripts/check-messages.ts && bun run scripts/check-capture.ts && bun run scripts/check-whiteboard.ts",
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch"

@@ -222,6 +222,12 @@ mac.Write(body)
 ok := hmac.Equal([]byte(hex.EncodeToString(mac.Sum(nil))), []byte(r.Header.Get("X-Echo-Signature")))
 ```
 
+## Toile whiteboard
+
+Echo calls Toile here, not the other way round. In a room on echo.facile.studio (not in `/embed`), the organizer gets a whiteboard button next to transcription and recording. It sends `POST https://toile.facile.studio/api/boards/meeting` with `{"room": "<slug>"}`, the Toile session cookie and `X-Facile-CSRF: 1`. Toile returns the room's board, the same one on every call, and an edit share link; Echo opens `share.url` (else `url`) in a new tab, and refuses any link outside Toile's origin. A 401 asks the person to sign in to Toile first.
+
+Toile has to allow `https://echo.facile.studio` through CORS with credentials for this call. `VITE_TOILE_BASE` overrides the Toile origin at build time; the default is production.
+
 ## Decisions
 
 Recorded 2026-11-03, when the API was built for Prisme.

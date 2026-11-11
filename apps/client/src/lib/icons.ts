@@ -16,5 +16,6 @@ export const callIcons = {
 	send: 'iconoir:send',
 	link: 'iconoir:link',
 	people: 'iconoir:group',
-	lock: 'iconoir:lock'
+	lock: 'iconoir:lock',
+	whiteboard: 'iconoir:presentation'
 } as const;
