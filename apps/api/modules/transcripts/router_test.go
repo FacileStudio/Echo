@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/FacileStudio/Echo/apps/api/internal/middleware"
 	"github.com/FacileStudio/Echo/apps/api/internal/seat"
@@ -54,6 +55,9 @@ func TestTheSpeakerIsTheKeyHoldersAndNeverTheBody(t *testing.T) {
 	}
 }
 
+// A seat is refused before it sends more than a minute's budget plus what
+// the bucket refilled while the loop ran, so a slow machine cannot turn the
+// refill into a false failure.
 func TestLinesAreRateLimitedPerSeat(t *testing.T) {
 	db := testdb.Migrated(t)
 	keys := seat.NewKeys("secret")
@@ -62,17 +66,20 @@ func TestLinesAreRateLimitedPerSeat(t *testing.T) {
 	RegisterRoutes(router, NewService(db, nil), keys, middleware.NewRateLimiter())
 	key := keys.Sign("standup", "guest-ab12cd34")
 
-	refused := 0
-	for range linesPerMinute + 10 {
+	started := time.Now()
+	accepted := 0
+	for range 3 * linesPerMinute {
 		req := httptest.NewRequest(http.MethodPost, "/rooms/standup/transcript", strings.NewReader(`{"text":"a","start_ms":0,"end_ms":1}`))
 		req.Header.Set(seat.Header, key)
 		rec := httptest.NewRecorder()
 		router.ServeHTTP(rec, req)
 		if rec.Code == http.StatusTooManyRequests {
-			refused++
+			break
 		}
+		accepted++
 	}
-	if refused == 0 {
-		t.Fatal("a seat sent more than a minute's budget of lines without being refused")
+	refilled := int(time.Since(started).Seconds()*linesPerMinute/60) + 1
+	if accepted > linesPerMinute+refilled {
+		t.Fatalf("a seat sent %d lines, over a minute's budget of %d plus %d refilled", accepted, linesPerMinute, refilled)
 	}
 }
