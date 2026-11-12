@@ -22,21 +22,35 @@ type Deletions struct {
 	receiver      *directory.Deletions
 }
 
+// Identity is porte's own half of an erasure. Erase removes porte's rows for
+// an identity, pg.Store.EraseIdentity. Holds reports whether a handled
+// subject owns an identity again, pg.Store.HoldsIdentity, so an account
+// re-created by a sign-in racing the erasure is erased again without a restart.
+type Identity struct {
+	Erase func(ctx context.Context, provider, subject string) error
+	Holds func(ctx context.Context, provider, subject string) (bool, error)
+}
+
 // New builds the receiver over Echo's tables. users is the kit store built
-// with EraseData; erase removes porte's own rows, pg.Store.EraseIdentity.
-func New(
-	users *kit.Store, client directory.Client, erase func(context.Context, string, string) error,
-	recordingsDir string, logger *slog.Logger,
-) *Deletions {
+// with EraseData.
+func New(users *kit.Store, client directory.Client, identity Identity, recordingsDir string, logger *slog.Logger) *Deletions {
 	d := &Deletions{users: users, recordingsDir: recordingsDir, logger: logger}
 	d.receiver = &directory.Deletions{
 		Client:          client,
 		OnPersonDeleted: d.ErasePerson,
-		Erase:           erase,
+		Erase:           identity.Erase,
+		Holds:           identity.Holds,
 		State:           state{db: users.DB},
 		Logger:          logger,
 	}
 	return d
+}
+
+// Erased reports whether Echo already erased the person behind (provider,
+// subject). porte/oidc asks it before a sign-in, a first MCP call or a profile
+// sync gives that identity an account again: porte.ErasedSubjects.
+func (d *Deletions) Erased(ctx context.Context, provider, subject string) (bool, error) {
+	return d.receiver.Erased(ctx, provider, subject)
 }
 
 // Run polls until ctx ends. Start it in exactly one replica.
