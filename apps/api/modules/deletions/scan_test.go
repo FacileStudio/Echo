@@ -136,7 +136,7 @@ func TestARegistreDeletionLeavesNoTextColumnNamingThePerson(t *testing.T) {
 		t.Fatal(err)
 	}
 	client := directory.Client{Issuer: registre.URL, ClientID: "echo", ClientSecret: "secret"}
-	erased := New(users, client, portepg.New(sqlDB).EraseIdentity, t.TempDir(), slog.Default())
+	erased := New(users, client, Identity{Erase: portepg.New(sqlDB).EraseIdentity}, t.TempDir(), slog.Default())
 	if err := erased.receiver.Poll(context.Background()); err != nil {
 		t.Fatalf("poll: %v", err)
 	}
@@ -154,5 +154,48 @@ func TestARegistreDeletionLeavesNoTextColumnNamingThePerson(t *testing.T) {
 	var lines int64
 	if err := db.Raw(`SELECT count(*) FROM transcript_lines WHERE call_id = ?`, shared).Scan(&lines).Error; err != nil || lines != 2 {
 		t.Fatalf("the shared call kept %d lines, %v, want 2", lines, err)
+	}
+}
+
+// An account re-created for an erased subject, by a sign-in racing the
+// erasure, is erased again by the next poll of the same receiver, with no
+// restart, and the guard porte/oidc consults answers true for that subject
+// only, so the sign-in or the MCP provisioning is refused meanwhile.
+func TestARecreatedAccountForAnErasedSubjectIsErasedAgain(t *testing.T) {
+	db := testdb.Migrated(t)
+	sqlDB, err := db.DB()
+	if err != nil {
+		t.Fatal(err)
+	}
+	registre := fakeRegistre(t, "sub-gone-9c1e")
+	seedPerson(t, db, registre.URL, "gone.9c1e@example.com", "Gone Person", "sub-gone-9c1e")
+	kept := seedPerson(t, db, registre.URL, "kept@example.com", "Kept Person", "sub-kept")
+	users, err := auth.NewStore(context.Background(), sqlDB, slog.Default(), EraseData)
+	if err != nil {
+		t.Fatal(err)
+	}
+	identities := portepg.New(sqlDB)
+	client := directory.Client{Issuer: registre.URL, ClientID: "echo", ClientSecret: "secret"}
+	erased := New(users, client, Identity{Erase: identities.EraseIdentity, Holds: identities.HoldsIdentity}, t.TempDir(), slog.Default())
+	ctx := context.Background()
+	if err := erased.receiver.Poll(ctx); err != nil {
+		t.Fatalf("poll: %v", err)
+	}
+	if gone, err := erased.Erased(ctx, registre.URL, "sub-gone-9c1e"); err != nil || !gone {
+		t.Fatalf("Erased(gone) = %v, %v; want true: sign-in and provisioning would not be refused", gone, err)
+	}
+	if gone, err := erased.Erased(ctx, registre.URL, kept.subject); err != nil || gone {
+		t.Fatalf("Erased(kept) = %v, %v; want false", gone, err)
+	}
+
+	seedPerson(t, db, registre.URL, "gone.9c1e@example.com", "Gone Person", "sub-gone-9c1e")
+	if err := erased.receiver.Poll(ctx); err != nil {
+		t.Fatalf("second poll: %v", err)
+	}
+	var left, others int64
+	db.Raw(`SELECT count(*) FROM users WHERE email = 'gone.9c1e@example.com'`).Scan(&left)
+	db.Raw(`SELECT count(*) FROM users WHERE id = ?`, kept.id).Scan(&others)
+	if left != 0 || others != 1 {
+		t.Fatalf("after the second poll: %d re-created rows left (want 0), kept person rows %d (want 1)", left, others)
 	}
 }

@@ -7,18 +7,17 @@ import (
 	"github.com/FacileStudio/Echo/apps/api/modules/deletions"
 	"github.com/FacileStudio/porte/directory"
 	"github.com/FacileStudio/porte/kit"
+	portepg "github.com/FacileStudio/porte/pg"
 )
 
 // setupDeletions follows Registre's GDPR deletions with the same client
 // credentials as the plan snapshot. It returns nil without OIDC: there is no
-// Registre to follow. Echo runs one replica, so this is the one poller.
-func setupDeletions(cfg env.Config, users *kit.Store, log *slog.Logger) *deletions.Deletions {
+// Registre to follow. Echo runs one replica, so this is the one poller. It is
+// built before the OIDC kit, which asks it whether a subject was erased, and
+// its Client.Issuer is OIDC_ISSUER, the provider porte/oidc files identities
+// under.
+func setupDeletions(cfg env.Config, users *kit.Store, store *portepg.Store, log *slog.Logger) *deletions.Deletions {
 	if !cfg.Porte.Enabled() {
-		return nil
-	}
-	store, err := newPorteStore(users.DB)
-	if err != nil {
-		log.Error("deletion receiver not started", slog.Any("error", err))
 		return nil
 	}
 	client := directory.Client{
@@ -26,5 +25,6 @@ func setupDeletions(cfg env.Config, users *kit.Store, log *slog.Logger) *deletio
 		ClientID:     cfg.Porte.ClientID,
 		ClientSecret: cfg.Porte.ClientSecret,
 	}
-	return deletions.New(users, client, store.EraseIdentity, cfg.RecordingsDir, log)
+	identity := deletions.Identity{Erase: store.EraseIdentity, Holds: store.HoldsIdentity}
+	return deletions.New(users, client, identity, cfg.RecordingsDir, log)
 }

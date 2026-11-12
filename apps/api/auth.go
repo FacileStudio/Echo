@@ -23,6 +23,7 @@ type authKit struct {
 	oidc        *oidc.Kit
 	identities  porte.IdentityStore
 	users       *kit.Store
+	erasure     *deletions.Deletions
 	service     *auth.Service
 	requireAuth func(http.Handler) http.Handler
 }
@@ -64,13 +65,18 @@ func setupAuth(shutdown context.Context, cfg env.Config, db *gorm.DB, log *slog.
 	if err != nil {
 		return nil, err
 	}
-	oidcKit, err := oidc.New(shutdown, cfg.Porte, oidc.Deps{
+	erasure := setupDeletions(cfg, users, identityStore, log)
+	deps := oidc.Deps{
 		Users:      users,
 		Identities: identityStore.Identities(),
 		Sessions:   sessions,
 		Codes:      identityStore.LoginCodes(),
 		Logger:     log,
-	})
+	}
+	if erasure != nil {
+		deps.Erased = erasure
+	}
+	oidcKit, err := oidc.New(shutdown, cfg.Porte, deps)
 	if err != nil {
 		return nil, err
 	}
@@ -84,6 +90,7 @@ func setupAuth(shutdown context.Context, cfg env.Config, db *gorm.DB, log *slog.
 		oidc:        oidcKit,
 		identities:  identityStore.Identities(),
 		users:       users,
+		erasure:     erasure,
 		service:     auth.NewService(db),
 		requireAuth: kit.RequireAuth(sessions, users),
 	}, nil

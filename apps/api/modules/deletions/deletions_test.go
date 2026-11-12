@@ -39,7 +39,7 @@ func newFixture(t *testing.T) fixture {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return fixture{db: db, dir: dir, erased: New(users, directory.Client{Issuer: issuer}, nil, dir, slog.Default())}
+	return fixture{db: db, dir: dir, erased: New(users, directory.Client{Issuer: issuer}, Identity{}, dir, slog.Default())}
 }
 
 func itoa(id int64) string {

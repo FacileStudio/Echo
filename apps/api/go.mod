@@ -3,12 +3,12 @@ module github.com/FacileStudio/Echo/apps/api
 go 1.26.11
 
 require (
-	github.com/FacileStudio/porte v0.18.3
-	github.com/FacileStudio/porte/directory v0.4.0
+	github.com/FacileStudio/porte v0.19.0
+	github.com/FacileStudio/porte/directory v0.5.0
 	github.com/FacileStudio/porte/forfait v0.1.1
 	github.com/FacileStudio/porte/mcpauth v0.2.1
 	github.com/FacileStudio/tronc v0.22.1
-	github.com/go-chi/chi/v5 v5.4.0
+	github.com/go-chi/chi/v5 v5.5.0
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/livekit/protocol v1.49.0
@@ -40,7 +40,7 @@ require (
 	github.com/frostbyte73/core v0.1.1 // indirect
 	github.com/fsnotify/fsnotify v1.10.1 // indirect
 	github.com/gammazero/deque v1.2.1 // indirect
-	github.com/go-jose/go-jose/v4 v4.1.6 // indirect
+	github.com/go-jose/go-jose/v4 v4.1.9 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
 	github.com/google/cel-go v0.30.0 // indirect
