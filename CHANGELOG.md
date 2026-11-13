@@ -1,5 +1,25 @@
 # Changelog
 
+## [2.9.0] - 2026-11-13
+
+### Changed
+
+- Database: the schema is ordered goose SQL under `apps/api/migrations/`, applied at boot by `tronc/migrate` v0.1.1 behind a Postgres advisory lock. GORM `AutoMigrate` and the statements `schemas.Migrate` ran at every boot are gone; the GORM structs stay as the query layer. `TestGORMModelsMatchTheMigratedSchema` fails when a struct names a column the migrations do not create or a type its field cannot hold, and `scripts/check.sh` fails on an `.AutoMigrate(` call outside a test file. A failed migration stops the boot with exit status 1.
+- Database: `00001_baseline.sql` is production's schema as `pg_dump --schema-only` printed it on 2026-11-13, porte's three tables and `tronc/mcp`'s `mcp_actions` included. Two drift tests pin those against `porte/pg.Schema` and `mcp.PendingSchema`, so a library bump that changes them fails until it gets a numbered migration. A database built before this release (Echo's tables, no applied migration) is stamped at version 1 on its first boot with tronc/migrate's `baseline` command, so the baseline is recorded without running. A database built from the migrations alone dumps identical to production.
+- Boot: the three data steps the old boot ran at every start are gone. Production held no row any of them would change on 2026-11-13, and nothing in Echo writes one any more: the porte re-key of `local` password identities (Echo signs in through Registre only, with 0 `local` identities), the seat link from a `user-<id>` identity (the webhook sets `user_id` at insert) and the `recordings` row for an egress `recording_path` (the egress webhook writes both in one transaction).
+- build: `github.com/FacileStudio/tronc/migrate` v0.1.1 with `pressly/goose/v3` v3.27.3; goose raises `segmentio/asm` v1.1.3 to v1.2.1, `go-logr/logr` v1.4.3 to v1.4.4, `prometheus/procfs` v0.20.1 to v0.21.1, `golang.org/x/exp` and `genproto/googleapis/rpc` (all indirect).
+
+### Added
+
+- `docker run <image> migrate status` (also `up`, `version`, `baseline <n>`) answers without a shell.
+- Database: `00002_column_defaults.sql` gives every `created_at` and `updated_at` GORM fills itself a `now()` default (`calls`, `capture_consents`, `forfait_state`, `recordings`, `rooms`, `summaries`, `transcripts`, `users`), so a row written outside GORM, porte/kit's sign-up insert first among them, no longer gets NULL there. It has a Down.
+
+### Rollback
+
+- Rolling back to v2.8.x boots, but its AutoMigrate removes the defaults 00002 added, because their struct tags do not declare them, while the ledger still records version 2. Before deploying v2.9.0 or later again after such a rollback, run `DELETE FROM goose_db_version WHERE version_id = 2`.
+
+No UI change.
+
 ## [2.8.2] - 2026-11-12
 
 ### Fixed
