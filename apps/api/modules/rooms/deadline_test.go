@@ -17,7 +17,7 @@ func TestTheDeadlineComesFromLiveKitsSessionStart(t *testing.T) {
 	s.live = &fakeLive{room: dummyLive("RM_unrecorded", created)}
 	deadlines := s.deadlines.(*fakeDeadlines)
 	owner := addOwner(t, s, "sub-free")
-	pushPlan(t, s, "someone-else", nil)
+	pushPlan(t, s, "sub-free", callMinutes(`40`))
 	if _, err := s.Create(context.Background(), "free-call", "free-call", &owner); err != nil {
 		t.Fatalf("create: %v", err)
 	}
@@ -37,10 +37,30 @@ func TestTheDeadlineComesFromLiveKitsSessionStart(t *testing.T) {
 	}
 }
 
+func TestAFreeCallHasNoDeadline(t *testing.T) {
+	s := newTestService(t)
+	s.live = &fakeLive{room: dummyLive("RM_free", time.Now().Add(-90*time.Minute))}
+	owner := addOwner(t, s, "sub-unlimited")
+	pushPlan(t, s, "someone-else", nil)
+	if _, err := s.Create(context.Background(), "unlimited-call", "unlimited-call", &owner); err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	admission, err := s.Token(context.Background(), JoinRequest{Slug: "unlimited-call", DisplayName: "Guest"})
+	if err != nil {
+		t.Fatalf("token: %v", err)
+	}
+	if admission.Deadline != nil || toTokenResponse(admission, "", "", "").CallDeadline != "" {
+		t.Fatalf("a free owner's call got a deadline: %v", admission.Deadline)
+	}
+	if len(s.deadlines.(*fakeDeadlines).armed) != 0 {
+		t.Fatal("a free owner's call armed a timer")
+	}
+}
+
 func TestARecordedSessionLeavesTheTimerToItsCall(t *testing.T) {
 	s := newTestService(t)
 	owner := addOwner(t, s, "sub-recorded")
-	pushPlan(t, s, "someone-else", nil)
+	pushPlan(t, s, "sub-recorded", callMinutes(`40`))
 	call := openCallWith(t, s, "recorded", owner)
 	s.live = &fakeLive{room: dummyLive(call.LivekitRoomSID, call.StartedAt)}
 	admission, err := s.Token(context.Background(), JoinRequest{Slug: "recorded", DisplayName: "Guest"})
@@ -55,7 +75,7 @@ func TestARecordedSessionLeavesTheTimerToItsCall(t *testing.T) {
 func TestACutRoomCoolsDownBeforeANewCall(t *testing.T) {
 	s := newTestService(t)
 	owner := addOwner(t, s, "sub-cut")
-	pushPlan(t, s, "someone-else", nil)
+	pushPlan(t, s, "sub-cut", callMinutes(`40`))
 	call := openCallWith(t, s, "cut", owner)
 	ended := call.StartedAt.Add(40*time.Minute + 15*time.Second)
 	if err := s.orm.Model(&schemas.Call{}).Where("id = ?", call.ID).Update("ended_at", ended).Error; err != nil {
@@ -76,7 +96,7 @@ func TestACutRoomCoolsDownBeforeANewCall(t *testing.T) {
 func TestACutNoWebhookReportedStillCoolsDown(t *testing.T) {
 	s := newTestService(t)
 	owner := addOwner(t, s, "sub-silent-cut")
-	pushPlan(t, s, "someone-else", nil)
+	pushPlan(t, s, "sub-silent-cut", callMinutes(`40`))
 	if _, err := s.Create(context.Background(), "silent-cut", "silent-cut", &owner); err != nil {
 		t.Fatalf("create: %v", err)
 	}

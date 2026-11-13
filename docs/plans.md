@@ -6,7 +6,7 @@ Registre. Echo pulls it with porte/forfait and never recomputes a plan.
 | Feature | Free | Pro | Studio | Enforced at |
 |---|---|---|---|---|
 | `echo.max_participants` | 4 | 25 | 100 | Join token (`POST /api/rooms/{slug}/token`) and LiveKit room ceiling |
-| `echo.max_call_minutes` | 40 | unlimited | unlimited | Server timer that closes the LiveKit room |
+| `echo.max_call_minutes` | unlimited | unlimited | unlimited | Server timer that closes the LiveKit room |
 | `echo.recording` | off | on | on | `POST /api/rooms/{slug}/record/start` |
 
 A refusal answers HTTP 402 with `{"error":{"code":"payment_required","message","key","limit","upgrade_url"}}`.
@@ -25,10 +25,15 @@ A refusal answers HTTP 402 with `{"error":{"code":"payment_required","message","
   Registre's next snapshot. Do not blank the document: an empty row is treated as unreadable and
   enforces the free plan.
 
-## Call length: 40 minutes per meeting
+## Call length
 
-The free rule is 40 minutes per meeting, as in other free video tools. It is not 40 minutes per
-day. This is the owner's decision.
+Every plan, free included, has unlimited call length. This is the owner's decision of 2026-11-13;
+until then the free plan cut a meeting at 40 minutes. Echo's own default for
+`echo.max_call_minutes` is -1, so a scope Registre sends no value for is unlimited too.
+
+An unlimited plan arms no timer: the token response and `GET /api/rooms/{slug}/deadline` carry no
+`call_deadline`, and the client shows no countdown. The rules below apply only when a scope
+carries a positive `echo.max_call_minutes`, for example a per-person override in Ardoise.
 
 - A call starts when LiveKit creates its room. Echo reads that creation time, or the call row's
   `started_at`, never a time the client sends.

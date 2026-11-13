@@ -164,9 +164,15 @@ func TestTheDeadlineFollowsTheLimit(t *testing.T) {
 	if _, limited := p.Deadline(Policy{}, testStart); limited {
 		t.Fatal("a store that never synced limited call length")
 	}
-	p.store.Apply(directory.Snapshot{EntitlementsRevision: 1})
-	if got, limited := p.Deadline(Policy{}, testStart); !limited || !got.Equal(testStart.Add(40*time.Minute)) {
-		t.Fatalf("free deadline = %v, %v", got, limited)
+	p.store.Apply(directory.Snapshot{EntitlementsRevision: 1, People: []directory.Person{{
+		Subject: "sub-capped", Entitlements: map[string]json.RawMessage{KeyMaxCallMinutes: json.RawMessage(`40`)},
+	}}})
+	if _, limited := p.Deadline(Policy{}, testStart); limited {
+		t.Fatal("the free default limited call length")
+	}
+	capped := Policy{Scope: forfait.Scope{Subject: "sub-capped"}}
+	if got, limited := p.Deadline(capped, testStart); !limited || !got.Equal(testStart.Add(40*time.Minute)) {
+		t.Fatalf("capped deadline = %v, %v", got, limited)
 	}
 	if _, limited := p.Deadline(Policy{Unlimited: true}, testStart); limited {
 		t.Fatal("an unlimited policy got a deadline")

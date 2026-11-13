@@ -42,6 +42,10 @@ func capAt(n string) map[string]json.RawMessage {
 	return map[string]json.RawMessage{"echo.max_participants": json.RawMessage(n)}
 }
 
+func callMinutes(n string) map[string]json.RawMessage {
+	return map[string]json.RawMessage{"echo.max_call_minutes": json.RawMessage(n)}
+}
+
 func openCallWith(t *testing.T, s *Service, slug string, ownerID int64, identities ...string) schemas.Call {
 	t.Helper()
 	room, err := s.Create(context.Background(), slug, slug, &ownerID)

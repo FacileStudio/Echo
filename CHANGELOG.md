@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+
+- Plans: `echo.max_call_minutes` defaults to -1 (unlimited) instead of 40. A room whose owner Registre sends no value for (no owner, an owner who never signed in through Registre, or a free plan) arms no call timer, its token response carries no `call_deadline` and the client shows no countdown. `echo.recording` still defaults to off.
+
 ## [2.9.1] - 2026-11-13
 
 ### Changed
