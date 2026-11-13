@@ -6,11 +6,13 @@
 package testdb
 
 import (
+	"context"
+	"log/slog"
 	"os"
 	"strings"
 	"testing"
 
-	"github.com/FacileStudio/Echo/apps/api/schemas"
+	"github.com/FacileStudio/Echo/apps/api/migrations"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -75,10 +77,20 @@ func Open(t *testing.T) *gorm.DB {
 func Migrated(t *testing.T) *gorm.DB {
 	t.Helper()
 	db := Open(t)
-	if err := schemas.Migrate(db); err != nil {
+	if err := Up(db); err != nil {
 		t.Fatalf("migrate: %v", err)
 	}
 	return db
+}
+
+// Up applies Echo's migrations to db through the same runner the server
+// boots with.
+func Up(db *gorm.DB) error {
+	sqlDB, err := db.DB()
+	if err != nil {
+		return err
+	}
+	return migrations.Up(context.Background(), migrations.Config(sqlDB, slog.New(slog.DiscardHandler)))
 }
 
 func withSearchPath(url, schema string) string {

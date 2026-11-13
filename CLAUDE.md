@@ -45,8 +45,11 @@ remove borders (the speaking tile keeps its border). Changes here are functional
 
 ## Conventions that apply here
 
-- tronc chassis: error envelope, `/health`+`/ready`, OpenAPI at `/docs`, goose migrations
-  embedded in `apps/api/schemas` or `modules/*/migrations` following Journal's shape
+- tronc chassis: error envelope, `/health`+`/ready`, OpenAPI at `/docs`
+- The schema is goose SQL in `apps/api/migrations/`, applied at boot by `tronc/migrate`.
+  `00001_baseline.sql` is production's 2026-11-13 schema; a change is the next numbered file
+  with Up and Down, plus the struct in `schemas/` by hand. `scripts/check.sh` fails on
+  `.AutoMigrate(` outside tests. `docker run <image> migrate status` answers without a shell
 - filet gate must stay clean; `requiredFiles` demands `router.go` in every HTTP module
 - muse tokens for all UI color/spacing; Svelte 5 runes everywhere (vite config forces runes)
 - Capacitor mobile shell is phase 2 — keep client logic platform-aware but web-only for now

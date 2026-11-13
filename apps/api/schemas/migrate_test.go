@@ -1,7 +1,6 @@
 package schemas_test
 
 import (
-	"strconv"
 	"testing"
 
 	"github.com/FacileStudio/Echo/apps/api/internal/testdb"
@@ -97,10 +96,10 @@ func TestDeletingARoomCascadesThroughCalls(t *testing.T) {
 func TestMigrationsAreIdempotent(t *testing.T) {
 	db := testdb.Open(t)
 
-	if err := schemas.Migrate(db); err != nil {
+	if err := testdb.Up(db); err != nil {
 		t.Fatalf("first migrate: %v", err)
 	}
-	if err := schemas.Migrate(db); err != nil {
+	if err := testdb.Up(db); err != nil {
 		t.Fatalf("migrate is not idempotent: %v", err)
 	}
 }
@@ -123,7 +122,7 @@ func TestASecondMigrateLeavesExistingRowsAlone(t *testing.T) {
 		}
 	}
 
-	if err := schemas.Migrate(db); err != nil {
+	if err := testdb.Up(db); err != nil {
 		t.Fatalf("re-migrating a populated database failed: %v", err)
 	}
 
@@ -153,61 +152,5 @@ func TestTheRoomSIDIsUniqueAcrossCalls(t *testing.T) {
 	second := schemas.Call{ID: uuid.New(), RoomID: room.ID, LivekitRoomName: "standup", LivekitRoomSID: "RM_1"}
 	if err := db.Create(&second).Error; err == nil {
 		t.Fatal("a second call took the same LiveKit room sid")
-	}
-}
-
-func TestMigrationAddsPorteBindingColumnsToAnExistingDatabase(t *testing.T) {
-	db := testdb.Migrated(t)
-	if err := db.Exec(`ALTER TABLE porte_login_codes DROP COLUMN provider, DROP COLUMN subject`).Error; err != nil {
-		t.Fatalf("simulate a pre-v0.10 table: %v", err)
-	}
-	if err := schemas.Migrate(db); err != nil {
-		t.Fatalf("migrate an existing database: %v", err)
-	}
-	var columns int64
-	err := db.Raw(`SELECT count(*) FROM information_schema.columns
-		WHERE table_schema = current_schema() AND table_name = 'porte_login_codes'
-		  AND column_name IN ('provider', 'subject')`).Scan(&columns).Error
-	if err != nil || columns != 2 {
-		t.Fatalf("binding columns = %d (%v), want 2", columns, err)
-	}
-}
-
-func TestMigrationBackfillsSeatsAndRecordingsOnceAndSkipsErasedAccounts(t *testing.T) {
-	db := testdb.Migrated(t)
-	user := schemas.User{Email: "a@example.test"}
-	if err := db.Create(&user).Error; err != nil {
-		t.Fatal(err)
-	}
-	room := schemas.Room{ID: uuid.New(), Slug: "old", Name: "Old"}
-	call := schemas.Call{ID: uuid.New(), RoomID: room.ID, LivekitRoomName: "old", RecordingPath: "/output/old.mp4", EgressID: "EG_9"}
-	seats := []schemas.CallParticipant{
-		{CallID: call.ID, Identity: "user-" + strconv.FormatInt(user.ID, 10)},
-		{CallID: call.ID, Identity: "user-99999"},
-		{CallID: call.ID, Identity: "guest-1"},
-	}
-	for _, row := range []any{&room, &call, &seats} {
-		if err := db.Create(row).Error; err != nil {
-			t.Fatal(err)
-		}
-	}
-
-	for range 2 {
-		if err := schemas.Migrate(db); err != nil {
-			t.Fatalf("migrate: %v", err)
-		}
-	}
-
-	var linked int64
-	if err := db.Model(&schemas.CallParticipant{}).Where("user_id = ?", user.ID).Count(&linked).Error; err != nil || linked != 1 {
-		t.Fatalf("linked seats = %d, %v, want the existing account's seat only", linked, err)
-	}
-	var unlinked int64
-	if err := db.Model(&schemas.CallParticipant{}).Where("user_id IS NULL").Count(&unlinked).Error; err != nil || unlinked != 2 {
-		t.Fatalf("unlinked seats = %d, %v, want the erased account and the guest", unlinked, err)
-	}
-	var recorded []schemas.Recording
-	if err := db.Find(&recorded).Error; err != nil || len(recorded) != 1 || recorded[0].Filename != "/output/old.mp4" || recorded[0].Shared {
-		t.Fatalf("recordings = %+v, %v, want one private row backfilled once", recorded, err)
 	}
 }

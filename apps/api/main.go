@@ -14,10 +14,11 @@ import (
 
 	"github.com/FacileStudio/Echo/apps/api/internal/database"
 	"github.com/FacileStudio/Echo/apps/api/internal/env"
-	"github.com/FacileStudio/Echo/apps/api/schemas"
+	"github.com/FacileStudio/Echo/apps/api/migrations"
 	"github.com/FacileStudio/porte/session"
 	"github.com/FacileStudio/tronc/healthcheck"
 	"github.com/FacileStudio/tronc/logger"
+	"github.com/FacileStudio/tronc/migrate"
 	"gorm.io/gorm"
 )
 
@@ -48,6 +49,15 @@ func run() int {
 	}
 	defer closeDB()
 
+	handled, err := migrateDatabase(shutdown, db, log)
+	if err != nil {
+		log.Error("migrate", slog.Any("error", err))
+		return 1
+	}
+	if handled {
+		return 0
+	}
+
 	app, err := buildServer(shutdown, cfg, db, log)
 	if err != nil {
 		log.Error("startup", slog.Any("error", err))
@@ -63,9 +73,6 @@ func openDatabase(url string, log *slog.Logger) (orm *gorm.DB, close func(), err
 	if err != nil {
 		return nil, nil, err
 	}
-	if err := schemas.Migrate(db); err != nil {
-		return nil, nil, err
-	}
 	sqlDB, err := db.DB()
 	if err != nil {
 		return nil, nil, err
@@ -75,6 +82,22 @@ func openDatabase(url string, log *slog.Logger) (orm *gorm.DB, close func(), err
 			log.Error("failed to close database", slog.Any("error", err))
 		}
 	}, nil
+}
+
+// migrateDatabase runs the `migrate` subcommand when the arguments name it,
+// and otherwise applies every pending migration before the server is built.
+// It reports whether the subcommand ran, so the caller exits instead of
+// serving.
+func migrateDatabase(ctx context.Context, db *gorm.DB, log *slog.Logger) (handled bool, err error) {
+	sqlDB, err := db.DB()
+	if err != nil {
+		return false, err
+	}
+	cfg := migrations.Config(sqlDB, log)
+	if handled, err = migrate.Command(ctx, os.Args, cfg); handled {
+		return true, err
+	}
+	return false, migrations.Up(ctx, cfg)
 }
 
 // summaryWriteBudget is what one route is allowed to spend writing its

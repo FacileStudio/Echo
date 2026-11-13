@@ -2,7 +2,7 @@
 #
 # The repository quality gate. Reports, never rewrites (except --format).
 #
-#   sh scripts/check.sh             gofmt + vet + test on every Go module, then the client
+#   sh scripts/check.sh             gofmt + AutoMigrate guard + vet + test on every Go module, then the client
 #   sh scripts/check.sh --go-only   Go modules only
 #   sh scripts/check.sh --format    rewrite Go sources in place
 #
@@ -48,6 +48,12 @@ for module in $GO_MODULES; do
   if [ -n "$unformatted" ]; then
     echo "gofmt needed on:" >&2
     echo "$unformatted" >&2
+    status=1
+  fi
+  automigrate="$(cd "$module" && grep -rn --include='*.go' --exclude='*_test.go' --exclude-dir=vendor -E '\.AutoMigrate\(' . || true)"
+  if [ -n "$automigrate" ]; then
+    echo "AutoMigrate found; schema changes go in $module/migrations/:" >&2
+    echo "$automigrate" >&2
     status=1
   fi
   if ! (cd "$module" && GOFLAGS="-mod=readonly" "$GO" vet ./...); then
