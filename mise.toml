@@ -1,9 +1,9 @@
 [tools]
-go = "1.26"
+go = "1.26.11"
 bun = "1"
 lefthook = "2.1.12"
 
-# local overrides (ANTHROPIC_API_KEY, OIDC_*) go in .env, which is gitignored
+# local overrides (BULLE_URL, OIDC_*) go in .env, which is gitignored
 [env]
 _.file = ".env"
 
