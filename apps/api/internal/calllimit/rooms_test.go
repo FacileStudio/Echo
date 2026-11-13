@@ -15,7 +15,7 @@ func TestARoomTimerEndsASessionNoWebhookReported(t *testing.T) {
 	db := testdb.Migrated(t)
 	addRoom(t, db, "silent")
 	live := newFakeLive(media.LiveRoom{Name: "silent", SID: "RM_silent", CreatedAt: time.Now().Add(-41 * time.Minute)})
-	limiter := New(context.Background(), db, freePlans(t, db), live, nil)
+	limiter := New(context.Background(), db, cappedPlans(t, db), live, nil)
 	limiter.ArmRoom("silent", time.Now().Add(-time.Minute))
 	live.waitEnded(t, "silent")
 }
@@ -25,7 +25,7 @@ func TestARoomTimerFollowsLiveKitsCreationTime(t *testing.T) {
 	addRoom(t, db, "young")
 	created := time.Now().Add(-10 * time.Minute).Truncate(time.Second)
 	live := newFakeLive(media.LiveRoom{Name: "young", SID: "RM_young", CreatedAt: created})
-	limiter := New(context.Background(), db, freePlans(t, db), live, nil)
+	limiter := New(context.Background(), db, cappedPlans(t, db), live, nil)
 	limiter.evaluateRoom(context.Background(), "young")
 	if got, ok := limiter.RoomDeadline("young"); !ok || !got.Equal(created.Add(40*time.Minute)) {
 		t.Fatalf("room deadline = %v (%v), want creation + 40 min", got, ok)
@@ -44,7 +44,7 @@ func TestReconcileClosesRowsLiveKitForgotAndEndsOverdueSessions(t *testing.T) {
 		media.LiveRoom{Name: "fresh-elsewhere", SID: "RM_other", CreatedAt: time.Now()},
 		media.LiveRoom{Name: "unrecorded", SID: "RM_unrecorded", CreatedAt: time.Now().Add(-50 * time.Minute)},
 	)
-	limiter := New(context.Background(), db, freePlans(t, db), live, nil)
+	limiter := New(context.Background(), db, cappedPlans(t, db), live, nil)
 	if err := limiter.Reconcile(context.Background()); err != nil {
 		t.Fatalf("reconcile: %v", err)
 	}
@@ -65,7 +65,7 @@ func TestReconcileClosesRowsLiveKitForgotAndEndsOverdueSessions(t *testing.T) {
 func TestReconcileReportsTheCallsItClosesToIntegrations(t *testing.T) {
 	db := testdb.Migrated(t)
 	ghost := openCall(t, db, "ghost", time.Now().Add(-time.Hour))
-	limiter := New(context.Background(), db, freePlans(t, db), newFakeLive(), nil)
+	limiter := New(context.Background(), db, cappedPlans(t, db), newFakeLive(), nil)
 	heard := &recorder{}
 	limiter.NotifyWith(heard)
 	if err := limiter.Reconcile(context.Background()); err != nil {
@@ -102,7 +102,7 @@ func TestAStaleRowOfARoomStillRunningIsClosedSilently(t *testing.T) {
 	db := testdb.Migrated(t)
 	stale := openCall(t, db, "prisme-room", time.Now().Add(-time.Hour))
 	live := newFakeLive(media.LiveRoom{Name: "prisme-room", SID: "RM_newer_session", CreatedAt: time.Now()})
-	limiter := New(context.Background(), db, freePlans(t, db), live, nil)
+	limiter := New(context.Background(), db, cappedPlans(t, db), live, nil)
 	heard := &recorder{}
 	limiter.NotifyWith(heard)
 	if err := limiter.Reconcile(context.Background()); err != nil {

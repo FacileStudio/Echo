@@ -68,7 +68,7 @@ func TestOneAddressHoldsOnePendingSeatPerRoom(t *testing.T) {
 func TestAJoinRacingTheCutIsRefused(t *testing.T) {
 	s := newTestService(t)
 	owner := addOwner(t, s, "sub-race")
-	pushPlan(t, s, "someone-else", nil)
+	pushPlan(t, s, "sub-race", callMinutes(`40`))
 	if _, err := s.Create(context.Background(), "race", "race", &owner); err != nil {
 		t.Fatalf("create: %v", err)
 	}
@@ -96,7 +96,7 @@ func deadlineRouter(t *testing.T, s *Service) (func(key string) *httptest.Respon
 func pollRoom(t *testing.T, s *Service) {
 	t.Helper()
 	owner := addOwner(t, s, "sub-poll")
-	pushPlan(t, s, "someone-else", nil)
+	pushPlan(t, s, "sub-poll", callMinutes(`40`))
 	if _, err := s.Create(context.Background(), "poll", "poll", &owner); err != nil {
 		t.Fatalf("create: %v", err)
 	}

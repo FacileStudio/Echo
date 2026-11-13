@@ -28,7 +28,7 @@ const (
 // entitlements and a scope carries no value of its own.
 func Features() []forfait.Feature {
 	return []forfait.Feature{
-		{Key: KeyMaxCallMinutes, Kind: forfait.Limit, Default: json.RawMessage(`40`)},
+		{Key: KeyMaxCallMinutes, Kind: forfait.Limit, Default: json.RawMessage(`-1`)},
 		{Key: KeyMaxParticipants, Kind: forfait.Limit, Default: json.RawMessage(`4`)},
 		{Key: KeyRecording, Kind: forfait.Bool, Default: json.RawMessage(`false`)},
 		{Key: KeyAIAccess, Kind: forfait.Bool, Default: json.RawMessage(`false`)},
@@ -69,8 +69,7 @@ type Policy struct {
 //
 // An integration room has no owner: another suite app created it and pays for
 // it through its own product, so it is unlimited. Applying the free plan
-// there would cut every existing Prisme call at four people and forty
-// minutes. Any other room reads its owner's personal scope. A room with no
+// there would cut every existing Prisme call at four people. Any other room reads its owner's personal scope. A room with no
 // owner, or an owner who never signed in through Registre, reads the scope of
 // an empty subject, which Registre never carries: the free defaults. That
 // keeps an anonymous guest-created room from being a way around the plan.

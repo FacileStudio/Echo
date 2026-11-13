@@ -2,6 +2,7 @@ package calllimit
 
 import (
 	"context"
+	"encoding/json"
 	"sync"
 	"testing"
 	"time"
@@ -60,10 +61,18 @@ func (f *fakeLive) waitEnded(t *testing.T, want string) {
 	}
 }
 
-func freePlans(t *testing.T, db *gorm.DB) *plans.Plans {
+const (
+	testIssuer    = "https://sso.example.test"
+	cappedSubject = "sub-capped"
+)
+
+func cappedPlans(t *testing.T, db *gorm.DB) *plans.Plans {
 	t.Helper()
-	p := plans.New(db, "https://sso.example.test", nil)
-	if err := p.Apply(context.Background(), directory.Snapshot{Version: 1, EntitlementsRevision: 1}); err != nil {
+	p := plans.New(db, testIssuer, nil)
+	snapshot := directory.Snapshot{Version: 1, EntitlementsRevision: 1, People: []directory.Person{{
+		Subject: cappedSubject, Entitlements: map[string]json.RawMessage{plans.KeyMaxCallMinutes: json.RawMessage(`40`)},
+	}}}
+	if err := p.Apply(context.Background(), snapshot); err != nil {
 		t.Fatalf("apply: %v", err)
 	}
 	return p
@@ -71,7 +80,15 @@ func freePlans(t *testing.T, db *gorm.DB) *plans.Plans {
 
 func addRoom(t *testing.T, db *gorm.DB, slug string) schemas.Room {
 	t.Helper()
-	room := schemas.Room{ID: uuid.New(), Slug: slug, Name: slug}
+	var owner schemas.User
+	if err := db.Where(schemas.User{Email: cappedSubject + "@example.test"}).FirstOrCreate(&owner).Error; err != nil {
+		t.Fatalf("owner: %v", err)
+	}
+	if err := db.Exec(`INSERT INTO porte_identities (user_id, provider, subject) VALUES (?, ?, ?) ON CONFLICT DO NOTHING`,
+		owner.ID, testIssuer, cappedSubject).Error; err != nil {
+		t.Fatalf("link the owner: %v", err)
+	}
+	room := schemas.Room{ID: uuid.New(), Slug: slug, Name: slug, OwnerID: &owner.ID}
 	if err := db.Create(&room).Error; err != nil {
 		t.Fatalf("room: %v", err)
 	}
@@ -92,7 +109,7 @@ func openCall(t *testing.T, db *gorm.DB, slug string, startedAt time.Time) schem
 func TestARestartReArmsTheDeadlineFromStartedAt(t *testing.T) {
 	db := testdb.Migrated(t)
 	call := openCall(t, db, "running", time.Now().Add(-15*time.Minute))
-	limiter := New(context.Background(), db, freePlans(t, db), newFakeLive(), nil)
+	limiter := New(context.Background(), db, cappedPlans(t, db), newFakeLive(), nil)
 	if err := limiter.Rearm(context.Background()); err != nil {
 		t.Fatalf("rearm: %v", err)
 	}
@@ -113,7 +130,7 @@ func TestAnOverdueCallIsEnded(t *testing.T) {
 	db := testdb.Migrated(t)
 	openCall(t, db, "overdue", time.Now().Add(-time.Hour))
 	live := newFakeLive(media.LiveRoom{Name: "overdue", SID: "RM_overdue"})
-	limiter := New(context.Background(), db, freePlans(t, db), live, nil)
+	limiter := New(context.Background(), db, cappedPlans(t, db), live, nil)
 	live.limiter = limiter
 	if err := limiter.Rearm(context.Background()); err != nil {
 		t.Fatalf("rearm: %v", err)
@@ -131,7 +148,7 @@ func TestAStaleCallRowNeverEndsTheNewerSession(t *testing.T) {
 	db := testdb.Migrated(t)
 	call := openCall(t, db, "reused", time.Now().Add(-time.Hour))
 	live := newFakeLive(media.LiveRoom{Name: "reused", SID: "RM_newer", CreatedAt: time.Now()})
-	limiter := New(context.Background(), db, freePlans(t, db), live, nil)
+	limiter := New(context.Background(), db, cappedPlans(t, db), live, nil)
 	limiter.evaluate(context.Background(), call.ID)
 	if len(live.ended) != 0 {
 		t.Fatal("a call row LiveKit no longer runs ended the newer session of its room")
@@ -154,9 +171,38 @@ func TestNoTimerBeforeTheFirstSnapshotOrForASupersededCall(t *testing.T) {
 		t.Fatalf("newer call: %v", err)
 	}
 	live := newFakeLive()
-	limiter := New(context.Background(), db, freePlans(t, db), live, nil)
+	limiter := New(context.Background(), db, cappedPlans(t, db), live, nil)
 	limiter.Notify(context.Background(), &livekit.WebhookEvent{Event: "room_started", Room: &livekit.Room{Sid: "RM_stale"}})
 	if _, ok := limiter.Deadline(stale.ID); ok || len(live.ended) != 0 {
 		t.Fatal("a superseded call was armed or ended, which would cut the newer meeting")
+	}
+}
+
+func TestAFreeCallGetsNoTimer(t *testing.T) {
+	db := testdb.Migrated(t)
+	free := plans.New(db, testIssuer, nil)
+	if err := free.Apply(context.Background(), directory.Snapshot{Version: 1, EntitlementsRevision: 1}); err != nil {
+		t.Fatalf("apply: %v", err)
+	}
+	room := schemas.Room{ID: uuid.New(), Slug: "endless", Name: "endless"}
+	if err := db.Create(&room).Error; err != nil {
+		t.Fatalf("room: %v", err)
+	}
+	call := schemas.Call{ID: uuid.New(), RoomID: room.ID, StartedAt: time.Now().Add(-3 * time.Hour).UTC(),
+		LivekitRoomName: "endless", LivekitRoomSID: "RM_endless"}
+	if err := db.Create(&call).Error; err != nil {
+		t.Fatalf("call: %v", err)
+	}
+	live := newFakeLive(media.LiveRoom{Name: "endless", SID: "RM_endless", CreatedAt: call.StartedAt})
+	limiter := New(context.Background(), db, free, live, nil)
+	if err := limiter.Rearm(context.Background()); err != nil {
+		t.Fatalf("rearm: %v", err)
+	}
+	limiter.evaluateRoom(context.Background(), "endless")
+	if _, ok := limiter.Deadline(call.ID); ok {
+		t.Fatal("a free call three hours in was armed")
+	}
+	if _, ok := limiter.RoomDeadline("endless"); ok || len(live.ended) != 0 {
+		t.Fatal("a free call was timed or ended")
 	}
 }
