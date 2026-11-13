@@ -54,7 +54,7 @@ func TestCallsKeepCameraMicrophoneAndTheLiveKitSocket(t *testing.T) {
 		}
 	}
 	csp := header.Get("Content-Security-Policy-Report-Only")
-	for _, want := range []string{"wss://echo-live.facile.studio", "https://echo-live.facile.studio", "'sha256-abc'"} {
+	for _, want := range []string{"wss://echo-live.facile.studio", "https://echo-live.facile.studio", "'sha256-abc'", "https://vision.facile.studio"} {
 		if !strings.Contains(csp, want) {
 			t.Fatalf("CSP %q lacks %q", csp, want)
 		}
