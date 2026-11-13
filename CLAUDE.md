@@ -35,8 +35,12 @@ remove borders (the speaking tile keeps its border). Changes here are functional
   browser, mixing only people who accepted. Nothing is captured without a visible banner and a yes
 - livekit-server posts room and egress events to `POST /livekit/webhook`, which sits outside
   `/api` because it authenticates with LiveKit's signed JWT, not a cookie
-- AI summaries degrade: no `ANTHROPIC_API_KEY` means the summary endpoint returns 503 and the
-  transcript stays useful on its own
+- AI summaries go through Bulle (`POST /api/ai/complete`, `tronc/bulle`) acting for the room owner
+  with a Registre-exchanged token (audience `bulle`); Echo holds no model key. They stay gated on
+  `ai.access` (`RequireAI`), and Bulle's 402 maps to the same plan refusal. No `BULLE_URL` or no
+  OIDC means the summary endpoint returns 503 and the transcript stays useful on its own.
+  A transcript over 56 KiB is noted in up to three parts, then combined; past 168 KiB the
+  oldest lines are cut and the model is told so
 - Other suite apps run calls through `/api/integrations/*` (per-app bearer secret from
   `ECHO_INTEGRATION_KEYS`) and frame `/embed/{room}`; integration rooms refuse the public guest
   token route. Contract and decisions: `docs/integrations.md`

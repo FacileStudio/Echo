@@ -261,10 +261,10 @@ const rows = {
 
 	'summary.unavailable': ['Summary unavailable', 'Résumé indisponible', 'Resumen no disponible', 'Zusammenfassung nicht verfügbar'],
 	'summary.notConfigured': [
-		'AI summaries are not configured on this server (no Anthropic key).',
-		'Les résumés IA ne sont pas configurés sur ce serveur (pas de clé Anthropic).',
-		'Los resúmenes con IA no están configurados en este servidor (sin clave de Anthropic).',
-		'KI-Zusammenfassungen sind auf diesem Server nicht eingerichtet (kein Anthropic-Schlüssel).'
+		'AI summaries are unavailable right now. Try again later.',
+		'Les résumés IA sont indisponibles pour le moment. Réessayez plus tard.',
+		'Los resúmenes con IA no están disponibles ahora. Inténtalo más tarde.',
+		'KI-Zusammenfassungen sind gerade nicht verfügbar. Versuche es später erneut.'
 	],
 	'summary.noTranscript': [
 		'This call has no transcript, so there is nothing to summarise.',

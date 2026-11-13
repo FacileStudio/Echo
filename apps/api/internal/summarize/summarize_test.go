@@ -1,51 +1,175 @@
 package summarize
 
 import (
-	"errors"
+	"bytes"
+	"context"
+	"encoding/json"
+	stderrors "errors"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
+
+	"github.com/FacileStudio/porte/exchange"
+	"github.com/FacileStudio/porte/forfait"
+	troncerrors "github.com/FacileStudio/tronc/errors"
 )
 
-func block(text string) messagesResponse {
-	return messagesResponse{
-		Content: []struct {
-			Type string `json:"type"`
-			Text string `json:"text"`
-		}{{Type: "text", Text: text}},
+const owner = int64(7)
+
+type fakeTokens struct{}
+
+func (fakeTokens) Token(_ context.Context, userID int64, target exchange.Target) (string, error) {
+	if target.Audience != "bulle" {
+		return "", stderrors.New("wrong audience")
+	}
+	return "token-for-" + string(rune('0'+userID)), nil
+}
+
+func (fakeTokens) Forget(int64, exchange.Target) {}
+
+type fakeBulle struct {
+	mu       sync.Mutex
+	requests []completeRequest
+	bodies   []int
+	answer   func(completeRequest) (int, string)
+}
+
+func (f *fakeBulle) serve(t *testing.T) *Summarizer {
+	t.Helper()
+	server := httptest.NewServer(http.HandlerFunc(f.handle))
+	t.Cleanup(server.Close)
+	s, err := New(server.URL, fakeTokens{}, nil)
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	return s
+}
+
+func (f *fakeBulle) handle(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost || r.URL.Path != "/api/ai/complete" || r.Header.Get("Authorization") != "Bearer token-for-7" {
+		http.Error(w, "unexpected request", http.StatusBadRequest)
+		return
+	}
+	raw, err := io.ReadAll(r.Body)
+	var body completeRequest
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.DisallowUnknownFields()
+	if err == nil {
+		err = decoder.Decode(&body)
+	}
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	f.mu.Lock()
+	f.requests = append(f.requests, body)
+	f.bodies = append(f.bodies, len(raw))
+	f.mu.Unlock()
+	status, payload := f.answer(body)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	if _, err := io.WriteString(w, payload); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
-func TestTextRefusesATruncatedOrRefusedAnswer(t *testing.T) {
-	for _, reason := range []string{"max_tokens", "refusal"} {
-		decoded := block("un début de résumé")
-		decoded.StopReason = reason
+func answerText(text string) (int, string) {
+	raw, _ := json.Marshal(map[string]string{"text": text, "model": "bulle-model"})
+	return http.StatusOK, string(raw)
+}
 
-		got, err := text(decoded, defaultModel)
-		if err == nil {
-			t.Fatalf("stop_reason %q returned %q as a finished summary", reason, got)
+func TestShortTranscriptIsOneCallAsTheOwner(t *testing.T) {
+	bulle := &fakeBulle{answer: func(completeRequest) (int, string) { return answerText("résumé") }}
+	s := bulle.serve(t)
+
+	text, model, err := s.Summarize(t.Context(), owner, "Alice: bonjour\nBob: décision prise\n")
+	if err != nil {
+		t.Fatalf("Summarize: %v", err)
+	}
+	if text != "résumé" || model != "bulle-model" {
+		t.Fatalf("Summarize = %q, %q", text, model)
+	}
+	if len(bulle.requests) != 1 {
+		t.Fatalf("%d calls, want 1", len(bulle.requests))
+	}
+	got := bulle.requests[0]
+	if !strings.Contains(got.Input, "Bob: décision prise") || strings.Contains(got.Prompt, "Bob") {
+		t.Fatal("the transcript must travel as input, never inside the prompt")
+	}
+	if got.MaxTokens != summaryTokens || strings.Contains(got.Prompt, truncationNotice) {
+		t.Fatalf("request = %+v", got)
+	}
+}
+
+func TestLongTranscriptIsNotedInPartsThenCombined(t *testing.T) {
+	bulle := &fakeBulle{answer: func(body completeRequest) (int, string) {
+		if strings.HasPrefix(body.Prompt, "Voici la partie") {
+			return answerText(strings.Repeat("note ", 5000))
+		}
+		return answerText("résumé final")
+	}}
+	s := bulle.serve(t)
+	transcript := strings.Repeat("Alice: un long échange <&> sur le budget\n", 12000) + "Bob: décision finale\n"
+
+	text, _, err := s.Summarize(t.Context(), owner, transcript)
+	if err != nil {
+		t.Fatalf("Summarize: %v", err)
+	}
+	if text != "résumé final" {
+		t.Fatalf("text = %q", text)
+	}
+	if len(bulle.requests) != maxParts+1 {
+		t.Fatalf("%d calls, want %d notes and one summary", len(bulle.requests), maxParts)
+	}
+	for i, body := range bulle.requests {
+		if len(body.Input) > 64<<10 || len(body.Prompt) > 8<<10 || bulle.bodies[i] > 96<<10 || body.MaxTokens > 4096 {
+			t.Fatalf("call %d exceeds a Bulle limit: input %d, prompt %d, body %d", i, len(body.Input), len(body.Prompt), bulle.bodies[i])
 		}
 	}
-}
-
-func TestTextAcceptsACompleteAnswer(t *testing.T) {
-	decoded := block("résumé complet")
-	decoded.StopReason = "end_turn"
-
-	got, err := text(decoded, defaultModel)
-	if err != nil {
-		t.Fatalf("end_turn: %v", err)
-	}
-	if got != "résumé complet" {
-		t.Fatalf("text = %q", got)
+	last := bulle.requests[len(bulle.requests)-1]
+	if !strings.Contains(last.Prompt, truncationNotice) || !strings.Contains(last.Input, "Partie 3 sur 3") {
+		t.Fatal("the combining call must say the start was cut and carry every part's notes")
 	}
 }
 
-func TestRedactRemovesTheAPIKey(t *testing.T) {
-	s := &Summarizer{apiKey: "sk-ant-secret"}
+func TestBullePlanRefusalIsEchoPlanError(t *testing.T) {
+	bulle := &fakeBulle{answer: func(completeRequest) (int, string) {
+		return http.StatusPaymentRequired, `{"error":{"code":"payment_required","message":"AI needs a paid plan","upgrade_url":"https://sso.facile.studio/spaces","key":"ai.access"}}`
+	}}
+	s := bulle.serve(t)
 
-	got := s.redact(errors.New("post failed with x-api-key sk-ant-secret"))
+	_, _, err := s.Summarize(t.Context(), owner, "Alice: bonjour\n")
+	var refusal *forfait.LimitError
+	if !stderrors.As(err, &refusal) || refusal.Key != "ai.access" || refusal.UpgradeURL != "https://sso.facile.studio/spaces" {
+		t.Fatalf("Summarize error = %v, want the ai.access plan refusal", err)
+	}
+}
 
-	if strings.Contains(got.Error(), "sk-ant-secret") {
-		t.Fatalf("the key survived redaction: %v", got)
+func TestSplitKeepsTheNewestLines(t *testing.T) {
+	transcript := strings.Repeat("Alice: vieux bavardage\n", 20000) + "Bob: décision finale\n"
+
+	parts, truncated := split(transcript)
+	if !truncated || len(parts) > maxParts {
+		t.Fatalf("split = %d parts, truncated %v", len(parts), truncated)
+	}
+	for _, part := range parts {
+		if len(part) > partBytes || !strings.HasPrefix(part, "Alice") && !strings.HasPrefix(part, "Bob") {
+			t.Fatalf("a part is %d bytes or opens mid-line: %.20q", len(part), part)
+		}
+	}
+	if !strings.HasSuffix(parts[len(parts)-1], "Bob: décision finale\n") {
+		t.Fatal("the newest line was dropped")
+	}
+}
+
+func TestNilSummarizerIsUnavailable(t *testing.T) {
+	var s *Summarizer
+	_, _, err := s.Summarize(t.Context(), owner, "Alice: bonjour")
+	var known *troncerrors.Error
+	if !stderrors.As(err, &known) || known.Code != "unavailable" {
+		t.Fatalf("Summarize = %v, want an unavailable envelope", err)
 	}
 }

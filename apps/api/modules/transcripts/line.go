@@ -21,9 +21,9 @@ const (
 	// closes a result at every pause, so two minutes is far past real speech.
 	maxUtteranceMS = 2 * 60 * 1000
 
-	// maxTranscriptBytes is the ceiling for a whole stored transcript. At
-	// roughly 250 k tokens it stays under any Anthropic context window and
-	// bounds what Detail returns to a browser.
+	// maxTranscriptBytes is the ceiling for a whole stored transcript. It
+	// bounds what Detail returns to a browser; a summary reads at most the
+	// newest 168 KiB of it.
 	maxTranscriptBytes = 1 << 20
 )
 

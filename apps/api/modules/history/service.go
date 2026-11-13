@@ -109,7 +109,8 @@ func (s *Service) describe(ctx context.Context, got *access, detail *callDetail)
 	return err
 }
 
-// Summarize generates (or regenerates) the AI summary of an owned call.
+// Summarize generates (or regenerates) the AI summary of an owned call,
+// through Bulle acting for the room owner, who is the caller.
 func (s *Service) Summarize(ctx context.Context, callID string, callerID int64) (*summaryPayload, error) {
 	got, err := s.accessible(ctx, callID, callerID)
 	if err != nil {
@@ -132,22 +133,22 @@ func (s *Service) Summarize(ctx context.Context, callID string, callerID int64) 
 	if transcript == nil {
 		return nil, troncerrors.Conflict("no transcript recorded for this call")
 	}
-	content, err := s.summarizer.Summarize(ctx, transcript.Content)
+	content, model, err := s.summarizer.Summarize(ctx, callerID, transcript.Content)
 	if err != nil {
 		return nil, err
 	}
-	return s.storeSummary(ctx, call.ID, content)
+	return s.storeSummary(ctx, call.ID, content, model)
 }
 
 // storeSummary writes the call's summary as a single upsert on call_id. A
 // read-then-write would either duplicate the row or, once call_id is unique,
 // lose the race to a constraint violation.
-func (s *Service) storeSummary(ctx context.Context, callID uuid.UUID, content string) (*summaryPayload, error) {
+func (s *Service) storeSummary(ctx context.Context, callID uuid.UUID, content, model string) (*summaryPayload, error) {
 	row := schemas.Summary{
 		ID:      uuid.New(),
 		CallID:  callID,
 		Content: content,
-		Model:   s.summarizer.Model(),
+		Model:   model,
 	}
 	upsert := clause.OnConflict{
 		Columns:   []clause.Column{{Name: "call_id"}},

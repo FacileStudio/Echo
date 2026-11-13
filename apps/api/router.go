@@ -9,7 +9,6 @@ import (
 	"github.com/FacileStudio/Echo/apps/api/internal/media"
 	"github.com/FacileStudio/Echo/apps/api/internal/middleware"
 	"github.com/FacileStudio/Echo/apps/api/internal/seat"
-	"github.com/FacileStudio/Echo/apps/api/internal/summarize"
 	"github.com/FacileStudio/Echo/apps/api/modules/capture"
 	"github.com/FacileStudio/Echo/apps/api/modules/deletions"
 	"github.com/FacileStudio/Echo/apps/api/modules/history"
@@ -80,7 +79,11 @@ func buildServer(shutdown context.Context, cfg env.Config, db *gorm.DB, log *slo
 	deps.seats = seat.NewKeys(mediaService.Secret())
 	deps.captureLimiter = middleware.NewRateLimiter()
 	deps.capturing = capture.NewService(db, deps.rooms, deps.seats, deps.captureLimiter, cfg.RecordingsDir)
-	deps.history = history.NewService(db, deps.rooms, summarize.NewFromEnv(), cfg.RecordingsDir)
+	summarizer, err := newSummarizer(cfg, authKit, log)
+	if err != nil {
+		return nil, fmt.Errorf("summaries: %w", err)
+	}
+	deps.history = history.NewService(db, deps.rooms, summarizer, cfg.RecordingsDir)
 	if err := mountMCP(shutdown, router, &deps, log); err != nil {
 		return nil, fmt.Errorf("mcp: %w", err)
 	}

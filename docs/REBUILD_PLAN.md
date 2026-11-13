@@ -88,8 +88,8 @@ raw "Echo Media" Dokploy compose, which cannot mount `deploy/compose/livekit.yam
 config travels in the `LIVEKIT_CONFIG` environment variable.
 
 17. History pages (logged-in): calls per room, transcript viewer, recording links. `[auth/porte]`
-18. `modules/summarize/` — port old ai-proxy.ts (Bun→Anthropic proxy): one Claude call over
-    the transcript, stored, shown post-call. Key via Casier.
+18. `modules/summarize/` — port old ai-proxy.ts: one model call over the transcript, stored,
+    shown post-call. Since 2026-11 it goes through Bulle `/api/ai/complete`; Echo holds no key.
 
 ### Phase 5 — interconnect
 
@@ -119,7 +119,7 @@ the deliberate flip.
 - Single node pins each room to one box; Redis included so horizontal growth is config.
 - registre (in-house IdP) replacing Authentik later must not touch Echo if we stay on
   porte's contract — monitor registre progress.
-- Anthropic dependency degrades gracefully: summary 503s, transcript remains useful.
+- The AI dependency degrades gracefully: summary 503s, transcript remains useful.
 
 ## Skip (YAGNI)
 

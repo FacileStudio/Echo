@@ -1,181 +1,166 @@
 // Package summarize turns a call transcript into a French meeting summary
-// through the Anthropic Messages API — a Go port of the old ai-proxy.ts.
+// through Bulle's /api/ai/complete, acting for the room owner with a token
+// Registre exchanged for audience bulle. Echo holds no model key of its own.
 package summarize
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
-	"errors"
-	"fmt"
-	"io"
+	stderrors "errors"
+	"log/slog"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
-	"github.com/FacileStudio/tronc/env"
+	"github.com/FacileStudio/Echo/apps/api/internal/plans"
+	"github.com/FacileStudio/porte/exchange"
+	"github.com/FacileStudio/porte/forfait"
+	"github.com/FacileStudio/tronc/bulle"
+	troncerrors "github.com/FacileStudio/tronc/errors"
 )
 
 const (
-	apiURL          = "https://api.anthropic.com/v1/messages"
-	apiVersion      = "2023-06-01"
-	defaultModel    = "claude-sonnet-5"
-	maxTokens       = 4096
-	requestTimeout  = 2 * time.Minute
-	maxResponseSize = 1 << 20
-
-	// maxTranscriptBytes bounds what leaves for a paid third party. Roughly
-	// 40 k tokens of French, comfortably inside the context window and inside
-	// Anthropic's request size limit whatever the transcript ceiling becomes.
-	maxTranscriptBytes = 160 << 10
+	requestTimeout = 2 * time.Minute
+	notesTokens    = 2048
+	summaryTokens  = 4096
 )
 
-// ErrNotConfigured is returned when a nil Summarizer is asked to work. A nil
-// Summarizer is a supported state, so it answers instead of panicking.
-var ErrNotConfigured = errors.New("AI summaries are not configured on this deployment")
+func target() exchange.Target {
+	return exchange.Target{Audience: "bulle", Scopes: []string{"bulle.read", "bulle.write"}}
+}
 
-// Summarizer calls Claude over the Messages API.
+// Tokens mints a Bulle token for one Echo user. *exchange.Exchanger fits it.
+type Tokens interface {
+	Token(ctx context.Context, userID int64, target exchange.Target) (string, error)
+	Forget(userID int64, target exchange.Target)
+}
+
+// Summarizer asks Bulle for meeting summaries. It is safe for concurrent use.
 type Summarizer struct {
-	apiKey string
-	model  string
-	client *http.Client
+	client *bulle.Client
+	logger *slog.Logger
 }
 
-// NewFromEnv builds a Summarizer from ANTHROPIC_API_KEY, or returns nil when
-// the key is unset. A nil Summarizer is a supported state: the deployment
-// simply has no AI summaries, and every caller must handle it.
-func NewFromEnv() *Summarizer {
-	key := env.String("ANTHROPIC_API_KEY", "")
-	if key == "" {
-		return nil
+type ownerKey struct{}
+
+type completeRequest struct {
+	Prompt    string `json:"prompt"`
+	Input     string `json:"input,omitempty"`
+	MaxTokens int    `json:"max_tokens"`
+}
+
+type completeResponse struct {
+	Text  string `json:"text"`
+	Model string `json:"model"`
+}
+
+// New builds a Summarizer that calls Bulle at bulleURL with tokens minted for
+// the owner each Summarize call names. Redirects are refused, so a token
+// never follows a Location header off Bulle's origin.
+func New(bulleURL string, tokens Tokens, logger *slog.Logger) (*Summarizer, error) {
+	if logger == nil {
+		logger = slog.Default()
 	}
-	return &Summarizer{
-		apiKey: key,
-		model:  env.String("ANTHROPIC_MODEL", defaultModel),
-		client: &http.Client{Timeout: requestTimeout},
-	}
-}
-
-type messagesRequest struct {
-	Model     string         `json:"model"`
-	MaxTokens int            `json:"max_tokens"`
-	Messages  []messageInput `json:"messages"`
-}
-
-type messageInput struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
-}
-
-type messagesResponse struct {
-	Content []struct {
-		Type string `json:"type"`
-		Text string `json:"text"`
-	} `json:"content"`
-	StopReason string    `json:"stop_reason"`
-	Error      *apiError `json:"error,omitempty"`
-}
-
-// apiError is Anthropic's error envelope: {"error":{"type":..,"message":..}}.
-type apiError struct {
-	Type    string `json:"type"`
-	Message string `json:"message"`
-}
-
-// Model reports the configured Claude model id. Summarize sends exactly this
-// value, so the two can never disagree.
-func (s *Summarizer) Model() string {
-	if s == nil || s.model == "" {
-		return defaultModel
-	}
-	return s.model
-}
-
-// Summarize turns a raw transcript into a French meeting summary.
-func (s *Summarizer) Summarize(ctx context.Context, transcript string) (string, error) {
-	if s == nil {
-		return "", ErrNotConfigured
-	}
-	body, err := json.Marshal(messagesRequest{
-		Model:     s.Model(),
-		MaxTokens: maxTokens,
-		Messages:  []messageInput{{Role: "user", Content: buildPrompt(transcript)}},
+	client, err := bulle.New(bulle.Config{
+		URL: bulleURL,
+		TokenSource: func(ctx context.Context) (string, error) {
+			owner, ok := ctx.Value(ownerKey{}).(int64)
+			if !ok || owner == 0 {
+				return "", exchange.ErrNoUser
+			}
+			return tokens.Token(ctx, owner, target())
+		},
+		Forget: func(ctx context.Context) {
+			if owner, ok := ctx.Value(ownerKey{}).(int64); ok {
+				tokens.Forget(owner, target())
+			}
+		},
+		HTTPClient: &http.Client{
+			Timeout: requestTimeout,
+			CheckRedirect: func(*http.Request, []*http.Request) error {
+				return http.ErrUseLastResponse
+			},
+		},
 	})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	raw, status, err := s.post(ctx, body)
-	if err != nil {
-		return "", s.redact(err)
-	}
-
-	var decoded messagesResponse
-	if err := json.Unmarshal(raw, &decoded); err != nil {
-		return "", fmt.Errorf("anthropic response (%d): %w", status, err)
-	}
-	if status >= http.StatusBadRequest || decoded.Error != nil {
-		return "", fmt.Errorf("anthropic: %s", errorMessage(decoded.Error, status))
-	}
-	return text(decoded, s.Model())
+	return &Summarizer{client: client, logger: logger}, nil
 }
 
-// text pulls the summary out of a successful response, but only when the
-// model actually finished: a max_tokens cut or a refusal leaves partial prose
-// that would otherwise be stored as though it were the whole summary.
-func text(decoded messagesResponse, model string) (string, error) {
-	switch decoded.StopReason {
-	case "max_tokens":
-		return "", errors.New("the call was too long to summarise in one pass")
-	case "refusal":
-		return "", errors.New("the model declined to summarise this transcript")
+// Summarize writes the summary of transcript as ownerID, and names the model
+// Bulle used. A nil Summarizer answers unavailable instead of panicking. A transcript longer than one Bulle input is noted part by part
+// in parallel, then the notes are summarized in one more call.
+func (s *Summarizer) Summarize(ctx context.Context, ownerID int64, transcript string) (string, string, error) {
+	if s == nil {
+		return "", "", troncerrors.Unavailable("AI summaries are not configured on this deployment")
 	}
-	for _, block := range decoded.Content {
-		if block.Type == "text" && block.Text != "" {
-			return block.Text, nil
+	ctx = context.WithValue(ctx, ownerKey{}, ownerID)
+	parts, truncated := split(transcript)
+	if len(parts) == 1 {
+		return s.complete(ctx, completeRequest{Prompt: summaryPrompt(truncated), Input: parts[0], MaxTokens: summaryTokens})
+	}
+	notes, err := s.notes(ctx, parts)
+	if err != nil {
+		return "", "", err
+	}
+	return s.complete(ctx, completeRequest{Prompt: combinePrompt(truncated), Input: joinNotes(notes), MaxTokens: summaryTokens})
+}
+
+func (s *Summarizer) notes(ctx context.Context, parts []string) ([]string, error) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	notes := make([]string, len(parts))
+	var first error
+	var once sync.Once
+	var wg sync.WaitGroup
+	for i, part := range parts {
+		wg.Go(func() {
+			request := completeRequest{Prompt: notesPrompt(i+1, len(parts)), Input: part, MaxTokens: notesTokens}
+			note, _, err := s.complete(ctx, request)
+			if err != nil {
+				once.Do(func() { first = err; cancel() })
+				return
+			}
+			notes[i] = note
+		})
+	}
+	wg.Wait()
+	return notes, first
+}
+
+func (s *Summarizer) complete(ctx context.Context, request completeRequest) (string, string, error) {
+	var answer completeResponse
+	err := s.client.Call(ctx, bulle.Request{Method: http.MethodPost, Segments: []string{"ai", "complete"}, Body: request}, &answer)
+	if err != nil {
+		return "", "", s.failure(err)
+	}
+	text := strings.TrimSpace(answer.Text)
+	if text == "" {
+		return "", "", troncerrors.Unavailable("Bulle returned an empty summary; try again")
+	}
+	return text, answer.Model, nil
+}
+
+// failure maps a Bulle or Registre failure onto the errors Echo already
+// answers with: Bulle's 402 becomes the same plan refusal RequireAI gives.
+func (s *Summarizer) failure(err error) error {
+	var plan *bulle.PlanRequired
+	if stderrors.As(err, &plan) {
+		key := plan.Key
+		if key == "" {
+			key = plans.KeyAIAccess
 		}
+		return &forfait.LimitError{Key: key, UpgradeURL: plan.UpgradeURL}
 	}
-	return "", fmt.Errorf("anthropic returned no text (model %s)", model)
-}
-
-// errorMessage keeps a malformed error envelope from panicking: an API that
-// fails is exactly the API most likely to answer in an unexpected shape.
-func errorMessage(failure *apiError, status int) string {
-	if failure == nil || failure.Message == "" {
-		return fmt.Sprintf("status %d", status)
-	}
-	return failure.Message
-}
-
-// redact makes it impossible for the key to reach a log line, whatever a
-// transport error or a proxy decides to echo back.
-func (s *Summarizer) redact(err error) error {
-	if err == nil || s == nil || s.apiKey == "" {
+	var known *troncerrors.Error
+	if stderrors.As(err, &known) {
 		return err
 	}
-	message := err.Error()
-	if !strings.Contains(message, s.apiKey) {
-		return err
+	var status *bulle.StatusError
+	if stderrors.As(err, &status) && status.Status == http.StatusTooManyRequests {
+		return troncerrors.RateLimited("the daily AI allowance is used up; try again tomorrow")
 	}
-	return errors.New(strings.ReplaceAll(message, s.apiKey, "[redacted]"))
-}
-
-func (s *Summarizer) post(ctx context.Context, body []byte) ([]byte, int, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, bytes.NewReader(body))
-	if err != nil {
-		return nil, 0, err
-	}
-	req.Header.Set("x-api-key", s.apiKey)
-	req.Header.Set("anthropic-version", apiVersion)
-	req.Header.Set("Content-Type", "application/json")
-
-	res, err := s.client.Do(req)
-	if err != nil {
-		return nil, 0, err
-	}
-	defer res.Body.Close()
-	raw, err := io.ReadAll(io.LimitReader(res.Body, maxResponseSize))
-	if err != nil {
-		return nil, res.StatusCode, err
-	}
-	return raw, res.StatusCode, nil
+	s.logger.Warn("summary: bulle call failed", slog.Any("error", err))
+	return troncerrors.Unavailable("Bulle could not write the summary right now; try again later")
 }
