@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.9.1] - 2026-11-13
+
+### Changed
+
+- Deploy: healthchecks run every 30 s with a 1 s start interval, so a deploy cuts over in a few seconds.
+
 ## [2.9.0] - 2026-11-13
 
 ### Changed
