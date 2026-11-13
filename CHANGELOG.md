@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.9.4] - 2026-11-14
+
+### Added
+
+- The web client loads Vision's tracker (`https://vision.facile.studio/s.js`, with `data-mask`) on `echo.facile.studio` only. Room and embed paths (`/room/`, `/embed/`) carry the room slug, so the loader skips them on first load and passes them to `data-exclude`, which keeps s.js from reporting them after an in-app navigation (needs Vision v0.8.1). The API adds `https://vision.facile.studio` to `script-src`; the loader's hash comes with the other inline scripts of the build.
+
 ## [2.9.3] - 2026-11-13
 
 ### Changed
