@@ -8,10 +8,7 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/FacileStudio/Echo/apps/api/internal/plans"
-	"github.com/FacileStudio/porte/forfait"
 	"github.com/FacileStudio/porte/mcpauth"
-	"github.com/FacileStudio/tronc/errors"
 	mcpkit "github.com/FacileStudio/tronc/mcp"
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -49,33 +46,11 @@ type toolset struct {
 // userOf reads the Echo user id from the verified token, refused the way
 // RequireAuth refuses it: a deleted account never acts.
 func (t *toolset) userOf(ctx context.Context, req *sdk.CallToolRequest) (int64, error) {
-	identity, ok := mcpauth.Identity(req.Extra.TokenInfo)
-	if !ok {
+	account, err := mcpauth.AccountExists(ctx, req.Extra.TokenInfo, t.Accounts.Identity)
+	if err != nil {
 		return 0, errNoCaller
 	}
-	if _, err := t.Accounts.Identity(ctx, identity.UserID); err != nil {
-		return 0, errNoCaller
-	}
-	return identity.UserID, nil
-}
-
-// failure turns a service error into one a model can act on. A plan refusal
-// says what the plan lacks and where to upgrade, and a feature this
-// deployment does not run says so, instead of a generic retry.
-func failure(err error, hint string) error {
-	var refusal *forfait.LimitError
-	if stderrors.As(err, &refusal) {
-		message := "The room owner's plan does not include " + refusal.Key
-		if link := plans.UpgradeURL(refusal); link != "" {
-			return stderrors.New(message + ". Upgrade at " + link)
-		}
-		return stderrors.New(message + ".")
-	}
-	var known *errors.Error
-	if stderrors.As(err, &known) && known.Code == "unavailable" {
-		return stderrors.New(known.Message)
-	}
-	return mcpkit.Failure(err, hint)
+	return account.UserID, nil
 }
 
 // roomURL is the link to a room, with its key after #key= when there is one.

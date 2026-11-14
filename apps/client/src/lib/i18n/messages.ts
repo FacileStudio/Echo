@@ -442,6 +442,18 @@ const rows = {
 		'Inicia sesión y vuelve a abrir el enlace de tu asistente.',
 		'Melde dich an und öffne dann den Link deines Assistenten erneut.'
 	],
+	'pending.ownSessionTitle': [
+		'Sign in again in your browser',
+		'Reconnectez-vous dans votre navigateur',
+		'Vuelve a iniciar sesión en tu navegador',
+		'Melde dich im Browser erneut an'
+	],
+	'pending.ownSessionBody': [
+		'Only a fresh sign-in on the Echo website can confirm what an assistant asked. Sign in again here, then reopen the link. The mobile and desktop apps cannot confirm.',
+		'Seule une connexion récente sur le site d’Echo peut confirmer ce qu’un assistant a demandé. Reconnectez-vous ici, puis rouvrez le lien. Les applications mobile et de bureau ne peuvent pas confirmer.',
+		'Solo un inicio de sesión reciente en la web de Echo puede confirmar lo que pidió un asistente. Vuelve a iniciar sesión aquí y abre otra vez el enlace. Las aplicaciones móvil y de escritorio no pueden confirmar.',
+		'Nur eine frische Anmeldung auf der Echo-Website kann bestätigen, was ein Assistent angefragt hat. Melde dich hier erneut an und öffne dann den Link noch einmal. Die Mobil- und Desktop-Apps können nicht bestätigen.'
+	],
 	'pending.loadFailed': ['Could not load the requests', 'Impossible de charger les demandes', 'No se pudieron cargar las solicitudes', 'Anfragen konnten nicht geladen werden'],
 	'pending.emptyTitle': ['Nothing to confirm', 'Rien à confirmer', 'Nada que confirmar', 'Nichts zu bestätigen'],
 	'pending.emptyBody': [

@@ -141,6 +141,9 @@ func TestConfirmPageDeletesOnce(t *testing.T) {
 	if got := f.onPage(http.MethodPost, "/"+id+"/confirm", owner, "bulle"); got.Code != http.StatusForbidden || f.exists(slug) != 1 {
 		t.Fatalf("a delegated token must not confirm, got %d", got.Code)
 	}
+	if got := f.onPage(http.MethodPost, "/"+id+"/confirm", owner, "cli"); got.Code != http.StatusForbidden || f.exists(slug) != 1 {
+		t.Fatalf("a CLI session must not confirm, got %d", got.Code)
+	}
 	if got := f.onPage(http.MethodGet, "/", f.users["stranger"], ""); !strings.Contains(got.Body.String(), `"actions":[]`) {
 		t.Fatalf("another person must not see the action, got %s", got.Body)
 	}

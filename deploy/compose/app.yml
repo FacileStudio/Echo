@@ -15,12 +15,6 @@ services:
       retries: 5
       start_period: 30s
       start_interval: 1s
-    deploy:
-      update_config:
-        order: start-first
-        parallelism: 1
-      restart_policy:
-        condition: any
   echo:
     build:
       context: ../..
@@ -64,12 +58,6 @@ services:
       retries: 3
       start_period: 60s
       start_interval: 1s
-    deploy:
-      update_config:
-        order: start-first
-        parallelism: 1
-      restart_policy:
-        condition: any
   recordings-perms:
     image: busybox:1.37
     command: ["chmod", "0777", "/output"]
@@ -91,12 +79,6 @@ services:
     cap_add:
     - SYS_ADMIN
     shm_size: 2gb
-    deploy:
-      update_config:
-        order: start-first
-        parallelism: 1
-      restart_policy:
-        condition: any
 volumes:
   echo-pg: null
   echo-recordings: null

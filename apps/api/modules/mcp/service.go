@@ -8,6 +8,9 @@
 package mcp
 
 import (
+	"context"
+	"log/slog"
+
 	"github.com/FacileStudio/Echo/apps/api/modules/history"
 	"github.com/FacileStudio/Echo/apps/api/modules/rooms"
 	"github.com/FacileStudio/porte/kit"
@@ -43,6 +46,8 @@ type Config = mcpkit.AppConfig
 type Service struct {
 	server *mcpkit.Server
 	page   *mcpkit.PendingPage[PendingItem]
+	store  mcpkit.Pending
+	logger *slog.Logger
 }
 
 // NewService builds the MCP server over Echo's services.
@@ -58,5 +63,16 @@ func NewService(deps Deps, cfg Config) (*Service, error) {
 	page := &mcpkit.PendingPage[PendingItem]{
 		Confirmations: app.Confirmations, Actor: webActor, User: pendingUser, Describe: tools.describe, Done: done,
 	}
-	return &Service{server: app.Server, page: page}, nil
+	return &Service{server: app.Server, page: page, store: cfg.Pending, logger: cfg.Logger}, nil
+}
+
+// Run prunes the resolved and expired pending actions until ctx ends, when
+// the store can prune. A nil service runs nothing.
+func (s *Service) Run(ctx context.Context) {
+	if s == nil {
+		return
+	}
+	if store, ok := s.store.(mcpkit.Pruner); ok {
+		mcpkit.KeepPruned(ctx, store, 0, 0, s.logger)
+	}
 }
