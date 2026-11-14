@@ -24,7 +24,7 @@ const (
 )
 
 // newTestService builds a Service with a nil summarizer — the
-// no-ANTHROPIC_API_KEY deployment, which every path must survive rather than
+// deployment without Bulle, which every path must survive rather than
 // panic on.
 func newTestService(t *testing.T, recordingsDir string) (*Service, *gorm.DB) {
 	t.Helper()
@@ -155,10 +155,10 @@ func TestStoreSummaryReplacesTheExistingRow(t *testing.T) {
 	call := seedOwnedCall(t, db, "")
 	ctx := context.Background()
 
-	if _, err := s.storeSummary(ctx, call.ID, "first pass"); err != nil {
+	if _, err := s.storeSummary(ctx, call.ID, "first pass", "test-model"); err != nil {
 		t.Fatalf("first storeSummary: %v", err)
 	}
-	payload, err := s.storeSummary(ctx, call.ID, "second pass")
+	payload, err := s.storeSummary(ctx, call.ID, "second pass", "test-model")
 	if err != nil {
 		t.Fatalf("second storeSummary: %v", err)
 	}
@@ -221,7 +221,7 @@ func TestOwnerSeesTheCall(t *testing.T) {
 }
 
 // The nil summarizer must degrade to a 503, not a panic.
-func TestSummarizeWithoutAnAPIKeyIsUnavailable(t *testing.T) {
+func TestSummarizeWithoutBulleIsUnavailable(t *testing.T) {
 	s, db := newTestService(t, t.TempDir())
 	call := seedOwnedCall(t, db, "")
 

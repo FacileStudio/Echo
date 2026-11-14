@@ -8,6 +8,7 @@ import (
 
 	"github.com/FacileStudio/Echo/apps/api/modules/rooms"
 	"github.com/FacileStudio/Echo/apps/api/schemas"
+	mcpkit "github.com/FacileStudio/tronc/mcp"
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -29,7 +30,7 @@ func (t *toolset) listRooms(ctx context.Context, req *sdk.CallToolRequest, _ lis
 	}
 	owned, err := t.Rooms.OwnedBy(ctx, userID)
 	if err != nil {
-		return nil, roomsOutput{}, failure(err, hintRoom)
+		return nil, roomsOutput{}, mcpkit.Failure(err, hintRoom)
 	}
 	out := roomsOutput{Rooms: make([]roomOut, 0, len(owned)), Note: roomsNote}
 	for _, room := range owned {
@@ -58,11 +59,11 @@ func (t *toolset) createRoom(ctx context.Context, req *sdk.CallToolRequest, in c
 	}
 	room, err := t.Rooms.Create(ctx, slug, name, &userID)
 	if err != nil {
-		return nil, roomOutput{}, failure(err, hintRoom)
+		return nil, roomOutput{}, mcpkit.Failure(err, hintRoom)
 	}
 	key, err := newRoomKey()
 	if err != nil {
-		return nil, roomOutput{}, failure(err, hintRoom)
+		return nil, roomOutput{}, mcpkit.Failure(err, hintRoom)
 	}
 	out := t.room(*room, key)
 	return nil, roomOutput{Status: statusCreated, Room: &out, Message: "Give everyone this exact join_url: its key is not kept anywhere else."}, nil
@@ -80,7 +81,7 @@ func (t *toolset) renameRoom(ctx context.Context, req *sdk.CallToolRequest, in r
 	}
 	room, err := t.Rooms.Rename(ctx, in.Room, name, userID)
 	if err != nil {
-		return nil, roomOutput{}, failure(err, hintRoom)
+		return nil, roomOutput{}, mcpkit.Failure(err, hintRoom)
 	}
 	out := t.room(*room, "")
 	return nil, roomOutput{Status: statusRenamed, Room: &out}, nil

@@ -28,7 +28,7 @@ func (t *toolset) listMeetings(ctx context.Context, req *sdk.CallToolRequest, in
 	}
 	found, err := t.History.Meetings(ctx, userID, page, in.Limit)
 	if err != nil {
-		return nil, meetingsOutput{}, failure(err, hintMeeting)
+		return nil, meetingsOutput{}, mcpkit.Failure(err, hintMeeting)
 	}
 	out := meetingsOutput{Meetings: make([]meetingOut, 0, len(found.Items)), Total: found.Total}
 	for _, m := range found.Items {
@@ -56,11 +56,11 @@ func (t *toolset) getMeeting(ctx context.Context, req *sdk.CallToolRequest, in m
 	}
 	detail, err := t.History.Detail(ctx, in.MeetingID, userID)
 	if err != nil {
-		return nil, meetingOutput{}, failure(err, hintMeeting)
+		return nil, meetingOutput{}, mcpkit.Failure(err, hintMeeting)
 	}
 	recordings, err := t.History.Recordings(ctx, in.MeetingID, userID)
 	if err != nil {
-		return nil, meetingOutput{}, failure(err, hintMeeting)
+		return nil, meetingOutput{}, mcpkit.Failure(err, hintMeeting)
 	}
 	out := meetingOutput{
 		ID: detail.ID, Room: detail.RoomSlug, RoomName: detail.RoomName, Role: detail.Role, StartedAt: detail.StartedAt,
@@ -83,19 +83,19 @@ func (t *toolset) readTranscript(ctx context.Context, req *sdk.CallToolRequest, 
 	if err != nil {
 		return nil, transcriptOutput{}, err
 	}
-	start := 0
-	if err := mcpkit.DecodeCursor(in.Cursor, &start); err != nil {
+	start, err := mcpkit.Offset(in.Cursor)
+	if err != nil {
 		return nil, transcriptOutput{}, err
 	}
 	found, err := t.History.Transcript(ctx, in.MeetingID, userID, in.Query)
 	if err != nil {
-		return nil, transcriptOutput{}, failure(err, hintMeeting)
+		return nil, transcriptOutput{}, mcpkit.Failure(err, hintMeeting)
 	}
 	lines := make([]lineOut, 0, len(found.Lines))
 	for _, line := range found.Lines {
 		lines = append(lines, lineOut{Speaker: speakerOf(line.Speaker, line.SpeakerID), Text: line.Text, At: offsetOf(line.OffsetMS)})
 	}
-	return nil, page(lines, max(start, 0), found.Total), nil
+	return nil, page(lines, start, found.Total), nil
 }
 
 // page is the transcript lines from start on that fit one result.
@@ -108,9 +108,7 @@ func page(lines []lineOut, start, total int) transcriptOutput {
 		return mcpkit.EncodedSize(out)
 	})
 	out.Lines = rest[:n]
-	if start+n < len(lines) {
-		out.NextCursor = mcpkit.EncodeCursor(start + max(n, 1))
-	}
+	out.NextCursor = mcpkit.Cursor(start+max(n, 1), len(lines))
 	return out
 }
 
@@ -122,7 +120,7 @@ func (t *toolset) summarize(ctx context.Context, req *sdk.CallToolRequest, in me
 	}
 	s, err := t.History.Summarize(ctx, in.MeetingID, userID)
 	if err != nil {
-		return nil, summaryOutput{}, failure(err, hintMeeting)
+		return nil, summaryOutput{}, mcpkit.Failure(err, hintMeeting)
 	}
 	return nil, summaryOutput{Status: statusSummarized, Summary: summaryOut{Content: s.Content, Model: s.Model, CreatedAt: s.CreatedAt}}, nil
 }
@@ -135,7 +133,7 @@ func (t *toolset) shareRecording(ctx context.Context, req *sdk.CallToolRequest, 
 	}
 	r, err := t.History.SetShared(ctx, in.RecordingID, userID, in.Shared)
 	if err != nil {
-		return nil, recordingOutput{}, failure(err, hintRecording)
+		return nil, recordingOutput{}, mcpkit.Failure(err, hintRecording)
 	}
 	status := statusUnshared
 	if r.Shared {

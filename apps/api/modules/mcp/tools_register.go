@@ -75,7 +75,7 @@ func (t *toolset) writes() []mcpkit.Tool {
 			Name: toolShare, Title: "Share a recording",
 			Description: "Let the signed-in people who sat in the call watch one of the user's recordings, or take " +
 				"that back with shared false. Only the room owner can do this, and sharing needs recording on their plan.",
-			Annotations: &mcpkit.Annotations{Idempotent: true},
+			Annotations: &mcpkit.Annotations{Destructive: true, Idempotent: true},
 		}, t.shareRecording),
 	}
 }

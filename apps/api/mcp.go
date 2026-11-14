@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/sha256"
 	"log/slog"
 
 	"github.com/FacileStudio/Echo/apps/api/modules/mcp"
@@ -34,7 +33,7 @@ func newMCP(ctx context.Context, app *apiDeps, tools mcp.Deps, log *slog.Logger)
 		Issuer:   cfg.Porte.Issuer,
 		Version:  version,
 		Origins:  cfg.CORSAllowedOrigins,
-		StateKey: mcpStateKey(cfg.Porte.ClientSecret),
+		StateKey: mcpkit.StateKey("echo", cfg.Porte.ClientSecret),
 		Verifier: verifier,
 		Pending:  mcpkit.PostgresPending{DB: sqlDB},
 		Logger:   log,
@@ -53,12 +52,4 @@ func mcpVerifier(ctx context.Context, app *apiDeps, log *slog.Logger) (auth.Toke
 		Accounts:    app.auth.oidc,
 		Logger:      log,
 	})
-}
-
-// mcpStateKey signs the confirmation questions handed to clients. It is
-// derived from the OIDC client secret, so it is secret, stable across
-// restarts and needs no variable of its own.
-func mcpStateKey(clientSecret string) []byte {
-	key := sha256.Sum256([]byte("echo-mcp-state:" + clientSecret))
-	return key[:]
 }

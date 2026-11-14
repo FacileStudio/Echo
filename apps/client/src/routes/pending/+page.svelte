@@ -11,6 +11,7 @@
 	let actions = $state<PendingAction[]>([]);
 	let loaded = $state(false);
 	let denied = $state(false);
+	let notOwnSession = $state(false);
 	let error = $state('');
 	let notice = $state('');
 	let busy = $state('');
@@ -33,6 +34,7 @@
 			actions = await fetchPending();
 		} catch (e) {
 			if (e instanceof ApiError && e.status === 401) denied = true;
+			else if (e instanceof ApiError && e.status === 403) notOwnSession = true;
 			else error = e instanceof Error ? e.message : String(e);
 		}
 		loaded = true;
@@ -47,8 +49,11 @@
 			actions = actions.filter((item) => item.id !== action.id);
 			notice = choice === 'confirm' ? t('pending.deleted') : t('pending.dismissed');
 		} catch (e) {
-			error = e instanceof Error ? e.message : String(e);
-			await load();
+			if (e instanceof ApiError && e.status === 403) notOwnSession = true;
+			else {
+				error = e instanceof Error ? e.message : String(e);
+				await load();
+			}
 		}
 		busy = '';
 	}
@@ -67,6 +72,9 @@
 		<Card><div class="flex justify-center py-4"><Spinner /></div></Card>
 	{:else if denied}
 		<Alert tone="warning" title={t('pending.signInTitle')}>{t('pending.signInBody')}</Alert>
+		<div><Button href="/login" variant="outline" size="sm">{t('login.signIn')}</Button></div>
+	{:else if notOwnSession}
+		<Alert tone="warning" title={t('pending.ownSessionTitle')}>{t('pending.ownSessionBody')}</Alert>
 		<div><Button href="/login" variant="outline" size="sm">{t('login.signIn')}</Button></div>
 	{:else}
 		{#if error}

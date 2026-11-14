@@ -15,12 +15,6 @@ services:
       retries: 5
       start_period: 30s
       start_interval: 1s
-    deploy:
-      update_config:
-        order: start-first
-        parallelism: 1
-      restart_policy:
-        condition: any
   echo:
     build:
       context: ../..
@@ -40,8 +34,7 @@ services:
       LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:?LIVEKIT_API_SECRET is required}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
       LOG_LEVEL: info
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
-      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-5}
+      BULLE_URL: ${BULLE_URL:-https://bulle.facile.studio}
       RECORDINGS_DIR: /recordings
       ECHO_INTEGRATION_KEYS: ${ECHO_INTEGRATION_KEYS:-}
       ECHO_EMBED_ORIGINS: ${ECHO_EMBED_ORIGINS:-}
@@ -65,12 +58,6 @@ services:
       retries: 3
       start_period: 60s
       start_interval: 1s
-    deploy:
-      update_config:
-        order: start-first
-        parallelism: 1
-      restart_policy:
-        condition: any
   recordings-perms:
     image: busybox:1.37
     command: ["chmod", "0777", "/output"]
@@ -92,12 +79,6 @@ services:
     cap_add:
     - SYS_ADMIN
     shm_size: 2gb
-    deploy:
-      update_config:
-        order: start-first
-        parallelism: 1
-      restart_policy:
-        condition: any
 volumes:
   echo-pg: null
   echo-recordings: null

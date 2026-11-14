@@ -58,8 +58,9 @@ export class ApiError extends Error {
 
 export async function apiErrorMessage(res: Response): Promise<string> {
 	try {
-		const body = (await res.json()) as { error?: { code?: string; message?: string } };
-		return body.error?.message ?? t('api.failed', { status: res.status });
+		const body = (await res.json()) as { error?: unknown };
+		const message = typeof body.error === 'string' ? body.error : (body.error as { message?: unknown } | undefined)?.message;
+		return typeof message === 'string' && message ? message : t('api.failed', { status: res.status });
 	} catch {
 		return t('api.failed', { status: res.status });
 	}

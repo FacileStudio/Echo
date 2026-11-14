@@ -191,7 +191,8 @@ func refused(t *testing.T, session *sdk.ClientSession, tool string, args map[str
 }
 
 // signedIn stands in for porte on the confirm page: X-Test-User is the
-// signed-in user, and X-Test-Actor makes the request a delegated token.
+// signed-in user in a browser session, X-Test-Actor "cli" makes it a CLI
+// session and any other actor a delegated token.
 func signedIn(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id, err := strconv.ParseInt(r.Header.Get("X-Test-User"), 10, 64)
@@ -199,9 +200,11 @@ func signedIn(next http.Handler) http.Handler {
 			http.Error(w, "unauthenticated", http.StatusUnauthorized)
 			return
 		}
-		identity := porte.Identity{UserID: id, SessionID: 1, Actor: r.Header.Get("X-Test-Actor")}
-		if identity.Actor != "" {
-			identity.SessionID = 0
+		identity := porte.Identity{UserID: id, SessionID: 1, BrowserSession: true, Actor: r.Header.Get("X-Test-Actor")}
+		if identity.Actor == "cli" {
+			identity.Actor, identity.BrowserSession = "", false
+		} else if identity.Actor != "" {
+			identity.SessionID, identity.BrowserSession = 0, false
 		}
 		next.ServeHTTP(w, r.WithContext(porte.WithIdentity(r.Context(), identity)))
 	})

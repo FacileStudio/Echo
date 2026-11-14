@@ -35,6 +35,9 @@ type Config struct {
 	// such as https://echo.facile.studio/mcp. Registre binds tokens to it.
 	// Empty, or with OIDC off, /mcp is not mounted.
 	MCPResource string
+	// BulleURL is BULLE_URL, Bulle's origin. AI summaries go through it as
+	// the room owner; empty, or with OIDC off, summaries answer 503.
+	BulleURL string
 }
 
 // defaultTrustedProxies is what an unset TRUSTED_PROXIES means here.
@@ -81,6 +84,7 @@ func Load() (Config, error) {
 	}
 	cfg.RecordingsDir = troncenv.String("RECORDINGS_DIR", "/recordings")
 	cfg.MCPResource = strings.TrimSpace(troncenv.String("MCP_RESOURCE", ""))
+	cfg.BulleURL = strings.TrimSpace(troncenv.String("BULLE_URL", ""))
 	if err := cfg.Porte.Validate(); err != nil {
 		return Config{}, err
 	}

@@ -71,7 +71,7 @@ mise run dev:down   # stop the docker services
 mise run check      # full quality gate
 ```
 
-Local overrides such as `ANTHROPIC_API_KEY` or the `OIDC_*` set go in a gitignored `.env`
+Local overrides such as `BULLE_URL` or the `OIDC_*` set go in a gitignored `.env`
 at the repo root, which mise loads.
 
 ## Configuration
@@ -84,8 +84,7 @@ The API reads these on top of the tronc core variables (`PORT`, `DATABASE_URL`, 
 | `LIVEKIT_URL` | yes | n/a | LiveKit signalling URL the API mints tokens against |
 | `LIVEKIT_API_KEY` | yes | n/a | LiveKit API key, also the key LiveKit signs webhooks with |
 | `LIVEKIT_API_SECRET` | yes | n/a | LiveKit API secret; verifies the webhook signature |
-| `ANTHROPIC_API_KEY` | no | empty | Enables AI summaries; without it the summary endpoint returns 503 |
-| `ANTHROPIC_MODEL` | no | `claude-sonnet-5` | Model used for summaries |
+| `BULLE_URL` | no | empty | Bulle's origin, `https://bulle.facile.studio` in production. AI summaries go through Bulle's `/api/ai/complete` as the room owner, with a token Registre exchanges for audience `bulle`, so they also need `OIDC_*`. Empty, the summary endpoint returns 503 |
 | `RECORDINGS_DIR` | no | `/recordings` | Directory the recordings volume is mounted at. Browser recordings are written here, so it must be writable; empty disables recording |
 | `ECHO_INTEGRATION_KEYS` | no | empty | `app:secret` pairs, comma-separated, for the integration API; empty refuses every app |
 | `ECHO_EMBED_ORIGINS` | no | empty | Origins allowed to frame `/embed/{room}`, comma-separated; empty allows none |
