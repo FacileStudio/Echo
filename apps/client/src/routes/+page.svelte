@@ -31,7 +31,10 @@
 	}
 </script>
 
-<svelte:head><title>Echo</title></svelte:head>
+<svelte:head>
+	<title>{t('title.home')}</title>
+	<meta name="description" content={t('home.description')} />
+</svelte:head>
 
 <main class="flex min-h-screen items-center justify-center px-4">
 	<div class="flex w-full max-w-sm flex-col gap-2">
@@ -69,6 +72,9 @@
 				</div>
 			{:else}
 				<Button href="/login" variant="ghost" class="w-full">{t('login.continue')}</Button>
+				<p class="text-center text-fc-p text-fc-muted">
+					{t('home.plan')} <a href="https://suite.facile.studio/#tarifs" class="text-fc-ink">{t('home.pricing')}</a>
+				</p>
 			{/if}
 		{/if}
 	</div>

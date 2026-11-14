@@ -8,12 +8,26 @@ const rows = {
 	'login.signIn': ['Sign in', 'Connexion', 'Iniciar sesión', 'Anmelden'],
 	'login.description': ['Echo uses the studio single sign-on.', 'Echo utilise la connexion unique du studio.', 'Echo usa el inicio de sesión único del estudio.', 'Echo nutzt die zentrale Anmeldung des Studios.'],
 	'login.continue': ['Continue with Facile', 'Continuer avec Facile', 'Continuar con Facile', 'Weiter mit Facile'],
+	'title.home': ['Echo · Video calls from a link, nothing to install', 'Echo · Un appel vidéo en un lien, rien à installer', 'Echo · Videollamadas con un enlace, sin instalar nada', 'Echo · Videoanrufe per Link, ohne Installation'],
 	'title.login': ['Sign in · Echo', 'Connexion · Echo', 'Iniciar sesión · Echo', 'Anmelden · Echo'],
 	'title.room': ['{slug} · Echo', '{slug} · Echo', '{slug} · Echo', '{slug} · Echo'],
 	'title.call': ['Call · Echo', 'Appel · Echo', 'Llamada · Echo', 'Anruf · Echo'],
 	'title.history': ['History · {slug} · Echo', 'Historique · {slug} · Echo', 'Historial · {slug} · Echo', 'Verlauf · {slug} · Echo'],
 
-	'home.tagline': ['Video rooms for the studio.', 'Des salles vidéo pour le studio.', 'Salas de vídeo para el estudio.', 'Videoräume für das Studio.'],
+	'home.tagline': ['Start a video call with one link.', 'Lancez une visio en un lien.', 'Empieza una videollamada con un enlace.', 'Ein Link, und das Videogespräch läuft.'],
+	'home.description': [
+		'Create a room, send the link, talk. Every call is end-to-end encrypted, and Bulle can write up the meeting.',
+		'Créez une salle, envoyez le lien, parlez. Chaque appel est chiffré de bout en bout, et Bulle peut rédiger le compte rendu.',
+		'Crea una sala, envía el enlace y habla. Cada llamada va cifrada de extremo a extremo, y Bulle puede redactar el acta.',
+		'Raum anlegen, Link senden, sprechen. Jeder Anruf ist Ende-zu-Ende-verschlüsselt, und Bulle kann das Protokoll schreiben.'
+	],
+	'home.plan': [
+		'End-to-end encrypted. Pro adds recording, transcription and Bulle’s meeting notes.',
+		'Chiffré de bout en bout. Pro ajoute l’enregistrement, la transcription et le compte rendu par Bulle.',
+		'Cifrado de extremo a extremo. Pro añade grabación, transcripción y el acta de Bulle.',
+		'Ende-zu-Ende-verschlüsselt. Pro bringt Aufnahme, Transkription und das Protokoll von Bulle.'
+	],
+	'home.pricing': ['Pricing', 'Tarifs', 'Precios', 'Preise'],
 	'home.roomName': ['Room name', 'Nom de la salle', 'Nombre de la sala', 'Name des Raums'],
 	'home.open': ['Open room', 'Ouvrir la salle', 'Abrir la sala', 'Raum öffnen'],
 	'home.roomRequired': [
