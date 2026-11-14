@@ -14,8 +14,8 @@ github.com/FacileStudio/porte/forfait v0.1.3 h1:ft4hXPAnl94Qd4tlw2LZwsMkeL9Q+1le
 github.com/FacileStudio/porte/forfait v0.1.3/go.mod h1:btapO7oJF+BXqIgKERI5faQKwXb62TrXwZY92SBTSck=
 github.com/FacileStudio/porte/mcpauth v0.3.0 h1:pK8USFnBD7rKQZCtWhEUuB1Agw7hQqaQQ/AlpeX3iRg=
 github.com/FacileStudio/porte/mcpauth v0.3.0/go.mod h1:UIrBsdJse74IlVBY8zGOLdSrSVWQd8046Y6xckwdFOY=
-github.com/FacileStudio/tronc v0.23.0 h1:6TO4X2NbkQiUA044Wo5ufDO7Iy58WwfI2zVofMIufRU=
-github.com/FacileStudio/tronc v0.23.0/go.mod h1:QK95x1/GhEQmTuJTS3zX2Ah6J9brEC9NCBQmXf0e8iw=
+github.com/FacileStudio/tronc v0.23.1 h1:4NFhOLj0rq3v8WSDTmMT4mzyWpt439IgA2KZvXrQH2Y=
+github.com/FacileStudio/tronc v0.23.1/go.mod h1:QK95x1/GhEQmTuJTS3zX2Ah6J9brEC9NCBQmXf0e8iw=
 github.com/FacileStudio/tronc/migrate v0.1.1 h1:igN2WKLkJoMRNlIKM4WmC6+f56PerigQFMgjVCPWxw4=
 github.com/FacileStudio/tronc/migrate v0.1.1/go.mod h1:NxBfBpCpM2x6t/d8uqNKEiKWo1zgPRZ1JAK3Qxfl35c=
 github.com/Microsoft/go-winio v0.6.2 h1:F2VQgta7ecxGYO8k3ZZz3RS8fVIXVxONVUPlNERoyfY=
