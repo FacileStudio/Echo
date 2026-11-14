@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.10.3] - 2026-11-14
+
+### Changed
+
+- Signed-out page copy: the tagline reads "Lancez une visio en un lien." (FR, EN, ES, DE), the page gets a real title and meta description, and one muted line under "Continuer avec Facile" says calls are end-to-end encrypted, that Pro adds recording, transcription and Bulle's meeting notes, and links to the suite pricing. Layout and components are unchanged.
+
 ## [2.10.2] - 2026-11-14
 
 ### Fixed
