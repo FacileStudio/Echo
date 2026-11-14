@@ -6,6 +6,7 @@
 	import { formatDateTime } from '$lib/format';
 	import { t } from '$lib/i18n/index.svelte';
 	import { answerPending, clientName, fetchPending, type PendingAction } from '$lib/pending';
+	import { isOwnSessionRefusal } from '$lib/refusal';
 	import { loadSession } from '$lib/session.svelte';
 
 	let actions = $state<PendingAction[]>([]);
@@ -34,7 +35,7 @@
 			actions = await fetchPending();
 		} catch (e) {
 			if (e instanceof ApiError && e.status === 401) denied = true;
-			else if (e instanceof ApiError && e.status === 403) notOwnSession = true;
+			else if (isOwnSessionRefusal(e)) notOwnSession = true;
 			else error = e instanceof Error ? e.message : String(e);
 		}
 		loaded = true;
@@ -49,7 +50,7 @@
 			actions = actions.filter((item) => item.id !== action.id);
 			notice = choice === 'confirm' ? t('pending.deleted') : t('pending.dismissed');
 		} catch (e) {
-			if (e instanceof ApiError && e.status === 403) notOwnSession = true;
+			if (isOwnSessionRefusal(e)) notOwnSession = true;
 			else {
 				error = e instanceof Error ? e.message : String(e);
 				await load();

@@ -50,20 +50,36 @@ export async function requestToken(
 export class ApiError extends Error {
 	constructor(
 		message: string,
-		public status: number
+		public status: number,
+		public code = ''
 	) {
 		super(message);
 	}
 }
 
-export async function apiErrorMessage(res: Response): Promise<string> {
+/** Reads the message and code of a failed response's {"error":{"code","message"}} body; empty when absent. */
+async function readEnvelope(res: Response): Promise<{ message: string; code: string }> {
 	try {
-		const body = (await res.json()) as { error?: unknown };
-		const message = typeof body.error === 'string' ? body.error : (body.error as { message?: unknown } | undefined)?.message;
-		return typeof message === 'string' && message ? message : t('api.failed', { status: res.status });
+		const error = ((await res.json()) as { error?: unknown } | null)?.error;
+		if (typeof error === 'string') return { message: error, code: '' };
+		const fields = (error ?? {}) as { message?: unknown; code?: unknown };
+		return {
+			message: typeof fields.message === 'string' ? fields.message : '',
+			code: typeof fields.code === 'string' ? fields.code : ''
+		};
 	} catch {
-		return t('api.failed', { status: res.status });
+		return { message: '', code: '' };
 	}
+}
+
+export async function apiErrorMessage(res: Response): Promise<string> {
+	return (await readEnvelope(res)).message || t('api.failed', { status: res.status });
+}
+
+/** Builds the ApiError for a failed response, keeping the API's error code. */
+export async function apiError(res: Response): Promise<ApiError> {
+	const { message, code } = await readEnvelope(res);
+	return new ApiError(message || t('api.failed', { status: res.status }), res.status, code);
 }
 
 export type CallId = string | number;
@@ -100,7 +116,7 @@ export interface CallDetail extends CallListItem {
 
 export async function getJSON<T>(path: string): Promise<T> {
 	const res = await fetch(`${API_BASE}${path}`, { credentials: 'include' });
-	if (!res.ok) throw new ApiError(await apiErrorMessage(res), res.status);
+	if (!res.ok) throw await apiError(res);
 	return (await res.json()) as T;
 }
 
