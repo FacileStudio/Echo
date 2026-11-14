@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.10.0] - 2026-11-14
+
+### Breaking
+
+- Config: `ANTHROPIC_API_KEY` and `ANTHROPIC_MODEL` are gone. Meeting summaries go through Bulle and need `BULLE_URL` (compose default `https://bulle.facile.studio`), OIDC and a Registre `token_exchange` grant for Echo to audience `bulle` (scopes `bulle.read bulle.write`). Without them summaries answer 503.
+
+### Changed
+
+- Summaries: Echo calls Bulle `POST /api/ai/complete` through `tronc/bulle` as the room owner, with a token `porte/exchange` gets from Registre. The transcript travels in `input`, never in the prompt. Up to 56 KiB is one call; a longer transcript is noted in up to 3 parallel parts, then combined; past 168 KiB the oldest lines are cut and the model is told. At most 4 calls per summary.
+- Summaries: Bulle's 402 becomes the existing `ai.access` plan refusal. Its burst 429 says "try again in a minute", its daily cap says "try again tomorrow". `summaries.model` stores the model Bulle reports.
+- MCP: the confirm page accepts only the person's own browser session (`mcpauth.RequireOwnSession`); CLI sessions and bearer tokens get 403, and the page explains how to sign in again. `echo_share_recording` is marked destructive.
+- MCP: `mcpkit` helpers (`StateKey`, `AccountExists`, `KeepPruned`, `Offset`/`Cursor`, `Outcome.Message`, `Failure`) replace Echo's own copies. Signed questions stay valid.
+- Deploy: compose drops the swarm-only `deploy.update_config` and `deploy.restart_policy` blocks; services keep `restart: unless-stopped`.
+- build: tronc v0.23.1 (MCP action dedupe matches the OAuth client), porte v0.20.0, porte/mcpauth v0.3.0, porte/forfait v0.1.3, Go 1.26.11 pinned in `mise.toml`.
+
 ## [2.9.4] - 2026-11-14
 
 ### Added
