@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.10.2] - 2026-11-14
+
+### Fixed
+
+- The MCP confirm page asks you to sign in again only for porte's own-session refusal. Any other 403, such as losing access to the room after the agent asked, now shows the server's message.
+
 ## [2.10.1] - 2026-11-14
 
 ### Security
