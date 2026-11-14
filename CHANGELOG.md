@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.10.1] - 2026-11-14
+
+### Security
+
+- Browser session mark fix: porte v0.20.1 and porte/mcpauth v0.3.1. porte v0.20.0 marked browser sessions with a `b-` prefix that about 1 in 4096 plain CLI or API tokens also started with, so such a token sent as a cookie could pass the MCP confirm page's own-session check. The mark is now `b~`, which a plain token never contains. Sign in once more before confirming an MCP action.
+
 ## [2.10.0] - 2026-11-14
 
 ### Breaking
