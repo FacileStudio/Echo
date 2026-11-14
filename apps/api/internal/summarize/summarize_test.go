@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	stderrors "errors"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/FacileStudio/porte/exchange"
 	"github.com/FacileStudio/porte/forfait"
+	troncbulle "github.com/FacileStudio/tronc/bulle"
 	troncerrors "github.com/FacileStudio/tronc/errors"
 )
 
@@ -32,9 +34,9 @@ func (fakeTokens) Forget(int64, exchange.Target) {}
 
 type fakeBulle struct {
 	mu       sync.Mutex
-	requests []completeRequest
+	requests []troncbulle.CompleteRequest
 	bodies   []int
-	answer   func(completeRequest) (int, string)
+	answer   func(troncbulle.CompleteRequest) (int, string)
 }
 
 func (f *fakeBulle) serve(t *testing.T) *Summarizer {
@@ -54,7 +56,7 @@ func (f *fakeBulle) handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	raw, err := io.ReadAll(r.Body)
-	var body completeRequest
+	var body troncbulle.CompleteRequest
 	decoder := json.NewDecoder(bytes.NewReader(raw))
 	decoder.DisallowUnknownFields()
 	if err == nil {
@@ -82,7 +84,7 @@ func answerText(text string) (int, string) {
 }
 
 func TestShortTranscriptIsOneCallAsTheOwner(t *testing.T) {
-	bulle := &fakeBulle{answer: func(completeRequest) (int, string) { return answerText("résumé") }}
+	bulle := &fakeBulle{answer: func(troncbulle.CompleteRequest) (int, string) { return answerText("résumé") }}
 	s := bulle.serve(t)
 
 	text, model, err := s.Summarize(t.Context(), owner, "Alice: bonjour\nBob: décision prise\n")
@@ -105,7 +107,7 @@ func TestShortTranscriptIsOneCallAsTheOwner(t *testing.T) {
 }
 
 func TestLongTranscriptIsNotedInPartsThenCombined(t *testing.T) {
-	bulle := &fakeBulle{answer: func(body completeRequest) (int, string) {
+	bulle := &fakeBulle{answer: func(body troncbulle.CompleteRequest) (int, string) {
 		if strings.HasPrefix(body.Prompt, "Voici la partie") {
 			return answerText(strings.Repeat("note ", 5000))
 		}
@@ -136,7 +138,7 @@ func TestLongTranscriptIsNotedInPartsThenCombined(t *testing.T) {
 }
 
 func TestBullePlanRefusalIsEchoPlanError(t *testing.T) {
-	bulle := &fakeBulle{answer: func(completeRequest) (int, string) {
+	bulle := &fakeBulle{answer: func(troncbulle.CompleteRequest) (int, string) {
 		return http.StatusPaymentRequired, `{"error":{"code":"payment_required","message":"AI needs a paid plan","upgrade_url":"https://sso.facile.studio/spaces","key":"ai.access"}}`
 	}}
 	s := bulle.serve(t)
@@ -171,5 +173,66 @@ func TestNilSummarizerIsUnavailable(t *testing.T) {
 	var known *troncerrors.Error
 	if !stderrors.As(err, &known) || known.Code != "unavailable" {
 		t.Fatalf("Summarize = %v, want an unavailable envelope", err)
+	}
+}
+
+func TestBulleTooManyNamesTheDailyCapOrTheBurst(t *testing.T) {
+	cases := map[string]struct {
+		payload string
+		want    string
+	}{
+		"daily cap": {`{"error":{"code":"rate_limited","message":"at most 200 completions per day; more tomorrow"}}`, "tomorrow"},
+		"burst":     {"rate limit exceeded", "in a minute"},
+	}
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) { assertTooMany(t, c.payload, c.want) })
+	}
+}
+
+func assertTooMany(t *testing.T, payload, want string) {
+	t.Helper()
+	bulle := &fakeBulle{answer: func(troncbulle.CompleteRequest) (int, string) {
+		return http.StatusTooManyRequests, payload
+	}}
+	_, _, err := bulle.serve(t).Summarize(t.Context(), owner, "Alice: bonjour\n")
+	var known *troncerrors.Error
+	if !stderrors.As(err, &known) || known.Code != "rate_limited" || !strings.Contains(known.Message, want) {
+		t.Fatalf("Summarize = %v, want a rate_limited error saying %q", err, want)
+	}
+}
+
+func firstFailsOthersWait(release <-chan struct{}) func(troncbulle.CompleteRequest) (int, string) {
+	var mu sync.Mutex
+	failed := false
+	return func(troncbulle.CompleteRequest) (int, string) {
+		mu.Lock()
+		first := !failed
+		failed = true
+		mu.Unlock()
+		if first {
+			return http.StatusBadRequest, `{"error":{"code":"invalid_argument","message":"no"}}`
+		}
+		<-release
+		return answerText("note")
+	}
+}
+
+func TestOneFailedPartLogsOnce(t *testing.T) {
+	release := make(chan struct{})
+	bulle := &fakeBulle{answer: firstFailsOthersWait(release)}
+	var logs bytes.Buffer
+	server := httptest.NewServer(http.HandlerFunc(bulle.handle))
+	t.Cleanup(server.Close)
+	t.Cleanup(func() { close(release) })
+	s, err := New(server.URL, fakeTokens{}, slog.New(slog.NewTextHandler(&logs, nil)))
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+
+	if _, _, err := s.Summarize(t.Context(), owner, strings.Repeat("Alice: un long échange\n", 6000)); err == nil {
+		t.Fatal("Summarize succeeded, want the failed part's error")
+	}
+	if n := strings.Count(logs.String(), "bulle call failed"); n != 1 {
+		t.Fatalf("%d warnings for one failure, want one:\n%s", n, logs.String())
 	}
 }

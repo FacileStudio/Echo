@@ -102,9 +102,9 @@ func migrateDatabase(ctx context.Context, db *gorm.DB, log *slog.Logger) (handle
 
 // summaryWriteBudget is what one route is allowed to spend writing its
 // response. It has to clear the summarizer's two Bulle rounds (notes, then
-// the summary, 2 min each) with room to spare: the server's 30s WriteTimeout
-// used to kill a slow summary as a network error for the owner, after the row
-// was committed and the model billed.
+// the summary, 90 s each) plus one retry after a 401: the server's 30s
+// WriteTimeout used to kill a slow summary as a network error for the owner,
+// after the row was committed and the model billed.
 const summaryWriteBudget = 5 * time.Minute
 
 // recordingWriteBudget is what streaming one recording may take. A meeting
