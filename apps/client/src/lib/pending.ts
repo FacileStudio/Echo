@@ -1,4 +1,4 @@
-import { API_BASE, ApiError, apiErrorMessage, getJSON } from './api';
+import { API_BASE, apiError, getJSON } from './api';
 
 export interface PendingRoom {
 	slug: string;
@@ -30,7 +30,7 @@ export async function answerPending(id: string, answer: 'confirm' | 'dismiss'): 
 		headers: { 'X-Facile-CSRF': '1' },
 		credentials: 'include'
 	});
-	if (!res.ok) throw new ApiError(await apiErrorMessage(res), res.status);
+	if (!res.ok) throw await apiError(res);
 }
 
 /** Names the client that asked: Bulle, the host of a client URL, else its id. */
