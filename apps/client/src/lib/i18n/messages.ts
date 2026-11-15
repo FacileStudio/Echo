@@ -119,6 +119,7 @@ const rows = {
 	'call.share': ['Share screen', 'Partager l’écran', 'Compartir pantalla', 'Bildschirm freigeben'],
 	'call.hideChat': ['Hide chat', 'Masquer le chat', 'Ocultar el chat', 'Chat ausblenden'],
 	'call.showChat': ['Show chat', 'Afficher le chat', 'Mostrar el chat', 'Chat anzeigen'],
+	'call.showChatUnread': ['Show chat, {count} new', 'Afficher le chat, {count} nouveaux', 'Mostrar el chat, {count} nuevos', 'Chat anzeigen, {count} neu'],
 	'call.leave': ['Leave', 'Quitter', 'Salir', 'Verlassen'],
 
 	'header.people': [
@@ -149,6 +150,12 @@ const rows = {
 	'chat.label': ['Chat message', 'Message du chat', 'Mensaje del chat', 'Chatnachricht'],
 	'chat.send': ['Send', 'Envoyer', 'Enviar', 'Senden'],
 	'chat.unknown': ['Unknown', 'Inconnu', 'Desconocido', 'Unbekannt'],
+	'chat.title': ['Chat', 'Chat', 'Chat', 'Chat'],
+	'chat.close': ['Close chat', 'Fermer le chat', 'Cerrar el chat', 'Chat schließen'],
+	'chat.you': ['You', 'Vous', 'Tú', 'Du'],
+	'tile.focus': ['Focus {name}', 'Mettre {name} en avant', 'Destacar a {name}', '{name} hervorheben'],
+	'tile.unfocus': ['Back to the grid', 'Revenir à la grille', 'Volver a la cuadrícula', 'Zurück zum Raster'],
+	'tile.unpin': ['Unpin', 'Détacher', 'Desfijar', 'Lösen'],
 
 	'tile.yourScreen': ['Your screen', 'Votre écran', 'Tu pantalla', 'Dein Bildschirm'],
 	'tile.screenOf': ['{name}’s screen', 'Écran de {name}', 'Pantalla de {name}', 'Bildschirm von {name}'],
