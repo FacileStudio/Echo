@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.12.0] - 2026-11-16
+
+### Added
+
+- Calls are published to the Antenne pool as `call.started`, `call.updated` (a signed-in person joined) and `call.ended`, each an antenne-client v1.2.0 `envelope.Event[envelope.Call]` with the room, start and end times, a link to the call page and the signed-in participants' emails. Guests and integration rooms are never published. Each event is written to the new `antenne_outbox` table in the same transaction as the call change, then sent to the pool.
+- Config: `ANTENNE_URL`, `ANTENNE_SECRET` and `ANTENNE_INSTANCE_ID` turn publishing on, and `PUBLIC_URL` (compose default `https://echo.facile.studio`) is the origin the call link uses. Without `ANTENNE_URL` Echo publishes nothing.
+
 ## [2.11.0] - 2026-11-16
 
 ### Added
