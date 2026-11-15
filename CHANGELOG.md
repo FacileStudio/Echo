@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.11.0] - 2026-11-16
+
+### Added
+
+- Click any camera or screen share to put it in focus. Click it again, press Unpin or press Escape to return to the grid. A new screen share takes the stage, and a pin falls back when its participant leaves.
+- Chat on phones: the chat button now shows below 768 px and opens a full-screen sheet. The button counts unread messages while chat is closed.
+
+### Changed
+
+- Chat box: messages from one person are grouped under their name and time, the text sits in its own bubble, and your own messages read "You".
+
+### Fixed
+
+- Guests could not send chat messages: their LiveKit grant denied data publishing, so nobody received them.
+
 ## [2.10.3] - 2026-11-14
 
 ### Changed
