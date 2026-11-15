@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/FacileStudio/Echo/apps/api/internal/bus"
 	"github.com/FacileStudio/Echo/apps/api/schemas"
 	"github.com/livekit/protocol/auth"
 	"github.com/livekit/protocol/livekit"
@@ -22,6 +23,7 @@ type Webhooks struct {
 	keys      auth.KeyProvider
 	now       func() time.Time
 	notifiers []Notifier
+	outbox    *bus.Outbox
 }
 
 // Notifier hears every event Echo has recorded, after its transaction
@@ -34,6 +36,13 @@ type Notifier interface {
 // already added.
 func (w *Webhooks) NotifyWith(n Notifier) *Webhooks {
 	w.notifiers = append(w.notifiers, n)
+	return w
+}
+
+// PublishWith queues every call start, signed-in join and end on outbox, in
+// the transaction that records it. A nil outbox publishes nothing.
+func (w *Webhooks) PublishWith(outbox *bus.Outbox) *Webhooks {
+	w.outbox = outbox
 	return w
 }
 
@@ -56,11 +65,11 @@ func (w *Webhooks) dispatch(ctx context.Context, event *livekit.WebhookEvent) er
 	return w.orm.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		switch event.GetEvent() {
 		case eventRoomStarted:
-			return roomStarted(tx, event.GetRoom(), at)
+			return roomStarted(tx, w.outbox, event.GetRoom(), at)
 		case eventRoomFinished:
-			return roomFinished(tx, event.GetRoom(), at)
+			return roomFinished(tx, w.outbox, event.GetRoom(), at)
 		case eventParticipantJoined:
-			return participantJoined(tx, event.GetRoom(), event.GetParticipant(), at)
+			return participantJoined(tx, w.outbox, event, at)
 		case eventParticipantLeft:
 			return participantLeft(tx, event.GetRoom(), event.GetParticipant(), at)
 		case eventEgressEnded:

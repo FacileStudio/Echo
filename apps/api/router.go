@@ -70,6 +70,11 @@ func buildServer(shutdown context.Context, cfg env.Config, db *gorm.DB, log *slo
 	if err != nil {
 		return nil, fmt.Errorf("plans: %w", err)
 	}
+	outbox, drains, err := setupPublishing(cfg, db, log)
+	if err != nil {
+		return nil, fmt.Errorf("pool: %w", err)
+	}
+	planning.limiter.PublishWith(outbox)
 	clientDir := spa.DirFromEnv()
 	router := newRouter(cfg, clientDir, log)
 	deps := apiDeps{db: db, cfg: cfg, auth: authKit, media: mediaService, keys: integrations.NewKeys(cfg.IntegrationKeys)}
@@ -88,6 +93,7 @@ func buildServer(shutdown context.Context, cfg env.Config, db *gorm.DB, log *slo
 		return nil, fmt.Errorf("mcp: %w", err)
 	}
 	webhooks.New(db, troncenv.String("LIVEKIT_API_KEY", ""), mediaService.Secret()).
+		PublishWith(outbox).
 		NotifyWith(forwarder).
 		NotifyWith(planning.limiter).
 		NotifyWith(deps.rooms).
@@ -100,6 +106,7 @@ func buildServer(shutdown context.Context, cfg env.Config, db *gorm.DB, log *slo
 		deps.capturing.Run,
 		deps.mcp.Run,
 	}}
+	s.background = append(s.background, drains...)
 	if erasure := authKit.erasure; erasure != nil {
 		deletions.RegisterRoutes(router, erasure)
 		s.background = append(s.background, erasure.Run)

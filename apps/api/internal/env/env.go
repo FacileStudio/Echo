@@ -1,11 +1,14 @@
 package env
 
 import (
+	"errors"
 	"fmt"
 	"net/netip"
 	"os"
 	"strings"
 
+	antenne "github.com/FacileStudio/antenne-client/go"
+	"github.com/FacileStudio/antenne-client/go/envelope"
 	"github.com/FacileStudio/porte"
 	troncenv "github.com/FacileStudio/tronc/env"
 )
@@ -38,6 +41,14 @@ type Config struct {
 	// BulleURL is BULLE_URL, Bulle's origin. AI summaries go through it as
 	// the room owner; empty, or with OIDC off, summaries answer 503.
 	BulleURL string
+
+	// Antenne is the pool connection from ANTENNE_URL, ANTENNE_SECRET,
+	// ANTENNE_INSTANCE_ID and ANTENNE_APP. nil, with no ANTENNE_URL, turns
+	// call publishing off.
+	Antenne *antenne.Config
+	// PublicURL is PUBLIC_URL, Echo's origin, which the published call link
+	// is built on. Empty leaves the link out.
+	PublicURL string
 }
 
 // defaultTrustedProxies is what an unset TRUSTED_PROXIES means here.
@@ -85,6 +96,10 @@ func Load() (Config, error) {
 	cfg.RecordingsDir = troncenv.String("RECORDINGS_DIR", "/recordings")
 	cfg.MCPResource = strings.TrimSpace(troncenv.String("MCP_RESOURCE", ""))
 	cfg.BulleURL = strings.TrimSpace(troncenv.String("BULLE_URL", ""))
+	cfg.PublicURL = strings.TrimSpace(troncenv.String("PUBLIC_URL", ""))
+	if cfg.Antenne, err = antenneFromEnv(); err != nil {
+		return Config{}, err
+	}
 	if err := cfg.Porte.Validate(); err != nil {
 		return Config{}, err
 	}
@@ -107,4 +122,14 @@ func (cfg *Config) loadServiceSecrets() error {
 	cfg.IntegrationKeys, cfg.EmbedOrigins = keys, origins
 	cfg.TrustedProxies, err = trustedProxies()
 	return err
+}
+
+// antenneFromEnv reads the optional Antenne pool settings. No URL is nil, the
+// pool off; a URL without a secret fails boot.
+func antenneFromEnv() (*antenne.Config, error) {
+	cfg, err := antenne.ConfigFromEnv(string(envelope.AppEcho))
+	if errors.Is(err, antenne.ErrNotConfigured) {
+		return nil, nil
+	}
+	return cfg, err
 }

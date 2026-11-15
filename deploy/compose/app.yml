@@ -45,6 +45,10 @@ services:
       OIDC_REDIRECT_URL: ${OIDC_REDIRECT_URL:-}
       OIDC_SUCCESS_URL: ${OIDC_SUCCESS_URL:-}
       MCP_RESOURCE: ${MCP_RESOURCE:-https://echo.facile.studio/mcp}
+      PUBLIC_URL: ${PUBLIC_URL:-https://echo.facile.studio}
+      ANTENNE_URL: ${ANTENNE_URL:-}
+      ANTENNE_SECRET: ${ANTENNE_SECRET:-}
+      ANTENNE_INSTANCE_ID: ${ANTENNE_INSTANCE_ID:-}
       # Hops whose X-Forwarded-For is believed: Traefik's private network and
       # Cloudflare's edge. The join rate limit additionally reads
       # Cf-Connecting-Ip when Traefik forwarded a request from a Cloudflare edge.

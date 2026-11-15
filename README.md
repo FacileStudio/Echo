@@ -88,6 +88,10 @@ The API reads these on top of the tronc core variables (`PORT`, `DATABASE_URL`, 
 | `RECORDINGS_DIR` | no | `/recordings` | Directory the recordings volume is mounted at. Browser recordings are written here, so it must be writable; empty disables recording |
 | `ECHO_INTEGRATION_KEYS` | no | empty | `app:secret` pairs, comma-separated, for the integration API; empty refuses every app |
 | `ECHO_EMBED_ORIGINS` | no | empty | Origins allowed to frame `/embed/{room}`, comma-separated; empty allows none |
+| `ANTENNE_URL` | no | empty | Antenne origin. Set, Echo publishes `call.started`, `call.updated` and `call.ended` to the pool; empty publishes nothing |
+| `ANTENNE_SECRET` | with `ANTENNE_URL` | empty | The suite's shared pool secret; a URL without it fails boot |
+| `ANTENNE_INSTANCE_ID` | no | empty | Instance name Echo registers with on the pool |
+| `PUBLIC_URL` | no | empty | Echo's origin; published calls link to `<PUBLIC_URL>/calls/<id>`. Empty leaves the link out |
 | `MCP_RESOURCE` | no | empty | Canonical URI of the MCP endpoint, `https://echo.facile.studio/mcp` in production. Set with `OIDC_*` to serve `/mcp`; empty leaves it unmounted |
 | `TRUSTED_PROXIES` | no | `private,cloudflare` | Hops whose `X-Forwarded-For` is believed: CIDR blocks, addresses, the names `private` and `cloudflare` (tronc's published Cloudflare edge ranges), or `none`. echo.facile.studio sits behind Cloudflare and Traefik. Production's Traefik replaces Cloudflare's `X-Forwarded-For` with the edge address alone, so the join rate limit reads `Cf-Connecting-Ip` only when the peer is private and the rightmost `X-Forwarded-For` hop is a Cloudflare edge; otherwise it keys on the address this setting resolves |
 

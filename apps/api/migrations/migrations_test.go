@@ -7,6 +7,7 @@ import (
 
 	"github.com/FacileStudio/Echo/apps/api/internal/testdb"
 	"github.com/FacileStudio/Echo/apps/api/migrations"
+	"github.com/FacileStudio/antenne-client/go/outbox"
 	"gorm.io/gorm"
 )
 
@@ -52,8 +53,8 @@ func baselineUp(t *testing.T) string {
 
 func assertCurrent(t *testing.T, db *gorm.DB) {
 	t.Helper()
-	if got := appliedVersions(t, db); len(got) != 2 || got[0] != 1 || got[1] != 2 {
-		t.Fatalf("applied versions %v, want [1 2]", got)
+	if got := appliedVersions(t, db); len(got) != 3 || got[0] != 1 || got[1] != 2 || got[2] != 3 {
+		t.Fatalf("applied versions %v, want [1 2 3]", got)
 	}
 	if got := columnDefault(t, db, "users", "created_at"); got != "now()" {
 		t.Fatalf("users.created_at default %q, want now()", got)
@@ -117,5 +118,17 @@ func assertStampsLegacy(t *testing.T, ledger string) {
 	}
 	if kept.Name != "Ada" || kept.Locale != "fr" {
 		t.Fatalf("the existing row changed: %+v", kept)
+	}
+}
+
+// 00003 is antenne-client's outbox migration byte for byte, so the table is
+// the one the drainer queries.
+func TestOutboxMigrationIsTheLibrarys(t *testing.T) {
+	raw, err := fs.ReadFile(migrations.FS, "00003_antenne_outbox.sql")
+	if err != nil {
+		t.Fatalf("read 00003: %v", err)
+	}
+	if string(raw) != outbox.Migration {
+		t.Fatal("00003_antenne_outbox.sql differs from outbox.Migration; copy the library's migration again")
 	}
 }

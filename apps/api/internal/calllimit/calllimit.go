@@ -16,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/FacileStudio/Echo/apps/api/internal/bus"
 	"github.com/FacileStudio/Echo/apps/api/internal/media"
 	"github.com/FacileStudio/Echo/apps/api/internal/plans"
 	"github.com/FacileStudio/Echo/apps/api/schemas"
@@ -57,6 +58,7 @@ type Limiter struct {
 	armed     map[string]armed
 	cuts      map[string]time.Time
 	notifiers []Notifier
+	outbox    *bus.Outbox
 }
 
 type armed struct {

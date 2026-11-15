@@ -31,17 +31,19 @@ var base = time.Date(2026, 8, 24, 10, 0, 0, 0, time.UTC)
 // entirely in the gap between the wire format and the Go types, so a test
 // that skips the wire proves nothing.
 type harness struct {
-	t      *testing.T
-	router chi.Router
-	db     *gorm.DB
+	t        *testing.T
+	router   chi.Router
+	db       *gorm.DB
+	webhooks *Webhooks
 }
 
 func newHarness(t *testing.T) *harness {
 	t.Helper()
 	db := testdb.Migrated(t)
 	router := chi.NewRouter()
-	New(db, testKey, testSecret).RegisterRoutes(router)
-	return &harness{t: t, router: router, db: db}
+	webhooks := New(db, testKey, testSecret)
+	webhooks.RegisterRoutes(router)
+	return &harness{t: t, router: router, db: db, webhooks: webhooks}
 }
 
 // encode renders the event the way livekit-server does, with protojson.

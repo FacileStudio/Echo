@@ -44,8 +44,11 @@ remove borders (the speaking tile keeps its border). Changes here are functional
 - Other suite apps run calls through `/api/integrations/*` (per-app bearer secret from
   `ECHO_INTEGRATION_KEYS`) and frame `/embed/{room}`; integration rooms refuse the public guest
   token route. Contract and decisions: `docs/integrations.md`
-- Room events flow to Nook via enveloppe (`call.started`, `call.ended`,
-  `participant.joined`), keyed on `actor_email`
+- Call events go to the Antenne pool (`internal/bus`, `internal/pool`): `call.started`, `call.updated`
+  (a signed-in person joined) and `call.ended`, each an `envelope.Event[envelope.Call]` carrying
+  the whole call with signed-in participants' emails only. The row is written to `antenne_outbox`
+  in the webhook or reconcile transaction that records the change; integration rooms publish
+  nothing. No `ANTENNE_URL` means a nil outbox and no publishing
 
 ## Conventions that apply here
 

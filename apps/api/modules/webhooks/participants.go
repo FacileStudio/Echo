@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/FacileStudio/Echo/apps/api/internal/bus"
 	"github.com/FacileStudio/Echo/apps/api/schemas"
 	"github.com/livekit/protocol/livekit"
 	"gorm.io/gorm"
@@ -15,9 +16,11 @@ import (
 //
 // The call is resolved by sid and not by "still open" on purpose: LiveKit
 // routinely delivers a trailing participant event after room_finished, and
-// dropping it loses an attendee from the record entirely.
-func participantJoined(db *gorm.DB, room *livekit.Room, who *livekit.ParticipantInfo, at time.Time) error {
-	call, err := callBySID(db, room.GetSid())
+// dropping it loses an attendee from the record entirely. A signed-in
+// attendee's first seat queues call.updated; a rejoin changes no one.
+func participantJoined(db *gorm.DB, out *bus.Outbox, event *livekit.WebhookEvent, at time.Time) error {
+	who := event.GetParticipant()
+	call, err := callBySID(db, event.GetRoom().GetSid())
 	if err != nil || call == nil || who.GetIdentity() == "" {
 		return err
 	}
@@ -28,14 +31,18 @@ func participantJoined(db *gorm.DB, room *livekit.Room, who *livekit.Participant
 	var existing schemas.CallParticipant
 	err = db.Where("call_id = ? AND identity = ?", call.ID, who.GetIdentity()).First(&existing).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return db.Create(&schemas.CallParticipant{
+		seat := schemas.CallParticipant{
 			CallID:   call.ID,
 			Identity: who.GetIdentity(),
 			UserID:   accountOf(who.GetIdentity()),
 			SID:      who.GetSid(),
 			Name:     who.GetName(),
 			JoinedAt: joined,
-		}).Error
+		}
+		if err := db.Create(&seat).Error; err != nil || seat.UserID == nil {
+			return err
+		}
+		return out.Joined(db, call.ID, *seat.UserID)
 	}
 	if err != nil {
 		return err

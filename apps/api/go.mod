@@ -3,6 +3,7 @@ module github.com/FacileStudio/Echo/apps/api
 go 1.26.11
 
 require (
+	github.com/FacileStudio/antenne-client/go v1.2.0
 	github.com/FacileStudio/porte v0.20.1
 	github.com/FacileStudio/porte/directory v0.5.0
 	github.com/FacileStudio/porte/forfait v0.1.3
@@ -45,6 +46,7 @@ require (
 	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
 	github.com/google/cel-go v0.30.0 // indirect
+	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.8 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
@@ -86,7 +88,6 @@ require (
 	github.com/prometheus/procfs v0.21.1 // indirect
 	github.com/puzpuzpuz/xsync/v4 v4.5.0 // indirect
 	github.com/redis/go-redis/v9 v9.20.0 // indirect
-	github.com/rogpeppe/go-internal v1.15.0 // indirect
 	github.com/sethvargo/go-retry v0.4.0 // indirect
 	github.com/twitchtv/twirp v8.1.3+incompatible // indirect
 	github.com/wlynxg/anet v0.0.5 // indirect

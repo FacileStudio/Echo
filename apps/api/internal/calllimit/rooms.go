@@ -114,14 +114,7 @@ func (l *Limiter) closeStale(ctx context.Context, rooms []media.LiveRoom) error 
 	for _, call := range stale {
 		ids = append(ids, call.ID)
 	}
-	err = l.orm.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		err := tx.Model(&schemas.CallParticipant{}).
-			Where("left_at IS NULL AND call_id IN ?", ids).Update("left_at", now).Error
-		if err != nil {
-			return err
-		}
-		return tx.Model(&schemas.Call{}).Where("id IN ? AND ended_at IS NULL", ids).Update("ended_at", now).Error
-	})
+	err = l.orm.WithContext(ctx).Transaction(func(tx *gorm.DB) error { return l.closeCalls(tx, ids, now) })
 	if err == nil {
 		l.reportFinished(ctx, endedRooms(stale, rooms), now)
 	}
