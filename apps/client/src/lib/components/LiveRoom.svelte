@@ -1,22 +1,23 @@
 <script lang="ts">
 	import { Room, RoomEvent, type LocalParticipant, type RemoteParticipant } from 'livekit-client';
 	import { MediaQuery } from 'svelte/reactivity';
-	import gsap from 'gsap';
-	import { Alert, prefersReducedMotion } from '@facile/muse';
+	import { Alert } from '@facile/muse';
 	import { t } from '$lib/i18n/index.svelte';
 	import { parseChat } from '$lib/roomData';
 	import { bindRemoteAudio } from '$lib/roomAudio';
-	import { canShareScreen, setScreenShare } from '$lib/screenShare';
+	import { canShareScreen, isSharing, setScreenShare } from '$lib/screenShare';
 	import { connectEncrypted, decryptError, encryption, isE2EESupported } from '$lib/e2ee';
 	import ParticipantTile from './ParticipantTile.svelte';
 	import Stage from './Stage.svelte';
 	import RoomHeader from './RoomHeader.svelte';
 	import AudioPrompt from './AudioPrompt.svelte';
 	import ControlsBar from './ControlsBar.svelte';
-	import ChatPanel, { type ChatMessage } from './ChatPanel.svelte';
+	import ChatDock from './ChatDock.svelte';
+	import type { ChatMessage } from './ChatPanel.svelte';
 	import CallCountdown from './CallCountdown.svelte';
 	import CaptureBanner from './CaptureBanner.svelte';
 	import { CaptureSession } from '$lib/captureSession.svelte';
+	import { FocusState } from '$lib/focusState.svelte';
 
 	interface Props {
 		url: string;
@@ -51,7 +52,10 @@
 	let micOn = $state(false);
 	let camOn = $state(false);
 	let screenOn = $state(false);
-	let chatOpen = $state(true);
+	const wide = new MediaQuery('min-width: 768px');
+	let chatOpen = $state(wide.current);
+	let unread = $state(0);
+	let selfId = $state('');
 	let version = $state(0);
 	let audioBlocked = $state(false);
 	let messages = $state<ChatMessage[]>([]);
@@ -66,37 +70,22 @@
 	const encoder = new TextEncoder();
 	const decoder = new TextDecoder();
 
-	let asideEl: HTMLElement | undefined = $state();
-	let asideShown = false;
-
-	$effect(() => {
-		const open = chatOpen;
-
-		if (!asideEl)
-			return;
-
-		const instant = !asideShown || prefersReducedMotion();
-
-		asideShown = true;
-		gsap.to(asideEl, {
-			width: open ? 'auto' : 0,
-			opacity: open ? 1 : 0,
-			x: open ? 0 : 24,
-			duration: instant ? 0 : 0.45,
-			ease: 'power3.inOut',
-		});
-	});
-
-	const wide = new MediaQuery('min-width: 768px');
 	const selfAside = $derived(chatOpen && wide.current && participants.length > 1);
 	const tiles = $derived(selfAside ? participants.filter((p) => !p.isLocal) : participants);
 	const self = $derived(participants.find((p) => p.isLocal));
+	const stage = new FocusState(() => {
+		void version;
+		return participants.map((p) => ({ identity: p.identity, isLocal: p.isLocal, sharing: isSharing(p) }));
+	});
+
+	$effect(() => stage.sync());
 
 	function refresh() {
 		if (!room)
 			return;
 
 		version++;
+		selfId = room.localParticipant.identity;
 		participants = [room.localParticipant, ...Array.from(room.remoteParticipants.values())];
 		capture?.reconcile();
 		micOn = room.localParticipant.isMicrophoneEnabled;
@@ -107,7 +96,9 @@
 
 	function handleData(payload: Uint8Array<ArrayBuffer>, from?: RemoteParticipant) {
 		const message = parseChat(decoder.decode(payload), from?.name ?? from?.identity);
-		if (message) messages = [...messages, message];
+		if (!message) return;
+		messages = [...messages, message];
+		if (!chatOpen) unread++;
 	}
 
 	function sendChat(text: string) {
@@ -190,6 +181,8 @@
 	});
 </script>
 
+<svelte:window onkeydown={(e) => e.key === 'Escape' && (chatOpen && !wide.current ? (chatOpen = false) : stage.unpin())} />
+
 {#if !supported}
 	<main class="flex min-h-dvh items-center justify-center px-4">
 		<Alert tone="danger" title={t('live.browserTitle')}>{t('live.browserBody')}</Alert>
@@ -218,16 +211,15 @@
 	{/if}
 
 	<div class="flex min-h-0 flex-1 pl-4 pr-1">
-		<Stage {participants} {tiles} {version} />
+		<Stage {participants} {tiles} {version} focus={stage.focus} onselect={(f) => stage.select(f)} onunpin={() => stage.unpin()} />
 
-		<aside bind:this={asideEl} class="hidden shrink-0 overflow-hidden md:block" aria-hidden={!chatOpen} inert={!chatOpen}>
-			<div class="flex h-full w-81 flex-col gap-1 pl-1">
+		<ChatDock open={chatOpen} wide={wide.current} {messages} {selfId} onSend={sendChat} onClose={() => (chatOpen = false)}>
+			{#snippet top()}
 				{#if selfAside && self}
-					<ParticipantTile participant={self} isLocal {version} />
+					<ParticipantTile participant={self} isLocal {version} onselect={() => stage.select({ identity: self.identity, source: 'camera' })} />
 				{/if}
-				<ChatPanel {messages} open={chatOpen} onSend={sendChat} />
-			</div>
-		</aside>
+			{/snippet}
+		</ChatDock>
 	</div>
 
 	<footer class="flex justify-center pt-1 pb-1">
@@ -236,13 +228,14 @@
 			{camOn}
 			{screenOn}
 			{chatOpen}
+			{unread}
 			{encrypted}
 			canShare={canShareScreen()}
 			{capture}
 			onToggleMic={toggleMic}
 			onToggleCam={toggleCam}
 			onToggleScreen={toggleScreen}
-			onToggleChat={() => (chatOpen = !chatOpen)}
+			onToggleChat={() => ((chatOpen = !chatOpen), (unread = 0))}
 			onLeave={leave}
 		/>
 	</footer>

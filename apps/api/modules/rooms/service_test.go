@@ -155,3 +155,12 @@ func TestSignedInTokenCarriesTheSessionNameAndPicture(t *testing.T) {
 		t.Fatalf("name = %q, want the account name before email and typed names", got)
 	}
 }
+
+func TestGuestsCanSendChat(t *testing.T) {
+	if !guestGrant.CanPublishData {
+		t.Fatal("guests must publish data, or LiveKit drops every chat message they send")
+	}
+	if guestGrant.RoomAdmin {
+		t.Fatal("guests must never get room admin")
+	}
+}

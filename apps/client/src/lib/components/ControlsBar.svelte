@@ -10,6 +10,7 @@
 		camOn: boolean;
 		screenOn: boolean;
 		chatOpen: boolean;
+		unread?: number;
 		encrypted: boolean;
 		canShare: boolean;
 		capture?: CaptureSession | null;
@@ -25,6 +26,7 @@
 		camOn,
 		screenOn,
 		chatOpen,
+		unread = 0,
 		encrypted,
 		canShare,
 		capture = null,
@@ -108,12 +110,17 @@
 
 	<IconButton
 		variant="ghost"
-		class="hidden md:inline-flex {chatOpen ? 'fc-selected' : ''}"
-		aria-label={chatOpen ? t('call.hideChat') : t('call.showChat')}
+		class="relative {chatOpen ? 'fc-selected' : ''}"
+		aria-label={chatOpen ? t('call.hideChat') : unread > 0 ? t('call.showChatUnread', { count: unread }) : t('call.showChat')}
 		aria-pressed={chatOpen}
 		onclick={onToggleChat}
 	>
 		<Icon icon={callIcons.chat} />
+		{#if unread > 0 && !chatOpen}
+			<span class="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-fc-brand px-1 text-fc-subtext text-fc-bg" aria-hidden="true">
+				{unread > 9 ? '9+' : unread}
+			</span>
+		{/if}
 	</IconButton>
 
 	<Button variant="danger" size="lg" class="gap-2.5" onclick={onLeave}><Icon icon={callIcons.leave} />{t('call.leave')}</Button>

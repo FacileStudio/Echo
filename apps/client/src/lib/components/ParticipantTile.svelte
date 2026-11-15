@@ -9,9 +9,12 @@
 		isLocal?: boolean;
 		screen?: boolean;
 		version: number;
+		focused?: boolean;
+		onselect?: () => void;
+		onunpin?: () => void;
 	}
 
-	let { participant, isLocal = false, screen = false, version }: Props = $props();
+	let { participant, isLocal = false, screen = false, version, focused = false, onselect, onunpin }: Props = $props();
 
 	let videoEl: HTMLVideoElement | undefined = $state();
 
@@ -66,12 +69,18 @@
 	});
 </script>
 
-<div
+<div class={cn('group relative isolate', screen || focused ? 'size-full' : 'aspect-video')}>
+<button
+	type="button"
 	class={cn(
-		'relative isolate overflow-hidden rounded-fc border border-transparent bg-fc-surface',
-		screen ? 'size-full' : 'aspect-video',
+		'relative block size-full overflow-hidden rounded-fc border border-transparent bg-fc-surface text-left',
+		onselect ? 'cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-brand' : 'cursor-default',
 		speaking && !screen && 'border-1 border-fc-brand'
 	)}
+	aria-pressed={onselect ? focused : undefined}
+	aria-label={onselect ? (focused ? t('tile.unfocus', { name: label }) : t('tile.focus', { name: label })) : label}
+	disabled={!onselect}
+	onclick={onselect}
 >
 	{#if camera}
 		<video
@@ -79,7 +88,7 @@
 			autoplay
 			playsinline
 			muted={isLocal}
-			class={cn('size-full rounded-fc', screen ? 'object-contain' : 'object-cover', isLocal && !screen && '-scale-x-100')}
+			class={cn('size-full rounded-fc', screen || focused ? 'object-contain' : 'object-cover', isLocal && !screen && '-scale-x-100')}
 		></video>
 	{:else}
 		<div class="flex size-full items-center justify-center">
@@ -99,4 +108,14 @@
 		{/if}
 		<span class="truncate text-fc-subtext text-fc-ink">{label}</span>
 	</div>
+</button>
+	{#if focused && onunpin}
+		<button
+			type="button"
+			class="absolute top-2 right-2 flex items-center gap-1 rounded-fc bg-fc-scrim px-2 py-1 text-fc-subtext text-fc-ink hover:bg-fc-surface-hover focus-visible:outline-2 focus-visible:outline-fc-brand"
+			onclick={onunpin}
+		>
+			<Icon icon={callIcons.close} size={14} />{t('tile.unpin')}
+		</button>
+	{/if}
 </div>
