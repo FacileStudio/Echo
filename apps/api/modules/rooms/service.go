@@ -184,7 +184,7 @@ var moderatorGrant = media.Grant{
 
 var guestGrant = media.Grant{
 	CanPublish:     true,
-	CanPublishData: false,
+	CanPublishData: true,
 	CanSubscribe:   true,
 	RoomAdmin:      false,
 }
