@@ -10,7 +10,7 @@
 				if (/^\/(room|embed)\//.test(location.pathname)) return;
 				var s = document.createElement('script');
 				s.async = true;
-				s.src = 'https://vision.facile.studio/s.js';
+				s.src = '/vision-tracker.js';
 				s.setAttribute('data-mask', '');
 				s.setAttribute('data-exclude', '/room/,/embed/');
 				document.head.appendChild(s);

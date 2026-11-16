@@ -54,7 +54,7 @@ func TestCallsKeepCameraMicrophoneAndTheLiveKitSocket(t *testing.T) {
 		}
 	}
 	csp := header.Get("Content-Security-Policy-Report-Only")
-	for _, want := range []string{"wss://echo-live.facile.studio", "https://echo-live.facile.studio", "'sha256-abc'", "https://vision.facile.studio"} {
+	for _, want := range []string{"wss://echo-live.facile.studio", "https://echo-live.facile.studio", "'sha256-abc'"} {
 		if !strings.Contains(csp, want) {
 			t.Fatalf("CSP %q lacks %q", csp, want)
 		}
@@ -67,6 +67,16 @@ func TestThePolicyLetsTheRecognizerRunItsWorkerAndWebAssembly(t *testing.T) {
 	for _, want := range []string{"worker-src 'self' blob:", "'wasm-unsafe-eval'", "blob:"} {
 		if !strings.Contains(policy, want) {
 			t.Fatalf("policy %q lacks %q", policy, want)
+		}
+	}
+}
+
+func TestScriptSrcNamesNoVisionOrigin(t *testing.T) {
+	header := headersFor(t, nil, "/room/standup")
+	policy := header.Get("Content-Security-Policy") + header.Get("Content-Security-Policy-Report-Only")
+	for _, directive := range strings.Split(policy, ";") {
+		if strings.Contains(strings.TrimSpace(directive), "script-src") && strings.Contains(directive, "vision.facile.studio") {
+			t.Fatalf("script-src names Vision: %q", directive)
 		}
 	}
 }
