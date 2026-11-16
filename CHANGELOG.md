@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.12.1] - 2026-11-16
+
+### Security
+
+- The Vision tracker is served from Echo's own origin as a pinned copy (`/vision-tracker.js`) instead of loading `https://vision.facile.studio/s.js`, and the Content-Security-Policy `script-src` no longer allows the Vision origin. A script from another app can no longer run inside a signed-in Echo page.
+
 ## [2.12.0] - 2026-11-16
 
 ### Added
